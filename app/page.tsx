@@ -96,6 +96,9 @@ export default function Page() {
   const [sourceImg, setSourceImg] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const autoRan = useRef(false);
+  const autoScroll = useRef(false);
+  const resultsRef = useRef<HTMLElement>(null);
   const mine = useMineProducts();
   const cart = useCart();
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -209,6 +212,10 @@ export default function Page() {
       if (typeof j.studioImage === "string") setStudio(j.studioImage);
       const count = list.length;
       if (count) toast.success(ar ? `تم إنشاء ${count} إعلان كامل` : `${count} full listings created`);
+      if (autoScroll.current && count) {
+        autoScroll.current = false;
+        setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+      }
       recordRun(performance.now() - t0, count);
       if (j.live && (body.imageMode ?? "both") !== "real" && list[0]) enrichMedia(list[0]);
     } catch (e) { setError(String(e)); } finally { setLoading(false); }
@@ -216,6 +223,18 @@ export default function Page() {
 
   const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   const runDemo = () => { setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado"); postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency }); };
+  // Auto-run the demo once per page load so visitors see a real result
+  // immediately — no click needed. Guarded by ref: fires exactly once.
+  useEffect(() => {
+    if (autoRan.current) return;
+    autoRan.current = true;
+    autoScroll.current = true;
+    let langPref: Lang = "en";
+    try { const s = localStorage.getItem("souk-lens-lang"); if (s === "ar" || s === "en") langPref = s; } catch { /* ignore */ }
+    setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado");
+    postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: langPref === "ar" ? "ar-EG" : "en", country: country.code, currency: country.currency });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function handleJudgeAction(a: JudgeAction) {
     if (a === "demo") runDemo();
     else if (a === "smart") setTab("smart");
@@ -500,7 +519,7 @@ export default function Page() {
 
         {/* Results (all create tabs share this) */}
         {tab !== "mine" && tab !== "smart" ? (
-          <section className="mt-6 space-y-4">
+          <section ref={resultsRef} className="mt-6 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-black">{ar ? "النتيجة" : "Result"}</h2>
               <Badge variant={live ? "success" : "secondary"}>{live ? t("live", lang) : t("mock", lang)}</Badge>

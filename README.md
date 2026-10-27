@@ -83,7 +83,7 @@ npm run dev            # http://localhost:3000
 - Deploy-ready with `vercel.json` + `.env.example` (any Node 20 host; set `MODEL_API_KEY` for Live mode).
 
 ## 90-second demo
-1. Hit **"One-click demo"** in the hero — analyzes a real photo with the full pipeline.
+1. The demo **runs automatically on page open** (replay anytime with **"One-click demo"** in the hero) — analyzes a real photo with the full pipeline.
 2. Show the **SAM 3.1 map**: colored boxes on the photo; tap any item to open its listing (real SAM boxes, honestly labeled "estimated demo positions" when absent).
 3. Show the **model trace**: per-model time (SAM → Spark → Image) and Live status from `api.meta.ai/v1`.
 4. Drag the **before/after slider**: from market shot to Muse Image studio shot.
