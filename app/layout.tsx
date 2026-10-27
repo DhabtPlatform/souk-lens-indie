@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${tajawal.variable} ${cairo.variable} ${inter.variable}`}>
+    <html lang="en" dir="ltr" suppressHydrationWarning className={`${tajawal.variable} ${cairo.variable} ${inter.variable}`}>
       <body>
         {children}
         <Toaster richColors position="top-center" toastOptions={{ style: { fontFamily: "inherit" } }} />

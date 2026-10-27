@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       if (f instanceof File) {
         const buf = Buffer.from(await f.arrayBuffer());
         if (buf.length > 32 * 1024 * 1024) return NextResponse.json({ error: "audio too large (32MB max)" }, { status: 413 });
-        if (!hasKey()) note = "MOCK: ضع MODEL_API_KEY للتحويل الصوتي الحقيقي — اكتب الوصف يدويا.";
+        if (!hasKey()) note = "Demo mode: set MODEL_API_KEY for real voice transcription — or type the description manually. وضع تجريبي: اكتب الوصف يدويًا.";
         else {
           try {
             const tr = (await transcribeAudio(buf, f.name || "voice.wav")) as { transcript?: string; turns?: { transcript?: string }[] };

@@ -45,7 +45,7 @@ export function JudgesMode({ open, onOpenChange, lang, onAction, hasResults }: {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-2xl"><Trophy className="text-[#ffd166]" />{ar ? "وضع الحكام — جولة 90 ثانية" : "Judges mode — 90-second tour"}</SheetTitle>
+          <SheetTitle className="flex items-center gap-2 text-2xl"><Trophy className="text-[#ffd166]" />{ar ? "جولة 90 ثانية" : "Guided 90-second tour"}</SheetTitle>
           <SheetDescription>{ar ? "سكريبت عرض حي خطوة بخطوة: قول الجملة، نفّذ الحركة، وعدّاد بيحافظ على وقتك. ومعاه إجابات الأسئلة الصعبة وخطة بديلة." : "A step-by-step live pitch script: say the line, run the action, a timer keeps your pace. Plus tough-question answers and a fallback plan."}</SheetDescription>
         </SheetHeader>
 

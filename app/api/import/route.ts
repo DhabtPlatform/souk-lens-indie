@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         { name_ar: "منتج مستورد 2", name_en: "Imported product 2", price: 750, currency, source: storeUrl },
       ];
       const products = normalizeProducts(raws as Record<string, unknown>[], { source: { type: "import", url: storeUrl }, country, currency });
-      return NextResponse.json({ ok: true, live: false, meta, products, items: products, note: "MOCK: ضع MODEL_API_KEY للاستيراد الذكي الكامل." });
+      return NextResponse.json({ ok: true, live: false, meta, products, items: products, note: "Demo mode: set MODEL_API_KEY for full AI-powered import — وضع تجريبي: أضف المفتاح للاستيراد الكامل." });
     }
 
     const seed = ldRaws.length ? `Real products found in page JSON-LD (use these first, enrich missing fields): ${JSON.stringify(ldRaws).slice(0, 2500)}` : "No JSON-LD products found — infer representative catalog from store title/description and images.";

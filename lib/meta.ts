@@ -103,7 +103,7 @@ export async function listingFromText(desc: string, country = "EG", currency = "
           category: "General", category_ar: "عام", brand: "—",
           condition: "new",
           price: 450, compareAtPrice: 550, costPrice: 300,
-          currency, stock: 12, sku: "SL-MOCK-01",
+          currency, stock: 12, sku: "SL-DEMO-01",
           description_ar: desc.slice(0, 220),
           description_en: desc.slice(0, 220),
           shortDescription_ar: desc.slice(0, 110),

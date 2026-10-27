@@ -1,85 +1,99 @@
 # Souk Lens — عدسة السوق (Indie submission)
 
 > **Souk Lens is NOT an image analyzer — it is a complete informal-market commerce platform.**
-> صوّر فرشة → **SAM 3.1** يعزل القطع على خريطة تفاعلية → **Muse Spark 1.3** يسعّر محليًا ويبني
-> منتجًا كاملًا (متغيرات/مخزون/مواصفات/SEO) → **Muse Image 1.0** ينضّف صورة الستوديو →
-> حفظ وإدارة وتقارير ربح → **مزاد/بث/حملة** → **سوق ذكي** يجمع الشراء كله في 3 قوائم
-> وفاتورة مبدئية → سلة ودفع. التحليل البصري خطوة واحدة من 6.
+> Snap a stall → **SAM 3.1** isolates every item on an interactive map → **Muse Spark 1.3**
+> prices locally and builds a complete product (variants / stock / specs / SEO) →
+> **Muse Image 1.0** cleans the studio shot → save, manage and profit reports →
+> **auction / live / campaign** → **Smart Market** bundles the whole purchase into 3 lists
+> with a preliminary invoice → cart and checkout. Visual analysis is one step out of six.
 
 ## Built during the hackathon (Oct 26 – Nov 4)
-كل ما يعرضه الديمو اتبنى خلال فترة الهاكاثون على هذا الريبو العلني:
-- الـ Pipeline الكامل (SAM 3.1 + Muse Spark 1.3 + Muse Image 1.0 + Voice) عبر `https://api.meta.ai/v1`
-- خريطة SAM التفاعلية + سلايدر قبل/بعد + شريط إثبات الموديلات بالأزمنة المقاسة
-- السوق الذكي (بحث موحد + 3 قوائم + نقل بين القوائم + اعتماد + فاتورة + سلة)
-- إدارة المنتجات: تقارير مبيعات/تكاليف/ربح + قنوات بيع (مزاد بمحاكاة حية/بث/حملة)
-- الهوية العالمية v2 + دعم RTL/LTR + وضع الحكام 90 ثانية
-- الديمو يعرض فقط هذه المزايا المبنية خلال الفترة — لا كود أو أصول خارجية غير الموثقة في `ATTRIBUTION.md`.
+Everything the demo shows was built during the event in this public repo:
+- The full pipeline (SAM 3.1 + Muse Spark 1.3 + Muse Image 1.0 + Voice) via `https://api.meta.ai/v1`
+- Interactive SAM map + before/after slider + model proof bar with measured timings
+- Smart Market (unified search + 3 lists + move between lists + approve + invoice + cart)
+- Product management: sales/cost/profit reports + selling channels (auction with live simulation / live / campaign)
+- Global brand v2 + RTL/LTR support + 90-second guided tour
+- The demo shows only these features built during the period — no outside code or assets beyond what `ATTRIBUTION.md` documents.
 
 ## Brand (v2 — global)
-الشعار: «عدسة وجدت الجوهرة» — قوس سوق داخل حلقة عدسة + نقطة اكتشاف ذهبية (`public/logo.svg`، ونسخ أفقية عربي/إنجليزي ومونو في `public/brand/`، ومكوّن `components/brand/logo.tsx` في الهيدر). الشعار العالمي: **See it. Sell it. Anywhere.**
-الاتجاه: AR=RTL بتاجوال/القاهرة، EN=LTR بـInter — المحاذاة والأسهم والسلايدرات والمفاتيح تتبع الاتجاه المنطقي، الأسعار تتبع لغة الواجهة، واللغة/الدولة محفوظتان محليًا. الهوية الكاملة: صفحة `/brand`.
+The mark: "a lens that found the gem" — a souk arch inside a lens ring + a gold discovery dot
+(`public/logo.svg`, AR/EN horizontal and mono versions in `public/brand/`, `components/brand/logo.tsx` in the header).
+Global tagline: **See it. Sell it. Anywhere.**
+Direction: AR = RTL with Tajawal/Cairo, EN = LTR with Inter — alignment, arrows, sliders, switches and prices
+all follow the UI language (saved locally). Full identity: `/brand` page.
 
 ## Pipelines (all LIVE verified)
 | Tab | Input | Models |
 |---|---|---|
-| تحليل صورة | صورة/رابط/فيديو مصغر | SAM 3.1 + Spark 1.3 + Image 1.0 |
-| توليد من وصف | نص فقط | Spark 1.3 + Image 1.0 |
-| مقارنة رابط | رابط منتج خارجي | fetch og-tags + Spark + web_search |
-| إعلان بالصوت | تسجيل مايك / نص | Voice Transcribe + Spark 1.3 |
-| نقل متجر | رابط متجر قديم | fetch + Spark bulk items |
-| السوق الذكي | «عاوز اشتري…» + اقتراحات جاهزة | بحث كامل المتجر + Spark intent — 3 قوائم (قيمة/تقييم/توصيل)، نقل بين القوائم، اعتماد، فاتورة مبدئية، سلة دفع |
-| منتجاتي | حفظ محلي | localStorage — إضافة من أي نتيجة |
+| Analyze image | Photo / URL | SAM 3.1 + Spark 1.3 + Image 1.0 |
+| Generate from text | Text only | Spark 1.3 + Image 1.0 |
+| Compare URL | External product link | fetch og-tags + Spark + web_search |
+| Voice listing | Mic recording / text | Voice transcribe + Spark 1.3 |
+| Import store | Old store link | fetch + Spark bulk items |
+| Smart Market | "I want to buy…" + ready presets | Whole-store search + Spark intent — 3 lists (value/rating/delivery), move between lists, approve, preliminary invoice, cart checkout |
+| My products | Local save | localStorage — add from any result |
 
-## حفظ كامل + بحث بكل الطرق
-أي نتيجة (صورة SAM، صوت، وصف، رابط مقارنة، نقل متجر) بتتحول عبر `lib/product.ts:normalizeProduct` لمنتج كامل: اسم عربي/إنجليزي، وصف، أسعار + قبل الخصم + تكلفة، متغيرات بأسعار ومخزون، مواصفات، مميزات، صور (أصلية + ستوديو)، مخزون، SKU، شحن/ضمان وSEO — وبيتخزن في «منتجاتي» (`souk-lens-products-v2`) بكل ده، مع تفاصيل قابلة للتعديل ونسخ إعلان وتصدير JSON وإضافة للسلة.
+## Full listings from every input
+Any result (SAM photo, voice, text, compare link, store import) is normalized via
+`lib/product.ts:normalizeProduct` into a complete product: AR/EN names, descriptions,
+price + compare-at + cost, priced variants with stock, specs, features, images
+(original + studio), stock, SKU, shipping/warranty and SEO — stored in full in
+"My products" (`souk-lens-products-v2`), with editable details, ad copy, JSON export and add-to-cart.
 
-## إدارة المنتجات (تقارير + قنوات بيع)
-في «منتجاتي»: لوحة تقارير (`components/products/seller-dashboard.tsx` + `lib/analytics.ts`) — إيراد، تكاليف، صافي ربح وهامش، قيمة مخزون وربح متوقع، الأعلى ربحًا، وتعديل تكلفة/مبيعات كل منتج. وكل منتج يتحول لقناة بيع: **سعر ثابت / مزاد** (بداية + أعلى مزايدة + عدد مزايدات + انتهاء) / **بيع بالبث** (منصة + معاد + مشاهدين) / **حملة خارجية** (قناة + ميزانية + وصول/نقرات/طلبات) — وبيانات القناة بتظهر في كارت المنتج وتفاصيله وبتتحفظ معاه.
+## Product management (reports + selling channels)
+In "My products": a reports dashboard (`components/products/seller-dashboard.tsx` + `lib/analytics.ts`) —
+revenue, costs, net profit and margin, inventory value and expected profit, top by profit,
+and per-product cost/sales editing. Every product converts to a selling channel:
+**fixed / auction** (start + top bid + bid count + ending) / **live sale**
+(platform + schedule + viewers) / **external campaign** (channel + budget + reach/clicks/orders) —
+channel data shows on the card and details and is saved with the product.
 
-## الفكرة في سطر
-**منصة تجارة للأسواق غير الرسمية — وليست محلل صور.** صوّر فرشة سوق عشوائية →
-**SAM 3.1** يعزل القطع → **Muse Spark 1.3** يتعرّف ويسعّر بالمصري ويكتب إعلانًا كاملًا →
-**Muse Image 1.0** ينضّف صورة المنتج → حفظ وإدارة وربح ومزاد وسوق ذكي ودفع.
+## The idea in one line
+**A commerce platform for informal markets — not an image analyzer.** Snap a messy stall →
+**SAM 3.1** isolates items → **Muse Spark 1.3** identifies, prices locally and writes a full listing →
+**Muse Image 1.0** cleans the product shot → save, manage, profit, auction, smart market, checkout.
 
-## لماذا تنافس؟
-- تستخدم 3 موديلات Meta معا في pipeline واحد، مش شات بسيط مكرر.
-- ثيم `Build for Your World`: تجار الأسواق غير الرسمية + بائعون أميون + 15 لغة.
-- تعمل فورا حتى بدون مفتاح (mock)، ومع `MODEL_API_KEY` تعمل LIVE.
-- ريبو منفصل 100% عن مشروع الضبط الأصلي — لا كشف للـ IP.
+## Why it competes
+- Uses 3 Meta models together in one pipeline — not a repetitive simple chatbot.
+- `Build for Your World` theme: informal-market sellers, including sellers with limited digital literacy, AR/EN + RTL/LTR.
+- Works instantly even without a key (honest demo mode), and goes LIVE with `MODEL_API_KEY`.
+- Standalone repo built for this submission.
 
-## التشغيل
+## Run
 ```bash
 npm install
-cp .env.example .env   # ضع MODEL_API_KEY من https://dev.meta.ai
+cp .env.example .env   # set MODEL_API_KEY from https://dev.meta.ai
 npm run dev            # http://localhost:3000
 ```
 
-## وضع الحكام والأثر (داخل التطبيق)
-- زر **«وضع الحكام 90 ثانية»** في الهيرو: سكريبت عرض بعدّاد وخطوات قابلة للتنفيذ داخل التطبيق + إجابات الأسئلة الصعبة + خطة بديلة (نفس السكريبت في `DEMO_SCRIPT.md`).
-- **شريط الأثر**: زمن التشغيل مقاس فعليًا من آخر تشغيلة (SAM/Spark/Image بالمللي ثانية) مقابل زمن يدوي موسوم كتقدير للتوضيح — من غير أرقام مخترعة.
-- **قصة بائع توضيحية** موسومة كسيناريو عرض (مش شهادة مدفوعة) بتلخص الرحلة: فرشة → SAM → إعلان → بيع.
-- النشر: جاهز بـ `vercel.json` + `.env.example`، والخطوات والتحقق في `DEMO_SCRIPT.md` (النشر الفعلي محتاج حساب المضيف ومفتاحك).
+## Guided tour & impact (in-app)
+- The **"Guided 90-second tour"** hero button: a timed pitch script with in-app actions + tough-question answers + fallback plan (same script in `DEMO_SCRIPT.md`).
+- **Impact strip**: pipeline time measured from the last real run (SAM/Spark/Image in ms) vs. a manual time labeled as a market estimate — no invented numbers.
+- **Illustrative seller story** labeled as a demo scenario (not a paid testimonial): stall → SAM → listing → sale.
+- Deploy-ready with `vercel.json` + `.env.example`; steps and checks in `DEMO_SCRIPT.md`.
 
-## الديمو للتحكيم (90 ثانية)
-1. اضغط **«ديمو بضغطة واحدة»** في الهيرو — بيحلل صورة حقيقية بالـPipeline الكامل.
-2. اعرض **خريطة SAM 3.1**: مربعات ملوّنة على الصورة، واضغط أي قطعة لفتح إعلانها (المواضع الحقيقية من SAM، ولو غابت بتتوسم «تقديرية للعرض» بصراحة).
-3. اعرض **Model Trace**: زمن كل موديل (SAM → Spark → Image) وحالة Live من `api.meta.ai/v1`.
-4. مرّر **سلايدر قبل/بعد**: من صورة السوق لصورة ستوديو Muse Image.
-5. احفظ المنتج → افتح «منتجاتي»: تقرير الربح، وحوّله **مزاد** وشغّل «محاكاة مزايدة حية».
-6. اقلب للـ**سوق الذكي**: «تجهيز عروسين» → 3 قوائم (بيبحث في كتالوج المتجر التجريبي + منتجاتك المحفوظة الحقيقية مع وسم مصدر كل منتج) → انقل منتج بين القوائم → اعتمد → فاتورة مبدئية → سلة ودفع.
+## 90-second demo
+1. Hit **"One-click demo"** in the hero — analyzes a real photo with the full pipeline.
+2. Show the **SAM 3.1 map**: colored boxes on the photo; tap any item to open its listing (real SAM boxes, honestly labeled "estimated demo positions" when absent).
+3. Show the **model trace**: per-model time (SAM → Spark → Image) and Live status from `api.meta.ai/v1`.
+4. Drag the **before/after slider**: from market shot to Muse Image studio shot.
+5. Save the product → open "My products": profit report, convert to **auction**, run the live bid simulation.
+6. Switch to **Smart Market**: "furnish a wedding" → 3 lists (demo store catalog + your real saved products, each labeled by source) → move an item between lists → approve → preliminary invoice → cart checkout.
 
-## الشفافية (نقطة قوة عند الحكام)- كتالوج السوق الذكي وأرقام مبيعات لوحة البائع **بيانات تجريبية موسومة كده في الواجهة** وقابلة للتعديل بأرقام حقيقية — البنية (Product كامل + Ranker + فواتير) هي المنتج الحقيقي.
-- المزاد/البث/الحملة: تفعيل وجدولة قناة بيع محفوظة مع المنتج + محاكاة مزايدة حية للعرض، والدفع محاكاة هاكثون.
+## Transparency (a strength with judges)
+- The Smart Market catalog and seller-dashboard sales figures are **demo data labeled as such in the UI** and editable with real numbers — the product is the architecture (full Product + ranker + invoices).
+- Auction/live/campaign: selling-channel activation saved with the product + live bid simulation for the demo; payment is a hackathon demo checkout.
 
-## مصادر الأصول (Attribution)
-- صور الكتالوج التجريبي (25 صورة): **Unsplash** بترخيص مجاني — موسومة في الواجهة نفسها وموثقة في `ATTRIBUTION.md`، وتُستبدل بصور البائعين في الإنتاج.
-- صور الهوية مولدة بـ **Muse Image 1.0**، والشعار تصميم أصلي، والخطوط مفتوحة (OFL) — التفاصيل في `ATTRIBUTION.md`.
+## Asset sources (Attribution)
+- Demo catalog photos (25): **Unsplash** under a free license — labeled in the UI and documented in `ATTRIBUTION.md`; replaced by real seller photos in production.
+- Brand imagery generated with **Muse Image 1.0**, original logo, open fonts (OFL) — see `ATTRIBUTION.md`.
 
-## ملفات تثبت استخدام Meta
-- `lib/meta.ts` — استدعاءات `/responses` و `/images/generations`
-- `app/api/lens/route.ts` — الـ pipeline المجمع
+## Files proving Meta usage
+- `lib/meta.ts` — `/responses` and `/images/generations` calls
+- `app/api/lens/route.ts` — the combined pipeline
 - Base URL: `https://api.meta.ai/v1` — models: `sam-3.1`, `muse-spark-1.3`, `muse-image-1.0`
 
-## ما لم يُبنَ بعد (بصراحة للتحكيم)
-- Voice transcribe للهجة المصرية (الكود جاهز للإضافة عبر `POST /v1/asr/transcribe`).
-- Tracking فيديو عبر SAM للبث الحي.
+## Not built yet (honest with judges)
+- Egyptian-dialect voice transcription (wired for `POST /v1/asr/transcribe`).
+- SAM video tracking for live selling.

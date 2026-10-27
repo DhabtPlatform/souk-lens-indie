@@ -48,7 +48,7 @@ const MOBILE_TABS: { key: TabKey; icon: React.ReactNode }[] = [
 ];
 
 export default function Page() {
-  const [lang, setLang] = useState<Lang>("ar");
+  const [lang, setLang] = useState<Lang>("en");
   const [tab, setTab] = useState<TabKey>("analyze");
   const [country, setCountry] = useState<Country>(COUNTRIES[0]);
   const [imageUrl, setImageUrl] = useState(SAMPLE);
@@ -214,7 +214,7 @@ export default function Page() {
               {ar ? "صورة، صوت، وصف، رابط منتج، أو متجر كامل — النتيجة دايما منتج محفوظ بكل تفاصيله: صور، أسعار، متغيرات، مواصفات، مخزون وSEO. والسوق الذكي يجمع لك الشراء كله في قوائم وفاتورة واحدة." : "A photo, voice note, description, product link, or a whole store — the result is always a saved product with images, prices, variants, specs, stock and SEO. Smart Market bundles your whole purchase into lists and one invoice."}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button size="lg" variant="gold" onClick={() => setJudgesOpen(true)}><Trophy />{ar ? "وضع الحكام 90 ثانية" : "Judges mode · 90s"}</Button>
+              <Button size="lg" variant="gold" onClick={() => setJudgesOpen(true)}><Trophy />{ar ? "جولة 90 ثانية" : "Guided 90-second tour"}</Button>
               <Button size="lg" variant="gold" onClick={runDemo} disabled={loading}><Sparkles />{ar ? "ديمو بضغطة واحدة" : "One-click demo"}</Button>
               <Button size="lg" variant="accent" onClick={() => setTab("smart")}><Bot />{ar ? "جرّب السوق الذكي" : "Try Smart Market"}</Button>
               <Button size="lg" variant="outline" className="glass text-white hover:text-white" onClick={() => setTab("analyze")}><Camera />{ar ? "حلّل صورة سوق" : "Analyze a photo"}</Button>

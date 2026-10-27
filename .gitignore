@@ -20,3 +20,6 @@ Thumbs.db
 
 # opencode sessions
 .local/
+
+# Personal session automation — local only, never public
+AGENTS.md

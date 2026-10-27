@@ -1,33 +1,37 @@
-# Souk Lens — سكريبت العرض وخطة النشر (للحكام)
+# Souk Lens — pitch script & deploy plan (for the team)
 
-## النشر العام (اعمله قبل التقديم — محتاج حسابك انت)
+> Video rule: screen footage must be the real app. Voiceover may be AI or human.
+> Open the video with this line, verbatim: "Souk Lens is not an image analyzer —
+> it's a complete market platform for informal markets: from a stall photo to listing,
+> auction, smart market and payment."
+
+## Public deploy (do before submitting — needs your own host account)
 ```bash
-npm i -g vercel        # أو استخدم vercel.com/new واستورد المشروع
-vercel env add MODEL_API_KEY production   # مفتاح https://dev.meta.ai
+npm i -g vercel        # or use vercel.com/new and import the project
+vercel env add MODEL_API_KEY production   # key from https://dev.meta.ai
 vercel --prod
 ```
-بديل: أي استضافة Node 20 (Render/Railway) بـ `npm run build && npm run start`.
-تحقق بعد النشر: افتح الرابط العام → «ديمو بضغطة واحدة» → لازم شريط الإثبات يقول LIVE.
-من غير المفتاح بيشتغل Demo بنفس الشكل — وده مكتوب بصراحة في الواجهة.
+Alternative: any Node 20 host (Render/Railway) with `npm run build && npm run start`.
+Verify after deploy: open the public URL → "One-click demo" → the proof bar must say LIVE.
+Without a key it runs the same pipeline in labeled Demo mode.
 
-## سكريبت 90 ثانية (نفس «وضع الحكام» داخل التطبيق)
-> **افتح الفيديو بهذه الجملة حرفيًا:** «Souk Lens مش محلل صور — دي منصة سوق كاملة للأسواق غير الرسمية: من صورة فرشة لإعلان ومزاد وسوق ذكي ودفع.»
-| الوقت | قول | اعمل |
+## 90-second script (mirrors the in-app guided tour)
+| Time | Say | Do |
 |---|---|---|
-| 0–10 | الجملة الافتتاحية فوق + «أي فرشة سوق في العالم تتحول لمتجر بيبيع — بصورة واحدة.» | افتح الهيرو |
-| 10–35 | SAM يعزل، Spark يسعّر ويكتب، Muse Image ينضّف — والأزمنة قدامكم | «ديمو بضغطة واحدة» ثم اضغط قطعة على خريطة SAM واسحب سلايدر قبل/بعد |
-| 35–50 | الإعلان اتخزن كامل، وتقرير الربح والمزاد الحي | «وضع الحكام» خطوة الحفظ → منتجاتي → مزاد → محاكاة حية |
-| 50–75 | المشتري بيطلب، والوكيل بيجمع ويقرر عنه | السوق الذكي: تجهيز عروسين → انقل منتج → اعتمد → فاتورة |
-| 75–90 | من فاتورة لسلة لدفع. 3 موديلات Meta لسوق محدش بيخدمه | افتح السلة وأكد الطلب |
+| 0–10 | Opening line above + "Any market stall on Earth becomes a selling store — from one photo." | Open the hero |
+| 10–35 | SAM isolates, Spark prices and writes, Muse Image cleans — timings on screen | "One-click demo", tap an item on the SAM map, drag the before/after slider |
+| 35–50 | The listing saved in full; profit report and live auction | Tour step Save → My products → auction → live simulation |
+| 50–75 | The buyer asks, the agent bundles and decides | Smart Market: furnish a wedding → move item → approve → invoice |
+| 75–90 | From invoice to cart to payment. Three Meta models for a market nobody serves | Open the cart and confirm |
 
-## الخطة البديلة
-- شبكة وقعت: كمل بنفس الخطوات، الوضع Demo موسوم بصراحة — الشفافية نقطة قوة مش عذر.
-- جهاز وقع: اطبع الصفحة دي + لقطات من `/brand`، واشرح الـPipeline من شريط الإثبات المحفوظ في اللقطات.
-- سؤال «الفرق عن ChatGPT؟»: Pipeline بصري (SAM) + منتج كامل بمتغيرات ومخزون + حفظ وبيع ومزاد وسوق ذكي — مش رد محادثة.
-- سؤال «الداتا حقيقية؟»: الكتالوج والمبيعات موسومة تجريبية؛ المقاس والحقيقي: أزمنة الموديلات والإعلانات Live ومنتجاتك المحفوظة.
+## Fallback plan
+- Network dies: continue the same steps — the pipeline runs in labeled Demo mode. Transparency is a strength, not an excuse.
+- Machine dies: print this page + shots from `/brand`, and walk the pipeline from a saved proof-bar screenshot.
+- "How is this different from ChatGPT?": visual pipeline (SAM) + full product with variants and stock + save/sell/auction/smart market — not a chat reply.
+- "Is the data real?": catalog and sales are labeled demo; measured and real: model timings, Live listings, your saved products.
 
-## قبل ما تطلع على المسرح
-- [ ] الرابط العام شغال والمفتاح مضبوط (LIVE ظاهر)
-- [ ] تجربة كاملة مرة واحدة على نفس الجهاز والشبكة
-- [ ] لغة الواجهة عربي وبلد مصر (أو حسب جمهور الحكام)
-- [ ] السلة فاضية ومنتجاتي فيها منتج واحد محفوظ على الأقل (للسوق الذكي)
+## Before going on stage
+- [ ] Public URL works and the key is set (LIVE visible)
+- [ ] One full run on the same machine and network
+- [ ] UI language English (or the judges' language), country as needed
+- [ ] Cart empty, at least one saved product in My products (for Smart Market)
