@@ -94,6 +94,12 @@ npm run dev            # http://localhost:3000
 - `app/api/lens/route.ts` — the combined pipeline
 - Base URL: `https://api.meta.ai/v1` — models: `sam-3.1`, `muse-spark-1.3`, `muse-image-1.0`
 
+## Roadmap — where the moat grows
+- **Distribution first:** WhatsApp/Facebook-ready publishing from every listing, installable offline PWA (seller lives on WhatsApp, not app stores).
+- **Data moat:** every generated listing is a real local price for an informal-market good — the price graph compounds with every user and cannot be copied by cloning the UI.
+- **Seller OS lock-in:** stock, costs and profit live here; sellers don't leave the place that knows their numbers.
+- **Next:** realtime bidding gateway, AI budget negotiation in Smart Market, live-selling SAM tracking.
+
 ## Not built yet (honest with judges)
 - Egyptian-dialect voice transcription (wired for `POST /v1/asr/transcribe`).
 - SAM video tracking for live selling.

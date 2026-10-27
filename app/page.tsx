@@ -81,6 +81,13 @@ export default function Page() {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const ar = lang === "ar";
 
+  // PWA: seller installs the app and the shell works offline in the market.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => { /* non-fatal */ });
+    }
+  }, []);
+
   // Restore saved language/country once, then keep <html lang/dir> + storage in sync.
   useEffect(() => {
     try {

@@ -11,7 +11,7 @@ import { StudioCompare } from "@/components/products/studio-compare";
 import { buildAdText, type Product } from "@/lib/product";
 import { productEconomics } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
-import { Copy, Download, Gavel, Link2, Megaphone, Radio, Save, Tag } from "lucide-react";
+import { Copy, Download, Gavel, Link2, Megaphone, MessageCircle, Radio, Save, Share2, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 export function ProductDetailsSheet({
@@ -167,6 +167,17 @@ export function ProductDetailsSheet({
             {product.source.transcript ? <p><strong className="text-foreground">{ar ? "النص الصوتي:" : "Transcript:"}</strong> {product.source.transcript}</p> : null}
             {product.source.url ? <p className="break-all" dir="ltr"><strong>Source:</strong> {product.source.url}</p> : null}
           </div>
+
+          <Section title={ar ? "انشر وبِع — قناة البائع الحقيقية" : "Publish & sell — the seller's real channel"}>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Button variant="accent" className="bg-[#22c55e] text-white shadow-lg shadow-[#22c55e]/25 hover:bg-[#22c55e]/90" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(buildAdText(item, lang) + (item.images[0] ? `\n${item.images[0]}` : ""))}`, "_blank", "noopener")}>
+                <MessageCircle />{ar ? "واتساب" : "WhatsApp"}
+              </Button>
+              <Button variant="outline" onClick={copyAd}><Share2 />{ar ? "نسخ لمنشور فيسبوك" : "Copy for Facebook"}</Button>
+              <Button variant="outline" onClick={downloadJson}><Download />JSON</Button>
+            </div>
+            <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "نص الإعلان المنسق + رابط الصورة بيتبعتوا جاهزين — لأن بائع السوق بيبيع من واتساب مش من متجر تطبيقات." : "Formatted ad text + image link, ready to send — because market sellers sell on WhatsApp, not app stores."}</p>
+          </Section>
 
           <div className="sticky bottom-0 flex gap-2 border-t bg-background/90 py-4 backdrop-blur">
             <Button className="flex-1" onClick={copyAd}><Copy />{ar ? "نسخ الإعلان" : "Copy ad"}</Button>

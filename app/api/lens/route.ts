@@ -15,11 +15,16 @@ export async function POST(req: NextRequest) {
     const imageUrl = rawUrl.startsWith("/") ? `${req.nextUrl.origin}${rawUrl}` : rawUrl;
     const live = Boolean(process.env.MODEL_API_KEY);
     const timed = async <T,>(fn: () => Promise<T>) => { const t0 = Date.now(); const v = await fn(); return { v, ms: Date.now() - t0 }; };
-    const [segR, sparkR] = await Promise.all([
-      timed(() => segmentImage(imageUrl, prompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 })),
-      timed(() => analyzeWithSpark(imageUrl, lang, country, currency)),
-    ]);
-    const seg = segR.v; const analysis = sparkR.v;
+    // Sequential on purpose: SAM findings ground Spark, so a photo of hazelnuts
+    // can never be described as a vase. SAM first, then Spark on its labels.
+    const segR = await timed(() => segmentImage(imageUrl, prompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
+    const seg = segR.v;
+    const samDetections = extractDetections(seg, []);
+    const grounding = samDetections.length
+      ? samDetections.map((d) => d.label).join(", ")
+      : `${prompt} · ${extractText(seg).slice(0, 400)}`;
+    const sparkR = await timed(() => analyzeWithSpark(imageUrl, lang, country, currency, grounding));
+    const analysis = sparkR.v;
     const analysisText = extractText(analysis);
     const raws = extractItems(analysis, analysisText);
     // Studio image for the hero product only (cost control)

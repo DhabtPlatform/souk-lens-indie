@@ -24,6 +24,11 @@ Without a key it runs the same pipeline in labeled Demo mode.
 | 50–75 | The buyer asks, the agent bundles and decides | Smart Market: furnish a wedding → move item → approve → invoice |
 | 75–90 | From invoice to cart to payment. Three Meta models for a market nobody serves | Open the cart and confirm |
 
+## Roadmap slide (say this in the last 10 seconds if time remains)
+"Our moat isn't the models — everyone has them. It's the data graph of real informal-market prices that
+compounds with every listing, WhatsApp-native distribution to where sellers actually live, and seller
+lock-in through their stock and profit data. Next: realtime auctions, AI budget negotiation, live SAM."
+
 ## Fallback plan
 - Network dies: continue the same steps — the pipeline runs in labeled Demo mode. Transparency is a strength, not an excuse.
 - Machine dies: print this page + shots from `/brand`, and walk the pipeline from a saved proof-bar screenshot.

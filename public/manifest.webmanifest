@@ -1,0 +1,19 @@
+{
+  "name": "Souk Lens — عدسة السوق",
+  "short_name": "Souk Lens",
+  "description": "See it. Sell it. Anywhere. — Turn any market stall photo into a complete, selling listing.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "auto",
+  "lang": "en",
+  "background_color": "#0b0b10",
+  "theme_color": "#7c5cff",
+  "categories": ["business", "shopping", "productivity"],
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/brand/empty-stall.jpg", "sizes": "800x800", "type": "image/jpeg", "purpose": "any" }
+  ]
+}

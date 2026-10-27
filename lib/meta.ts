@@ -1,6 +1,7 @@
 // Minimal Meta Model API client. Same base URL + Bearer auth for all models.
 // Docs: https://dev.meta.ai/docs/overview
 // Base: https://api.meta.ai/v1 | Models: muse-spark-1.3, muse-image-1.0, sam-3.1
+import { KEYWORD_ITEMS, keywordOf, mockItem } from "./mock-grounding";
 
 const BASE = process.env.META_BASE_URL ?? "https://api.meta.ai/v1";
 const KEY = process.env.MODEL_API_KEY ?? "";
@@ -29,7 +30,7 @@ async function post(path: string, body: unknown) {
 // 1. SAM 3.1 segmentation via Responses API
 // Doc: https://dev.meta.ai/docs/media-segmentation — input items need {type:"message"}
 export async function segmentImage(imageUrl: string, prompt: string) {
-  if (!hasKey()) return mockSegments();
+  if (!hasKey()) return mockSegments(prompt);
   const shortPrompt = prompt.split(",")[0].slice(0, 40) || "market goods";
   return post("/responses", {
     model: SAM,
@@ -48,8 +49,8 @@ export async function segmentImage(imageUrl: string, prompt: string) {
 
 // 2. Muse Spark: identify + price + listing JSON (structured output)
 // Doc: https://dev.meta.ai/docs/image-understanding — image_url is a plain string
-export async function analyzeWithSpark(imageUrl: string, lang = "ar-EG", country = "EG", currency = "EGP") {
-  if (!hasKey()) return mockAnalysis();
+export async function analyzeWithSpark(imageUrl: string, lang = "ar-EG", country = "EG", currency = "EGP", grounding = "") {
+  if (!hasKey()) return mockAnalysis(grounding);
   const { FULL_PRODUCT_JSON_HINT } = await import("./product");
   return post("/responses", {
     model: SPARK,
@@ -61,7 +62,10 @@ export async function analyzeWithSpark(imageUrl: string, lang = "ar-EG", country
         content: [
           {
             type: "input_text",
-            text: `You are Souk Lens. Look at this informal market photo. Buyer country: ${country}, currency: ${currency}, language: ${lang}. List EVERY sellable object. For each fill ALL fields, invent fair local price, variants (colors/sizes when relevant) with own prices, specs, features, stock estimate, category, brand if visible. ${FULL_PRODUCT_JSON_HINT}`,
+            text: `You are Souk Lens. Look at this informal market photo carefully. Buyer country: ${country}, currency: ${currency}, language: ${lang}.
+GROUNDING FROM SAM 3.1 SEGMENTATION (candidate items actually detected in THIS image): ${grounding || "none"}.
+Rules: (1) List ONLY sellable objects that are VISIBLE in the image — never invent unrelated items (e.g. never call nuts, fruit or tools a vase or a lamp). (2) When the SAM grounding names an item, identify that same item precisely and build its listing; use the grounding label unless the photo clearly shows something else. (3) If unsure about an object, describe it generically by what is visible rather than guessing a different object.
+For each visible item fill ALL fields, fair local price, variants (colors/sizes when relevant) with own prices, specs, features, stock estimate, category, brand if visible. ${FULL_PRODUCT_JSON_HINT}`,
           },
           { type: "input_image", image_url: imageUrl },
         ],
@@ -219,46 +223,27 @@ export function ldToRawItems(ldProducts: Record<string, unknown>[]): Record<stri
   });
 }
 
-function mockSegments() {
+function mockSegments(prompt = "") {
+  // Grounded demo: SAM names what the user actually pointed at, never a fixed unrelated object.
+  const key = keywordOf(prompt);
+  const item = key ? KEYWORD_ITEMS[key] : null;
   return {
     mock: true,
-    model: "sam-3.1 (mock - set MODEL_API_KEY for live)",
-    detections: [
-      { label: "brass lamp", box: [0.12, 0.2, 0.4, 0.7] },
-      { label: "ceramic vase", box: [0.5, 0.3, 0.75, 0.8] },
-    ],
+    model: "sam-3.1 (demo — set MODEL_API_KEY for live)",
+    detections: item
+      ? [{ label: item.label, box: [0.18, 0.15, 0.82, 0.85] }]
+      : [
+          { label: "brass lamp", box: [0.12, 0.2, 0.4, 0.7] },
+          { label: "ceramic vase", box: [0.52, 0.3, 0.78, 0.8] },
+        ],
   };
 }
 
-function mockAnalysis() {
+function mockAnalysis(grounding = "") {
+  const grounded = mockItem(grounding);
   return {
     mock: true,
-    model: "muse-spark-1.3 (mock - set MODEL_API_KEY for live)",
-    items: [
-      {
-        name_ar: "مصباح نحاس يدوي", name_en: "Handmade brass lamp",
-        category: "Home decor", category_ar: "ديكور منزلي", brand: "Handmade",
-        condition: "used-good", price: 850, compareAtPrice: 1100, costPrice: 500, currency: "EGP", stock: 3, sku: "SL-LAMP-01",
-        description_ar: "مصباح نحاس شغل يدوي، حالته ممتازة ومنور أي ركن", description_en: "Handmade brass lamp in excellent condition.",
-        shortDescription_ar: "مصباح نحاس يدوي ممتاز",
-        features: ["نحاس أصلي", "شغل يدوي", "حالة ممتازة"],
-        specs: { Material: "Brass", Condition: "used-good" },
-        variants: [{ name: "Standard", name_ar: "قياسي", price: 850, stock: 3 }],
-        tags: ["lamp", "brass"], materials: ["Brass"], colors: ["Gold"], sizes: [],
-        shipping: "شحن حسب المدينة", warranty: "—", seoTitle: "Handmade brass lamp | Souk Lens", seoDescription: "مصباح نحاس يدوي",
-      },
-      {
-        name_ar: "مزهرية سيراميك", name_en: "Ceramic vase",
-        category: "Home decor", category_ar: "ديكور منزلي", brand: "—",
-        condition: "new", price: 320, compareAtPrice: 420, costPrice: 180, currency: "EGP", stock: 12, sku: "SL-VASE-01",
-        description_ar: "مزهرية سيراميك ألوان هادية تنفع للديكور والهدايا", description_en: "Ceramic vase in calm colors.",
-        shortDescription_ar: "مزهرية سيراميك للديكور",
-        features: ["سيراميك", "ألوان هادية"],
-        specs: { Material: "Ceramic", Condition: "new" },
-        variants: [{ name: "Small", name_ar: "صغير", price: 320, stock: 8 }, { name: "Large", name_ar: "كبير", price: 480, stock: 4 }],
-        tags: ["vase"], materials: ["Ceramic"], colors: ["Beige"], sizes: ["Small", "Large"],
-        shipping: "شحن حسب المدينة", warranty: "—", seoTitle: "Ceramic vase | Souk Lens", seoDescription: "مزهرية سيراميك",
-      },
-    ],
+    model: "muse-spark-1.3 (demo — set MODEL_API_KEY for live)",
+    items: grounded ? [grounded] : [mockItem("lamp")!, mockItem("vase")!],
   };
 }
