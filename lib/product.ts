@@ -105,7 +105,7 @@ function specsOf(v: unknown): Record<string, string> {
 
 export function normalizeProduct(
   raw: RawItem,
-  opts: { source: ProductSource; country?: string; currency?: string; fallbackImage?: string; studioImage?: string }
+  opts: { source: ProductSource; country?: string; currency?: string; fallbackImage?: string; studioImage?: string; realImage?: string }
 ): Product {
   const name_en = safeText(raw.name_en, safeText(raw.title, "Untitled product"));
   const name_ar = safeText(raw.name_ar, name_en);
@@ -124,8 +124,9 @@ export function normalizeProduct(
       attributes: specsOf(o.attributes),
     };
   });
+  // Real seller photo always leads the gallery (buyer trust); generated studio shot follows for polish.
   const images = Array.from(new Set([
-    safeText(raw.image), safeText(raw.imageUrl), opts.studioImage ?? "", opts.fallbackImage ?? "",
+    opts.realImage ?? "", safeText(raw.image), safeText(raw.imageUrl), opts.studioImage ?? "", opts.fallbackImage ?? "",
     ...(Array.isArray(raw.images) ? raw.images.map((x) => safeText(x)) : []),
   ].filter((s) => s && (s.startsWith("http") || s.startsWith("data:") || s.startsWith("/")))));
   const specs = specsOf(raw.specs);
@@ -156,7 +157,7 @@ export function normalizeProduct(
     specs: Object.keys(specs).length ? specs : { Condition: safeText(raw.condition, "new") },
     variants,
     images,
-    sourceImage: opts.fallbackImage,
+    sourceImage: opts.realImage ?? opts.fallbackImage,
     studioImage: opts.studioImage,
     tags: strArr(raw.tags),
     materials: strArr(raw.materials ?? raw.material),

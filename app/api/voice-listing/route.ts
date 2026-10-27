@@ -3,11 +3,13 @@ import { cleanProductShot, listingFromText } from "@/lib/meta";
 import { extractItems, extractStudioImage, extractText } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
-// POST { transcript, country, currency } -> used by voice flow after transcription (and direct text fallback)
+// POST { transcript, country, currency, imageUrl? } -> used by voice flow after transcription (and direct text fallback).
+// imageUrl = optional REAL seller photo — leads the gallery for buyer trust.
 export async function POST(req: NextRequest) {
   try {
-    const { transcript, country = "EG", currency = "EGP" } = await req.json();
+    const { transcript, country = "EG", currency = "EGP", imageUrl } = await req.json();
     if (!transcript || typeof transcript !== "string" || !transcript.trim()) return NextResponse.json({ error: "transcript required" }, { status: 400 });
+    const realImage = typeof imageUrl === "string" && imageUrl ? imageUrl : undefined;
     const t1 = Date.now();
     const listing = await listingFromText(transcript, country, currency);
     const sparkMs = Date.now() - t1;
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
     const studio = await cleanProductShot(String(raws[0]?.name_en ?? transcript.slice(0, 80))).catch((e) => ({ error: String(e) }));
     const studioMs = Date.now() - t2;
     const studioImage = extractStudioImage(studio);
-    const products = normalizeProducts(raws, { source: { type: "voice", transcript }, country, currency, studioImage: studioImage ?? undefined });
+    const products = normalizeProducts(raws, { source: { type: "voice", transcript }, country, currency, studioImage: studioImage ?? undefined, realImage });
     if (studioImage && products[0]) products[0].images = [studioImage, ...products[0].images.filter((i) => i !== studioImage)];
     return NextResponse.json({
       ok: true, live: Boolean(process.env.MODEL_API_KEY), transcript, products, items: products, studioImage, analysisText: text,

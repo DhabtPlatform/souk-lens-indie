@@ -3,9 +3,9 @@ import { cleanProductShot, hasKey, listingFromText, transcribeAudio } from "@/li
 import { extractItems, extractStudioImage, extractText } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
-// POST multipart { audio: 16kHz mono WAV from the browser } OR JSON { transcript, country, currency }
+// POST multipart { audio: 16kHz mono WAV, photo?: real seller photo URL/dataURL } OR JSON { transcript, country, currency, imageUrl? }
 // Pipeline: Muse Voice transcribe -> Muse Spark full listing -> Muse Image studio shot.
-// The product keeps its source (transcript), real name and generated studio image.
+// Optional REAL photo leads the gallery (buyer trust); studio shot follows for polish.
 export async function POST(req: NextRequest) {
   try {
     const ct = req.headers.get("content-type") ?? "";
@@ -14,11 +14,14 @@ export async function POST(req: NextRequest) {
     let country = "EG";
     let currency = "EGP";
     let transcribeMs = 0;
+    let realImage: string | undefined;
 
     if (ct.includes("multipart/form-data")) {
       const fd = await req.formData();
       country = String(fd.get("country") ?? "EG");
       currency = String(fd.get("currency") ?? "EGP");
+      const photo = fd.get("photo");
+      if (typeof photo === "string" && photo) realImage = photo;
       const f = fd.get("audio");
       if (f instanceof File) {
         const buf = Buffer.from(await f.arrayBuffer());
@@ -44,6 +47,7 @@ export async function POST(req: NextRequest) {
       transcript = String(j?.transcript ?? "");
       country = String(j?.country ?? "EG");
       currency = String(j?.currency ?? "EGP");
+      if (typeof j?.imageUrl === "string" && j.imageUrl) realImage = j.imageUrl;
     }
 
     if (!transcript.trim()) {
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
     const studio = await cleanProductShot(String(raws[0]?.name_en ?? transcript.slice(0, 80))).catch(() => ({ error: "studio failed" }));
     const studioMs = Date.now() - t2;
     const studioImage = extractStudioImage(studio);
-    const products = normalizeProducts(raws, { source: { type: "voice", transcript }, country, currency, studioImage: studioImage ?? undefined });
+    const products = normalizeProducts(raws, { source: { type: "voice", transcript }, country, currency, studioImage: studioImage ?? undefined, realImage });
     if (studioImage && products[0]) products[0].images = [studioImage, ...products[0].images.filter((i) => i !== studioImage)];
 
     return NextResponse.json({

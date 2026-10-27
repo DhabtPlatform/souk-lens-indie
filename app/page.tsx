@@ -34,7 +34,7 @@ import { COUNTRIES, t, type Lang } from "@/lib/brand";
 import type { Product } from "@/lib/product";
 import {
   ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Megaphone, Mic, Package,
-  Radio, Search, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Type, Wand2,
+  Radio, Search, ShieldCheck, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Type, Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,6 +77,7 @@ export default function Page() {
   const [trace, setTrace] = useState<TraceInfo | null>(null);
   const [judgesOpen, setJudgesOpen] = useState(false);
   const [voiceAudioUrl, setVoiceAudioUrl] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [sourceImg, setSourceImg] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -137,7 +138,7 @@ export default function Page() {
   }
 
   async function postJson(path: string, body: Record<string, unknown>) {
-    setLoading(true); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null);
+    setLoading(true); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
     const t0 = performance.now();
     try {
       const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -169,8 +170,8 @@ export default function Page() {
     else if (a === "cart") setCartOpen(true);
     else if (a === "save") { if (results.length) { addAll(results); } }
   }
-  const runGenerate = () => postJson("/api/generate", { description: desc, country: country.code, currency: country.currency });
-  const runVoiceListing = () => postJson("/api/voice-listing", { transcript: desc, country: country.code, currency: country.currency });
+  const runGenerate = () => postJson("/api/generate", { description: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined });
+  const runVoiceListing = () => postJson("/api/voice-listing", { transcript: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined });
   const runCompare = () => postJson("/api/compare", { productUrl: extUrl, country: country.code, currency: country.currency });
   const runImport = () => postJson("/api/import", { storeUrl: extUrl, country: country.code, currency: country.currency });
 
@@ -178,6 +179,12 @@ export default function Page() {
     if (!f) return;
     const rd = new FileReader();
     rd.onload = () => { setImageUrl(String(rd.result)); toast.success(ar ? "اتحملت الصورة" : "Image loaded"); };
+    rd.readAsDataURL(f);
+  }
+  function onPhotoFile(f: File | undefined) {
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { setPhotoUrl(String(rd.result)); toast.success(ar ? "اترفقت الصورة الحقيقية" : "Real photo attached"); };
     rd.readAsDataURL(f);
   }
 
@@ -201,6 +208,7 @@ export default function Page() {
           catch { /* send original as last resort */ }
           const fd = new FormData();
           fd.append("audio", audioFile, fileName); fd.append("country", country.code); fd.append("currency", country.currency);
+          if (photoUrl) fd.append("photo", photoUrl);
           const r = await fetch("/api/voice", { method: "POST", body: fd });
           const j = await r.json();
           setLive(!!j.live); setRaw(j);
@@ -314,6 +322,8 @@ export default function Page() {
                   <Button key={x} variant="outline" size="sm" onClick={() => setDesc(x)}>{x}</Button>
                 ))}
               </div>
+              <RealPhotoPicker photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} onFile={onPhotoFile} lang={lang} />
+              <TrustNote lang={lang} />
               <div className="space-y-1.5"><Button size="lg" onClick={runGenerate} disabled={loading || !desc.trim()}><Sparkles />{loading ? t("analyzing", lang) : (ar ? "ولّد إعلان كامل" : "Generate full listing")}</Button><Hint>{ar ? "يخرج إعلانًا كاملًا مع صورة ستوديو مولدة في نتيجة واحدة." : "Produces a full listing plus a generated studio shot in one result."}</Hint></div>
             </InputCard>
           </TabsContent>
@@ -336,6 +346,8 @@ export default function Page() {
               </div>
               <Separator />
               <div className="space-y-1.5"><Label>{ar ? "النص (قابل للتعديل)" : "Transcript (editable)"}</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder={t("descPlaceholder", lang)} /><Hint>{ar ? "راجع النص وصححه هنا قبل بناء الإعلان — هو نفس ما قلته بالظبط." : "Review and fix the text here before building — exactly what you said."}</Hint></div>
+              <RealPhotoPicker photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} onFile={onPhotoFile} lang={lang} />
+              <TrustNote lang={lang} />
               <div className="space-y-1.5"><Button size="lg" onClick={runVoiceListing} disabled={loading || !desc.trim()}><Sparkles />{ar ? "ابني الإعلان من النص" : "Build listing from text"}</Button><Hint>{ar ? "يبني الإعلان من النص الظاهر فوق — عدّله أولًا لو احتجت." : "Builds the listing from the text above — edit it first if needed."}</Hint></div>
             </InputCard>
           </TabsContent>
@@ -345,7 +357,7 @@ export default function Page() {
               <div className="space-y-1.5"><div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runCompare} disabled={loading || !extUrl.trim()}><Search />{loading ? t("analyzing", lang) : (ar ? "قارن دلوقتي" : "Compare now")}</Button>
-              </div><Hint>{ar ? "أي رابط منتج من أي متجر — نجلب بياناته الحقيقية ثم نقارن ونقترح بدائل لبلدك." : "Any product link from any store — we fetch its real data, then compare and suggest alternatives for your country."}</Hint></div>
+              </div><Hint>{ar ? "أي رابط منتج من أي متجر — صورة المنتج هنا حقيقية من الرابط نفسه، أما البدائل المقترحة فقد تستخدم صورًا مولدة." : "Any product link from any store — the photo here is real, taken from the link itself; suggested alternatives may use generated shots."}</Hint></div>
             </InputCard>
           </TabsContent>
 
@@ -441,12 +453,19 @@ export default function Page() {
               <SamOverlay image={sourceImg || imageUrl} detections={detections} products={results} lang={lang} onDetails={openDetails} />
             ) : null}
 
-            {!loading && !error && results[0]?.studioImage && (results[0].sourceImage || sourceImg) ? (
-              <Card className="animate-souk-in p-4">
-                <h3 className="mb-3 font-extrabold">{ar ? "من فرشة السوق لصورة ستوديو" : "From market stall to studio shot"}</h3>
-                <StudioCompare before={(results[0].sourceImage || sourceImg)} after={results[0].studioImage} lang={lang} />
-              </Card>
-            ) : null}
+            {(() => {
+              // The "before" shot must belong to THIS run only — never a stale image from another tab.
+              const beforeImg = !loading && !error && results[0]?.studioImage
+                ? (results[0].sourceImage || (detections.length ? sourceImg : ""))
+                : "";
+              return beforeImg ? (
+                <Card className="animate-souk-in space-y-3 p-4">
+                  <h3 className="font-extrabold">{ar ? "من صورة المنتج لصورة ستوديو" : "From product photo to studio shot"}</h3>
+                  <StudioCompare before={beforeImg} after={results[0].studioImage!} lang={lang} />
+                  <TrustNote lang={lang} />
+                </Card>
+              ) : null;
+            })()}
 
             {!loading && !error && results.length ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -503,6 +522,37 @@ export default function Page() {
       <ProductDetailsSheet product={selected} lang={lang} open={detailsOpen} onOpenChange={setDetailsOpen} editable onSave={patchProduct} />
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} items={cart.items} lang={lang} setQty={cart.setQty} remove={cart.remove} clear={cart.clear} />
       <JudgesMode open={judgesOpen} onOpenChange={setJudgesOpen} lang={lang} onAction={handleJudgeAction} hasResults={results.length > 0} />
+    </div>
+  );
+}
+
+function TrustNote({ lang }: { lang: "ar" | "en" }) {
+  const ar = lang === "ar";
+  return (
+    <p className="flex items-start gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3 py-2 text-[12px] leading-6 text-muted-foreground">
+      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+      {ar ? "نصيحة للبائع: الصورة الحقيقية للمنتج تبني ثقة المشتري وتتمم البيع — الصورة المولدة للتجميل والعرض فقط." : "Seller tip: a real product photo earns buyer trust and closes the sale — generated shots are for polish only."}
+    </p>
+  );
+}
+
+function RealPhotoPicker({ photoUrl, setPhotoUrl, onFile, lang }: { photoUrl: string; setPhotoUrl: (v: string) => void; onFile: (f: File | undefined) => void; lang: "ar" | "en" }) {
+  const ar = lang === "ar";
+  return (
+    <div className="space-y-1.5">
+      <Label>{ar ? "صورة حقيقية للمنتج (اختياري — موثوقة أكثر)" : "Real product photo (optional — more trusted)"}</Label>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input dir="ltr" value={photoUrl.startsWith("data:") ? "" : photoUrl} placeholder="https://…" onChange={(e) => setPhotoUrl(e.target.value)} className="flex-1" />
+        <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-4 text-sm font-bold transition hover:border-primary/60 hover:bg-primary/5">
+          <ImagePlus className="h-4 w-4 text-accent" />{ar ? "ارفع صورة" : "Upload"}
+          <input type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+        </label>
+      </div>
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt="real product" className="h-24 w-24 rounded-xl border object-cover" />
+      ) : null}
+      <Hint>{ar ? "أرفق صورة حقيقية من موبايلك أو الصق رابطها — تتصدر صور الإعلان لأن المشتري يصدقها. بدونها نولّد صورة ستوديو فقط." : "Attach a real photo from your phone or paste its link — it leads the listing gallery because buyers trust it. Without one, only a studio shot is generated."}</Hint>
     </div>
   );
 }
