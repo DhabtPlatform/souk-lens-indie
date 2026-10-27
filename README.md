@@ -32,7 +32,7 @@ all follow the UI language (saved locally). Full identity: `/brand` page.
 | Voice listing | Mic recording / text | Voice transcribe + Spark 1.3 |
 | Import store | Old store link | fetch + Spark bulk items |
 | Smart Market | "I want to buy…" + ready presets | Whole-store search + Spark intent — 3 lists (value/rating/delivery), move between lists, approve, preliminary invoice, cart checkout |
-| My products | Local save | localStorage — add from any result |
+| My products | Local save | Internal DB (`data/products.json`, capped at 100) + localStorage mirror — add from any result |
 
 ## Full listings from every input
 Any result (SAM photo, voice, text, compare link, store import) is normalized via

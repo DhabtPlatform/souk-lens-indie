@@ -33,7 +33,7 @@ export function ProductCard({
 }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [imgError, setImgError] = useState(false);
   const ar = lang === "ar";
   const discount = product.compareAtPrice && product.compareAtPrice > product.price
@@ -76,14 +76,14 @@ export function ProductCard({
         ) : null}
       </div>
 
-      <CardContent className="flex flex-1 flex-col gap-3 p-4">
+      <CardContent className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="truncate text-base font-extrabold leading-7">{ar ? product.name_ar : product.name_en}</h3>
+            <h3 className="truncate text-lg font-extrabold leading-8">{ar ? product.name_ar : product.name_en}</h3>
             <p className="truncate text-xs text-muted-foreground" dir="auto">{product.name_en} · {product.sku}</p>
           </div>
           <div className="shrink-0 text-end">
-            <div className="text-lg font-black text-accent">{formatPrice(product.price, product.currency)}</div>
+            <div className="text-xl font-black text-accent">{formatPrice(product.price, product.currency)}</div>
             {product.compareAtPrice ? <div className="text-xs text-muted-foreground line-through">{formatPrice(product.compareAtPrice, product.currency)}</div> : null}
           </div>
         </div>
@@ -142,24 +142,28 @@ export function ProductCard({
         </div>
       </CardContent>
 
-      <CardFooter className="gap-1.5 p-4 pt-0">
-        <Button className="flex-1" variant="outline" onClick={() => onDetails(product)}><Eye />{ar ? "التفاصيل" : "Details"}</Button>
-        <Button size="icon" variant="ghost" onClick={() => setExpanded((v) => !v)} aria-label="expand full section" title={ar ? "قسم كامل بالتفاصيل تحت الكارت" : "Full section below the card"}>
-          <ChevronDown className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-        </Button>
-        {onOpenPage ? <Button size="icon" variant="ghost" onClick={() => onOpenPage(product)} aria-label="buyer page" title={ar ? "صفحة المشتري الكاملة" : "Full buyer page"}><ExternalLink /></Button> : null}
-        {onCart ? <Button size="icon" variant="accent" onClick={() => { onCart(product); toast.success(ar ? "اتضاف للسلة" : "Added to cart"); }} aria-label="add to cart"><ShoppingCart /></Button> : null}
-        <Button size="icon" variant="ghost" onClick={copyAd} aria-label="copy ad"><Copy /></Button>
-        {isMine ? (
-          <Button size="icon" variant="ghost" onClick={() => onRemove?.(product.id)} aria-label="delete"><Trash2 className="text-destructive" /></Button>
-        ) : (
-          <Button className="flex-1" variant={added ? "accent" : "default"} onClick={() => { onAdd?.(product); setAdded(true); toast.success(ar ? "اتضاف لمنتجاتك بكامل تفاصيله" : "Saved with full details"); }}>
-            {added ? <Check /> : <PackagePlus />}{added ? (ar ? "اتضاف" : "Added") : (ar ? "حفظ المنتج" : "Save")}
+      <CardFooter className="flex-col items-stretch gap-2.5 p-5 pt-0">
+        <div className="flex gap-2">
+          <Button className="flex-1" size="lg" variant="outline" onClick={() => onDetails(product)}><Eye />{ar ? "التفاصيل" : "Details"}</Button>
+          {isMine ? (
+            <Button size="lg" variant="ghost" onClick={() => onRemove?.(product.id)} aria-label="delete"><Trash2 className="text-destructive" /></Button>
+          ) : (
+            <Button className="flex-1" size="lg" variant={added ? "accent" : "default"} onClick={() => { onAdd?.(product); setAdded(true); toast.success(ar ? "اتضاف لمنتجاتك بكامل تفاصيله" : "Saved with full details"); }}>
+              {added ? <Check /> : <PackagePlus />}{added ? (ar ? "اتضاف" : "Added") : (ar ? "حفظ المنتج" : "Save")}
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button className="flex-1" variant="secondary" onClick={() => setExpanded((v) => !v)} aria-label="expand full section" title={ar ? "قسم كامل بالتفاصيل تحت الكارت" : "Full section below the card"}>
+            <ChevronDown className={`transition-transform ${expanded ? "rotate-180" : ""}`} />{expanded ? (ar ? "إخفاء القسم" : "Hide section") : (ar ? "القسم الكامل" : "Full section")}
           </Button>
-        )}
+          {onOpenPage ? <Button className="flex-1" variant="secondary" onClick={() => onOpenPage(product)} aria-label="buyer page" title={ar ? "صفحة المشتري الكاملة" : "Full buyer page"}><ExternalLink />{ar ? "صفحة المشتري" : "Buyer page"}</Button> : null}
+          {onCart ? <Button size="lg" variant="accent" onClick={() => { onCart(product); toast.success(ar ? "اتضاف للسلة" : "Added to cart"); }} aria-label="add to cart"><ShoppingCart /></Button> : null}
+          <Button size="lg" variant="ghost" onClick={copyAd} aria-label="copy ad"><Copy /></Button>
+        </div>
       </CardFooter>
       {expanded ? (
-        <div className="space-y-3 border-t bg-muted/30 p-4 animate-souk-in">
+        <div className="space-y-3 border-t bg-muted/30 p-5 animate-souk-in">
           <div className="flex items-center gap-2 text-sm font-extrabold">
             <Eye className="h-4 w-4 text-primary" />{ar ? "القسم الكامل — كل التفاصيل وخيارات التعديل" : "Full section — all details & edit options"}
             {mediaBusy ? <span className="ms-auto inline-flex items-center gap-1 text-[11px] text-accent"><span className="h-2 w-2 animate-pulse rounded-full bg-accent" />{ar ? "توليد صور المتغيرات و360°…" : "Generating variant & 360° shots…"}</span> : null}

@@ -21,6 +21,9 @@ Thumbs.db
 # opencode sessions
 .local/
 
-# Personal session automation — local only, never public
+# Runtime database (created automatically, capped, never committed)
+data/products.json
+
+# Personal session automation ï¿½ local only, never public
 AGENTS.md
 DEMO_SCRIPT.md
