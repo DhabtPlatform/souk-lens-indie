@@ -36,7 +36,7 @@ import { COUNTRIES, t, type Lang } from "@/lib/brand";
 import type { Product } from "@/lib/product";
 import {
   ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Megaphone, Mic, Package,
-  Radio, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Type, Wand2,
+  Radio, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Trophy, Type, Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -350,6 +350,7 @@ export default function Page() {
               <Button size="lg" variant="accent" onClick={() => setTab("smart")}><Bot />{ar ? "جرّب السوق الذكي" : "Try Smart Market"}</Button>
               <Button size="lg" variant="outline" className="glass text-white hover:text-white" onClick={() => setTab("analyze")}><Camera />{ar ? "حلّل صورة سوق" : "Analyze a photo"}</Button>
               <Button size="lg" variant="outline" className="glass text-white hover:text-white" onClick={() => setCartOpen(true)}><ShoppingCart />{ar ? `السلة (${cart.count})` : `Cart (${cart.count})`}</Button>
+              <Button size="lg" variant="outline" className="glass text-white hover:text-white" onClick={() => setJudgesOpen(true)}><Trophy />{ar ? "جولة المنتج — 90 ثانية" : "Product tour — 90 seconds"}</Button>
             </div>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
               <span className="glass rounded-full px-3 py-1.5">{mine.products.length} {ar ? "منتج محفوظ" : "saved products"}</span>
@@ -477,6 +478,7 @@ export default function Page() {
                 <Button size="lg" onClick={runCompare} disabled={loading || !extUrl.trim()}><Search />{loading ? t("analyzing", lang) : (ar ? "قارن دلوقتي" : "Compare now")}</Button>
               </div><Hint>{ar ? "أي رابط منتج من أي متجر — صورة المنتج هنا حقيقية من الرابط نفسه، أما البدائل المقترحة فقد تستخدم صورًا مولدة." : "Any product link from any store — the photo here is real, taken from the link itself; suggested alternatives may use generated shots."}</Hint></div>
             </InputCard>
+            <div className="mt-3"><TabModelMap tab="compare" lang={lang} /></div>
           </TabsContent>
 
           <TabsContent value="import">
