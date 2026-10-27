@@ -43,13 +43,26 @@ export default function BrandPage() {
           The mark works at full strength in Arabic RTL and English LTR, from a 24px favicon to a 1200px cover.
         </p>
 
+        <h2 style={S.h2}>Drawn logotype — the brand name as artwork</h2>
+        <p style={S.p}>
+          The name is <strong>drawn, not typed</strong>: custom monolinear letterforms authored as vector paths —
+          no font dependency, identical on every screen and in every pitch deck. Both O's are lens rings,
+          the SOUK O carries the gold gem at its core, and LENS runs violet → mint.
+        </p>
+        <div style={{ display: "grid", gap: 12 }}>
+          <LogoCard src="/brand/wordmark.svg" label="Primary logotype — dark surfaces" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 12 }}>
+            <LogoCard src="/brand/wordmark-mono.svg" label="Mono logotype — light surfaces & print" light />
+          </div>
+        </div>
+
         <h2 style={S.h2}>Logo system</h2>
         <div style={{ display: "grid", gap: 12 }}>
-          <LogoCard src="/brand/logo-horizontal-en.svg" label="English lockup — mark left of the wordmark in LTR" />
-          <LogoCard src="/brand/logo-horizontal-ar.svg" label="Arabic lockup — mark right of the wordmark in RTL" />
+          <LogoCard src="/brand/logo-horizontal-en.svg" label="English lockup — evolved mark + drawn wordmark" />
+          <LogoCard src="/brand/logo-horizontal-ar.svg" label="Arabic lockup — mark right of the Arabic name in RTL" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 12 }}>
-            <LogoCard src="/logo.svg" label="App icon / favicon" />
-            <LogoCard src="/brand/logo-mono.svg" label="Mono — print and documents" />
+            <LogoCard src="/logo.svg" label="App icon / favicon — evolved mark (sheen + sparkle)" />
+            <LogoCard src="/brand/logo-mono.svg" label="Mono mark — print and documents" />
             <LogoCard src="/brand/logo-primary.svg" label="Primary (legacy path)" />
           </div>
           <LogoCard src="/brand/og-cover.svg" label="OG cover — sharing and pitch image 1200×630" />
@@ -91,17 +104,17 @@ export default function BrandPage() {
 
         <h2 style={S.h2}>Voice & tone</h2>
         <p style={S.p}>Friendly Egyptian Arabic + simple global English. Short sentences, every action has a button, no technical jargon facing the seller — and real numbers and run timings facing the judges.</p>
-        <p><span style={S.chip}>Brand v2 · 2026</span></p>
+        <p><span style={S.chip}>Brand v3 · drawn logotype · 2026</span></p>
       </div>
     </main>
   );
 }
 
-function LogoCard({ src, label }: { src: string; label: string }) {
+function LogoCard({ src, label, light }: { src: string; label: string; light?: boolean }) {
   return (
     <div style={{ background: "#14141D", borderRadius: 14, padding: 16, border: "1px solid #262636" }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={label} style={{ maxWidth: "100%", borderRadius: 10, background: "#0B0B10", padding: 12, boxSizing: "border-box" }} />
+      <img src={src} alt={label} style={{ maxWidth: "100%", borderRadius: 10, background: light ? "#F6F6F8" : "#0B0B10", padding: 12, boxSizing: "border-box" }} />
       <p style={{ opacity: 0.75, fontSize: 13, marginBottom: 0 }}>{label} — <code dir="ltr">{src}</code> · <a href={src} download style={{ color: "#00D4A4" }}>Download</a></p>
     </div>
   );
