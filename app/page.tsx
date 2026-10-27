@@ -250,7 +250,7 @@ export default function Page() {
         stream.getTracks().forEach((tr) => tr.stop());
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
         setVoiceAudioUrl(URL.createObjectURL(blob));
-        setLoading(true); setError("");
+        setLoading(true); setError(""); setDetections([]); setSourceImg(""); setStudio(null); setAlternatives([]); setComparison(""); setVerdict("");
         const t0 = performance.now();
         try {
           // Meta voice needs 16kHz mono WAV — convert in-browser, then transcribe for real.
@@ -638,8 +638,12 @@ function RealPhotoPicker({ photoUrl, setPhotoUrl, onFile, lang, mode, setMode }:
         </label>
       </div>
       {photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoUrl} alt="real product" className="h-24 w-24 rounded-xl border object-cover" />
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoUrl} alt="real product" className="h-24 w-24 rounded-xl border object-cover" />
+          <Button size="sm" variant="outline" onClick={() => setPhotoUrl("")}><Trash2 />{ar ? "مسح الصورة" : "Clear photo"}</Button>
+          <span className="text-[11px] leading-5 text-muted-foreground">{ar ? "امسحها قبل منتج آخر حتى لا تظهر في إعلانه." : "Clear it before another product so it never appears in its listing."}</span>
+        </div>
       ) : null}
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[11px] font-bold text-muted-foreground">{ar ? "صور الإعلان:" : "Listing photos:"}</span>

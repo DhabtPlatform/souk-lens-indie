@@ -76,13 +76,13 @@ export function ProductDetailsSheet({
   async function photoToGlb() {
     const src = selVar?.image ?? item.images[imgIdx] ?? item.images[0];
     if (!src) { toast.info(ar ? "لا توجد صورة للتحويل" : "No photo to convert"); return; }
-    if (!onSave) return;
     setMediaBusy("glb");
     try {
       const { blob } = await photoToGlbCard(src);
       const url = URL.createObjectURL(blob);
+      // Session-only preview/download. A blob: URL is never persisted as glbUrl —
+      // it would be dead after reload. Permanent models need a hosted URL below.
       setGlbFileUrl(url);
-      onSave(item.id, { glbUrl: url });
       toast.success(ar ? "اتولد ملف GLB حقيقي — معروض تحت وقابل للتحميل" : "Real GLB file generated — previewed below and downloadable");
     } catch {
       toast.error(ar ? "تعذر قراءة الصورة (قد يمنع المصدر الخارجي ذلك) — جرّب صورة مرفوعة" : "Could not read the photo (external source may block it) — try an uploaded one");
@@ -248,7 +248,7 @@ export function ProductDetailsSheet({
                 <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "أربع زوايا (أمام/يمين/خلف/شمال) بعَارض تدوير تفاعلي — مولدة من اسم المنتج." : "Four angles (front/right/back/left) in an interactive spinner — generated from the product name."}</p>
               </div>
             ) : null}
-            {product.glbUrl ? <GlbViewer url={product.glbUrl} lang={lang} /> : null}
+            {(glbFileUrl || product.glbUrl) ? <GlbViewer url={glbFileUrl || (product.glbUrl as string)} lang={lang} /> : null}
             {onSave ? (
               <div className="space-y-1.5">
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -269,9 +269,13 @@ export function ProductDetailsSheet({
                   <Input id="p-glb" dir="ltr" value={glbDraft.startsWith("blob:") ? "" : glbDraft} onChange={(e) => setGlbDraft(e.target.value)} placeholder="https://…/model.glb" />
                   <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-4 text-sm font-bold transition hover:border-primary/60 hover:bg-primary/5">
                     <Box className="h-4 w-4 text-accent" />{ar ? "ارفع ملف" : "Upload"}
-                    <input type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { setGlbDraft(URL.createObjectURL(f)); toast.success(ar ? "اترفق المجسم للعرض" : "Model attached for viewing"); } }} />
+                    <input type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { const u = URL.createObjectURL(f); setGlbDraft(u); setGlbFileUrl(u); toast.success(ar ? "اترفق المجسم للعرض" : "Model attached for viewing"); } }} />
                   </label>
-                  <Button variant="outline" onClick={() => { onSave?.(product.id, { glbUrl: glbDraft.trim() || undefined }); toast.success(ar ? "اتحفظ رابط المجسم" : "Model URL saved"); }}><Box />{ar ? "حفظ" : "Save"}</Button>
+                  <Button variant="outline" onClick={() => {
+                    const v = glbDraft.trim();
+                    if (v.startsWith("blob:")) { setGlbFileUrl(v); toast.info(ar ? "الملف المرفوع للعرض هذه الجلسة فقط — الصق رابطًا مستضافًا للحفظ الدائم" : "Uploaded file previews this session only — paste a hosted URL to save permanently"); return; }
+                    onSave?.(product.id, { glbUrl: v || undefined }); toast.success(ar ? "اتحفظ رابط المجسم" : "Model URL saved");
+                  }}><Box />{ar ? "حفظ" : "Save"}</Button>
                 </div>
                 <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "ملف مرفوع يعمل هذه الجلسة فقط — للاحتفاظ الدائم ارفع المجسم على استضافة والصق رابطه. لا يوجد توليد GLB في نماذج Meta، لذا المجسم دائمًا حقيقي من البائع." : "An uploaded file works for this session only — host it and paste the URL to keep it. Meta models cannot generate GLB, so the model is always real, from the seller."}</p>
               </div>

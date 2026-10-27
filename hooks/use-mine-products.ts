@@ -36,17 +36,23 @@ export function useMineProducts() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const local = readLocal();
       try {
         const r = await fetch("/api/products");
         const j = await r.json();
         if (!cancelled && r.ok && Array.isArray(j.products)) {
-          setProducts(j.products as Product[]);
-          writeLocal(j.products as Product[]);
+          // Merge, never replace: an empty/ephemeral server DB (e.g. serverless)
+          // must not wipe products the browser already saved locally.
+          const server = j.products as Product[];
+          const seen = new Set<string>();
+          const merged = [...server, ...local].filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+          setProducts(merged);
+          writeLocal(merged);
           setLoaded(true);
           return;
         }
       } catch { /* fall through to local */ }
-      if (!cancelled) { serverOk.current = false; setProducts(readLocal()); setLoaded(true); }
+      if (!cancelled) { serverOk.current = false; setProducts(local); setLoaded(true); }
     })();
     return () => { cancelled = true; };
   }, []);

@@ -7,7 +7,13 @@ const tajawal = Tajawal({ subsets: ["arabic", "latin"], weight: ["400", "500", "
 const cairo = Cairo({ subsets: ["arabic", "latin"], weight: ["400", "600", "700", "800"], variable: "--font-cairo", display: "swap" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700", "800", "900"], variable: "--font-inter", display: "swap" });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined)
+  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined)
+  ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Souk Lens — عدسة السوق | Meta AI Hackathon",
   description: "Snap, speak, search — turn anything into a ready listing. SAM 3.1 + Muse Spark + Muse Image + Voice.",
   manifest: "/manifest.webmanifest",
