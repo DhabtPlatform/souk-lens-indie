@@ -1,14 +1,19 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { TraceInfo } from "@/components/products/model-trace";
+import { avgSeconds, readRunStats, type RunStats } from "@/lib/run-stats";
 import { Cpu, Gauge, PackageCheck, Timer, TrendingUp } from "lucide-react";
 
-// Honest impact numbers: the pipeline time is measured live from the last run;
-// the manual baseline is explicitly labeled as a market estimate, never as measured data.
+// Honest impact numbers: the pipeline time is measured live from real runs on this
+// device (persisted across visits); the manual baseline is explicitly labeled as a
+// seller estimate, never as measured data.
 export function ImpactStrip({ trace, savedCount, lang }: { trace: TraceInfo | null; savedCount: number; lang: "ar" | "en" }) {
   const ar = lang === "ar";
-  const measuredSec = trace ? trace.elapsedMs / 1000 : null;
+  const [stats, setStats] = useState<RunStats>({ runs: 0, listings: 0, totalMs: 0 });
+  useEffect(() => { setStats(readRunStats()); }, [trace]);
+  const measuredSec = trace ? trace.elapsedMs / 1000 : avgSeconds(stats);
   const manualMidSec = 17.5 * 60; // midpoint of the labeled 15–20 min estimate
   const speedup = measuredSec ? Math.max(1, Math.round(manualMidSec / measuredSec)) : null;
   const samMs = trace?.stages.find((s) => s.model.includes("sam"))?.ms;
@@ -19,19 +24,19 @@ export function ImpactStrip({ trace, savedCount, lang }: { trace: TraceInfo | nu
     <Card className="animate-souk-in mt-5 overflow-hidden border-gold/30 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="flex items-center gap-2 font-extrabold"><Gauge className="h-4 w-4 text-[#ffd166]" />{ar ? "الأثر بالأرقام" : "Impact in numbers"}</span>
-        <Badge variant={trace ? "success" : "gold"}>{trace ? (ar ? "مقاس فعليًا من آخر تشغيل" : "Measured from the last run") : (ar ? "شغّل الديمو وشوف الرقم الحقيقي" : "Run the demo to measure live")}</Badge>
+        <Badge variant={measuredSec ? "success" : "gold"}>{measuredSec ? (ar ? `مقاس فعليًا على هذا الجهاز — ${stats.runs} ${stats.runs === 1 ? "تشغيل" : "تشغيلات"}` : `Measured on this device — ${stats.runs} run${stats.runs === 1 ? "" : "s"}`) : (ar ? "شغّل الديمو وشوف الرقم الحقيقي" : "Run the demo to measure live")}</Badge>
         {trace ? <Badge variant="outline" dir="ltr">{trace.live ? "LIVE" : "DEMO"} · {trace.endpoint}</Badge> : null}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Metric icon={<Timer />} label={ar ? "زمن Souk Lens (مقاس)" : "Souk Lens time (measured)"}
           value={measuredSec ? `${measuredSec.toFixed(1)}s` : "—"}
-          sub={trace && (samMs || sparkMs || imageMs) ? `SAM ${samMs ?? "—"}ms · Spark ${sparkMs ?? "—"}ms · Image ${imageMs ?? "—"}ms` : (ar ? "لسه مفيش تشغيل" : "No run yet")} accent />
+          sub={trace && (samMs || sparkMs || imageMs) ? `SAM ${samMs ?? "—"}ms · Spark ${sparkMs ?? "—"}ms · Image ${imageMs ?? "—"}ms` : stats.runs ? (ar ? `${stats.runs} ${stats.runs === 1 ? "تشغيل" : "تشغيلات"} · ${stats.listings} ${stats.listings === 1 ? "إعلان" : "إعلانات"} على هذا الجهاز` : `${stats.runs} run${stats.runs === 1 ? "" : "s"} · ${stats.listings} listing${stats.listings === 1 ? "" : "s"} on this device`) : (ar ? "لسه مفيش تشغيل" : "No run yet")} accent />
         <Metric icon={<Timer />} label={ar ? "زمن يدوي (تقدير سوقي)" : "Manual time (market estimate)"}
           value={ar ? "15–20 د" : "15–20 min"}
           sub={ar ? "تصوير + كتابة + تسعير يدوي — تقدير للتوضيح مش قياس" : "Shoot + write + price by hand — estimate, not measured"} />
         <Metric icon={<TrendingUp />} label={ar ? "التسريع" : "Speedup"}
           value={speedup ? `×${speedup}` : "—"}
-          sub={ar ? "مبني على آخر زمن مقاس فعليًا" : "Based on the last measured run"} accent />
+          sub={ar ? "مبني على زمن مقاس فعليًا على هذا الجهاز" : "Based on time actually measured on this device"} accent />
         <Metric icon={<PackageCheck />} label={ar ? "منتجات كاملة محفوظة" : "Full listings saved"}
           value={String(savedCount)}
           sub={ar ? "صور + أسعار + متغيرات + مواصفات + SEO" : "Images + prices + variants + specs + SEO"} />

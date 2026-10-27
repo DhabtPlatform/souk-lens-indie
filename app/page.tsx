@@ -13,6 +13,7 @@ import { SamOverlay } from "@/components/products/sam-overlay";
 import { StudioCompare } from "@/components/products/studio-compare";
 import type { Detection } from "@/lib/extract";
 import { blobToWav16k } from "@/lib/wav";
+import { recordRun } from "@/lib/run-stats";
 import { HowItWorks } from "@/components/products/how-it-works";
 import { Hint } from "@/components/products/field-hint";
 import { ImpactStrip } from "@/components/judges/impact-strip";
@@ -208,6 +209,7 @@ export default function Page() {
       if (typeof j.studioImage === "string") setStudio(j.studioImage);
       const count = list.length;
       if (count) toast.success(ar ? `تم إنشاء ${count} إعلان كامل` : `${count} full listings created`);
+      recordRun(performance.now() - t0, count);
       if (j.live && (body.imageMode ?? "both") !== "real" && list[0]) enrichMedia(list[0]);
     } catch (e) { setError(String(e)); } finally { setLoading(false); }
   }
@@ -266,7 +268,7 @@ export default function Page() {
           setLive(!!j.live); setRaw(j);
           const prods = (j.products ?? []) as Product[];
           setTrace({ endpoint: "/api/voice", live: !!j.live, elapsedMs: Math.round(performance.now() - t0), count: prods.length, stages: (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS["/api/voice-listing"] ?? []) as TraceInfo["stages"] });
-          if (j.transcript) { setDesc(j.transcript); setResults(prods); if (prods.length) toast.success(ar ? "اتحول صوتك لإعلان كامل بالاسم والصور" : "Your voice became a full listing with name & images"); if (j.live && imgMode !== "real" && prods[0]) enrichMedia(prods[0]); }
+          if (j.transcript) { setDesc(j.transcript); setResults(prods); recordRun(performance.now() - t0, prods.length); if (prods.length) toast.success(ar ? "اتحول صوتك لإعلان كامل بالاسم والصور" : "Your voice became a full listing with name & images"); if (j.live && imgMode !== "real" && prods[0]) enrichMedia(prods[0]); }
           else { setResults([]); toast.info(j.note ?? (ar ? "اكتب وصف المنتج وهنولد الإعلان" : "Type the description to generate")); }
           if (typeof j.note === "string" && j.note && j.transcript) toast.info(j.note);
         } catch (e) { setError(String(e)); } finally { setLoading(false); }

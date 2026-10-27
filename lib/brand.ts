@@ -38,7 +38,7 @@ export const STR: Record<string, { ar: string; en: string }> = {
   rawJson: { ar: "عرض JSON التقني", en: "View model JSON" },
   hideJson: { ar: "إخفاء JSON التقني", en: "Hide model JSON" },
   live: { ar: "LIVE — Meta API متصل", en: "LIVE — Meta API connected" },
-  mock: { ar: "معاينة تجريبية — نفس المسار", en: "Demo preview — same pipeline" },
+  mock: { ar: "معاينة تجريبية", en: "Demo preview" },
 };
 
 export const COUNTRIES = [

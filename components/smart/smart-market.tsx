@@ -314,7 +314,7 @@ function BundleCard({ bundle: b, allBundles, ar, savedIds, onMove, onRemove, onR
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-extrabold">{ar ? i.name_ar : i.name_en}</p>
                 <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                  {typeof i.rating === "number" ? <span className="inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-[#ffd166] text-[#ffd166]" />{i.rating} ({i.reviewCount ?? 0})</span> : <span>{ar ? "بلا تقييمات مخترعة" : "No invented reviews"}</span>}
+                  {typeof i.rating === "number" ? <span className="inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-[#ffd166] text-[#ffd166]" />{i.rating} ({i.reviewCount ?? 0})</span> : null}
                   <span className="inline-flex items-center gap-0.5">{i.sellerVerified ? <BadgeCheck className="h-3.5 w-3.5 text-accent" /> : null}{i.sellerName}</span>
                   {savedIds.has(i.id) ? <Badge variant="accent" className="text-[9px]">{ar ? "من منتجاتي" : "Mine"}</Badge> : <Badge variant="gold" className="text-[9px]">{ar ? "عينة" : "Sample"}</Badge>}
                   <span className="inline-flex items-center gap-0.5"><Truck className="h-3 w-3" />{i.deliveryDays}d</span>
