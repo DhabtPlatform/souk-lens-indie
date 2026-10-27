@@ -306,9 +306,9 @@ export default function Page() {
               <Badge variant="gold">Meta Hackathon · Indie</Badge>
               <Badge variant="accent">SAM 3.1 · Muse Spark · Muse Image · Voice</Badge>
             </div>
-            <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight sm:text-5xl">{ar ? <>أي حاجة… تتحول <span className="gradient-text">لإعلان جاهز للبيع</span></> : "Anything becomes a ready-to-sell listing"}</h1>
+            <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight sm:text-5xl">{ar ? <>من صورة واحدة لفرشة السوق إلى <span className="gradient-text">متجر جاهز للبيع في أقل من دقيقة</span></> : "From one market-stall photo to a ready-to-sell store in under a minute"}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-white/80 sm:text-base">
-              {ar ? "صورة، صوت، وصف، رابط منتج، أو متجر كامل — النتيجة دايما منتج محفوظ بكل تفاصيله: صور، أسعار، متغيرات، مواصفات، مخزون وSEO. والسوق الذكي يجمع لك الشراء كله في قوائم وفاتورة واحدة." : "A photo, voice note, description, product link, or a whole store — the result is always a saved product with images, prices, variants, specs, stock and SEO. Smart Market bundles your whole purchase into lists and one invoice."}
+              {ar ? "صوّر الفرشة ← SAM 3.1 يعزل كل قطعة ← Muse Spark يسعّر ويكتب الإعلان كاملًا ← Muse Image ينضّف الصورة. الصوت والنص والروابط ونقل المتجر متاحة أيضًا — وكل نتيجة منتج محفوظ جاهز للبيع." : "Snap a stall → SAM 3.1 isolates each item → Muse Spark prices and writes the full listing → Muse Image cleans the shot. Voice, text, links and store import work too — every result is a saved, sellable product."}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="lg" variant="gold" onClick={runDemo} disabled={loading}><Sparkles />{ar ? "ديمو بضغطة واحدة" : "One-click demo"}</Button>

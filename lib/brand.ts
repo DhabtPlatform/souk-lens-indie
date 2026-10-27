@@ -35,10 +35,10 @@ export const STR: Record<string, { ar: string; en: string }> = {
   descPlaceholder: { ar: "اوصف المنتج: كرسي خشب زان بحالة ممتازة...", en: "Describe the product..." },
   urlPlaceholder: { ar: "الصق رابط منتج أو متجر https://...", en: "Paste a product or store URL https://..." },
   noItems: { ar: "لا توجد نتائج — جرب مدخل أوضح.", en: "No results — try a clearer input." },
-  rawJson: { ar: "عرض JSON الخام للحكام", en: "Show raw JSON for judges" },
-  hideJson: { ar: "إخفاء JSON الخام", en: "Hide raw JSON" },
+  rawJson: { ar: "عرض JSON التقني", en: "View model JSON" },
+  hideJson: { ar: "إخفاء JSON التقني", en: "Hide model JSON" },
   live: { ar: "LIVE — Meta API متصل", en: "LIVE — Meta API connected" },
-  mock: { ar: "وضع تجريبي — أضف MODEL_API_KEY للتفعيل الحي", en: "Demo mode — set MODEL_API_KEY for live" },
+  mock: { ar: "معاينة تجريبية — نفس المسار", en: "Demo preview — same pipeline" },
 };
 
 export const COUNTRIES = [

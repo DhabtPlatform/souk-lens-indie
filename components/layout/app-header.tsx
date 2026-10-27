@@ -26,7 +26,7 @@ export function AppHeader({
           <LogoLockup lang={lang} />
         </a>
         <div className="ms-auto flex items-center gap-2">
-          <Badge variant={live ? "success" : "secondary"} className="hidden sm:inline-flex">{live ? "● LIVE Meta" : "○ Demo"}</Badge>
+          <Badge variant={live ? "success" : "secondary"} className="hidden sm:inline-flex">{live ? "● LIVE Meta" : (ar ? "معاينة تجريبية" : "Demo preview")}</Badge>
           <div className="w-[132px]">
             <Select value={country.code} onValueChange={(v) => setCountry(COUNTRIES.find((c) => c.code === v) ?? COUNTRIES[0])}>
               <SelectTrigger aria-label="country"><SelectValue /></SelectTrigger>
