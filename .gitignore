@@ -24,6 +24,9 @@ Thumbs.db
 # Runtime database (created automatically, capped, never committed)
 data/products.json
 
+# Demo video production artifacts (final MP4 kept locally, never committed)
+video-output/
+
 # Personal session automation � local only, never public
 AGENTS.md
 DEMO_SCRIPT.md
