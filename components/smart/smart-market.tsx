@@ -147,6 +147,7 @@ export function SmartMarket({
             <Badge variant={savedProducts.length ? "accent" : "secondary"}>{ar ? `+ منتجاتك المحفوظة الحقيقية (${savedProducts.length})` : `+ your real saved products (${savedProducts.length})`}</Badge>
             {counts ? <Badge variant="outline">{ar ? `اتبحث في ${counts.total} منتج (${counts.saved} محفوظ + ${counts.demo} كتالوج)` : `Searched ${counts.total} (${counts.saved} saved + ${counts.demo} catalog)`}</Badge> : null}
           </div>
+          <p className="pt-1 text-[11px] text-muted-foreground" dir="auto">{ar ? "صور منتجات الكتالوج التجريبي من Unsplash (ترخيص مجاني — التفاصيل في ATTRIBUTION.md) وتُستبدل بصور البائعين الحقيقية في الإنتاج." : "Demo catalog product photos by Unsplash (free license — see ATTRIBUTION.md); replaced by real seller photos in production."}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar" role="list" aria-label="presets">
