@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { HowItWorks } from "@/components/products/how-it-works";
 import { Hint } from "@/components/products/field-hint";
+import { ModelTrace, STAGE_PRESETS, type TraceInfo } from "@/components/products/model-trace";
 import type { Product } from "@/lib/product";
 import { buildInvoice, PRESETS, type Bundle, type Priority } from "@/lib/smart-market";
 import { formatPrice } from "@/lib/utils";
@@ -52,6 +53,7 @@ export function SmartMarket({
   const [activeBundle, setActiveBundle] = useState("value");
   const [approvedId, setApprovedId] = useState<string | null>(null);
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [trace, setTrace] = useState<TraceInfo | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [counts, setCounts] = useState<{ total: number; saved: number; demo: number } | null>(null);
 
@@ -60,6 +62,7 @@ export function SmartMarket({
   async function run(presetOverride?: string) {
     const pid = presetOverride ?? presetId;
     setLoading(true); setError(""); setApprovedId(null);
+    const t0 = performance.now();
     try {
       const r = await fetch("/api/smart-market", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -71,6 +74,12 @@ export function SmartMarket({
       setSavedIds(new Set((j.savedIds ?? []) as string[]));
       setCounts({ total: j.catalogSize ?? 0, saved: j.savedCount ?? 0, demo: j.sampleCount ?? j.demoCount ?? 0 });
       setActiveBundle((j.bundles as SmartBundle[])[0]?.id ?? "value");
+      setTrace({
+        endpoint: "/api/smart-market", live: !!j.live,
+        elapsedMs: Math.round(performance.now() - t0),
+        count: ((j.bundles as SmartBundle[]) ?? []).reduce((n, b) => n + (b.items?.length ?? 0), 0),
+        stages: (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS["/api/smart-market"] ?? []) as TraceInfo["stages"],
+      });
       toast.success(ar ? `اتجمعت 3 قوائم من ${j.catalogSize} منتج في المتجر` : `3 lists built from ${j.catalogSize} store products`);
     } catch (e) { setError(String(e)); } finally { setLoading(false); }
   }
@@ -209,6 +218,8 @@ export function SmartMarket({
       {loading ? (
         <div className="grid gap-4 lg:grid-cols-3">{[0, 1, 2].map((i) => <Card key={i} className="space-y-3 p-4"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /><Skeleton className="h-10 w-full" /></Card>)}</div>
       ) : null}
+
+      {trace ? <ModelTrace trace={trace} lang={lang} /> : null}
 
       {intent && bundles.length ? (
         <Card className="border-accent/40 bg-accent/10 p-4 animate-souk-in">

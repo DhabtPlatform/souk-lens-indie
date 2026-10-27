@@ -6,6 +6,35 @@ import { CheckCheck, CircleDashed, Cpu, Timer } from "lucide-react";
 export type TraceStage = { model: string; role: string; ms?: number; live?: boolean; status?: string };
 export type TraceInfo = { endpoint: string; live: boolean; elapsedMs: number; count: number; stages: TraceStage[] };
 
+// API roles arrive in Arabic; judges read English — translate known strings, else show raw.
+const ROLE_EN: Record<string, string> = {
+  "Segmentation — عزل القطع": "Segmentation — isolate items",
+  "عزل كل قطعة في الصورة": "Isolate every item in the photo",
+  "تعرّف + تسعير + إعلان كامل": "Recognize + price + full listing",
+  "تسعير محلي + إعلان كامل": "Local pricing + full listing",
+  "صورة ستوديو نظيفة": "Clean studio shot",
+  "صورة ستوديو نظيفة للمنتج الأول": "Clean studio shot for the first product",
+  "إعلان كامل من الوصف": "Full listing from the description",
+  "صورة ستوديو": "Studio shot",
+  "صوت → نص": "Speech → text",
+  "إعلان كامل": "Full listing",
+  "إعلان كامل من النص": "Full listing from the text",
+  "بيانات الرابط الحقيقية OG/JSON-LD": "Real link data OG/JSON-LD",
+  "مقارنة وبدائل وحكم": "Compare, alternatives & verdict",
+  "مقارنة وبدائل وحكم نهائي": "Compare, alternatives & final verdict",
+  "منتجات JSON-LD الحقيقية": "Real JSON-LD products",
+  "إكمال إعلانات المتجر": "Complete the store listings",
+  "فهم نية الشراء (عند توفر المفتاح)": "Understand buying intent (with key)",
+  "فهم نية الشراء (حي مع المفتاح)": "Understand buying intent (live with key)",
+  "ترتيب: تقييم × خصم × توصيل × ثقة بائع": "Rank: rating × discount × delivery × seller trust",
+  "ترتيب: تقييم × خصم × توصيل × ثقة": "Rank: rating × discount × delivery × trust",
+};
+
+export function roleIn(lang: "ar" | "en", role: string) {
+  if (lang === "en") return ROLE_EN[role] ?? role;
+  return role;
+}
+
 export function ModelTrace({ trace, lang }: { trace: TraceInfo | null; lang: "ar" | "en" }) {
   const ar = lang === "ar";
   if (!trace) return null;
@@ -24,7 +53,7 @@ export function ModelTrace({ trace, lang }: { trace: TraceInfo | null; lang: "ar
               <span className="text-[13px] font-black" dir="ltr">{s.model}</span>
               {s.status === "ok" || !s.status ? <CheckCheck className="h-4 w-4 text-accent" /> : <CircleDashed className="h-4 w-4 text-muted-foreground" />}
             </div>
-            <p className="mt-1 text-[11px] leading-5 text-muted-foreground" dir="auto">{s.role}</p>
+            <p className="mt-1 text-[11px] leading-5 text-muted-foreground" dir="auto">{roleIn(lang, s.role)}</p>
             <p className="mt-1 text-[11px] font-bold text-accent" dir="ltr">{typeof s.ms === "number" ? `${s.ms} ms` : s.status ?? "done"}</p>
             {i < trace.stages.length - 1 ? <span className="flip-dir absolute -end-2 top-1/2 z-10 hidden -translate-y-1/2 text-muted-foreground sm:block">→</span> : null}
           </div>

@@ -9,6 +9,7 @@ import { SellerDashboard } from "@/components/products/seller-dashboard";
 import { SmartMarket } from "@/components/smart/smart-market";
 import { EmptyState, ProductSkeletonGrid } from "@/components/products/states";
 import { ModelTrace, STAGE_PRESETS, type TraceInfo } from "@/components/products/model-trace";
+import { TabModelMap } from "@/components/products/tab-model-map";
 import { SamOverlay } from "@/components/products/sam-overlay";
 import { StudioCompare } from "@/components/products/studio-compare";
 import type { Detection } from "@/lib/extract";
@@ -426,6 +427,7 @@ export default function Page() {
                 </div>
               </div>
             </InputCard>
+            <div className="mt-3"><TabModelMap tab="analyze" lang={lang} /></div>
           </TabsContent>
 
           <TabsContent value="generate">
@@ -440,6 +442,7 @@ export default function Page() {
               <TrustNote lang={lang} />
               <div className="space-y-1.5"><Button size="lg" onClick={runGenerate} disabled={loading || !desc.trim()} className={loading ? "btn-glow" : undefined}><Sparkles />{loading ? t("analyzing", lang) : (ar ? "ولّد إعلان كامل" : "Generate full listing")}</Button><Hint>{ar ? "يخرج إعلانًا كاملًا مع صورة ستوديو مولدة في نتيجة واحدة." : "Produces a full listing plus a generated studio shot in one result."}</Hint></div>
             </InputCard>
+            <div className="mt-3"><TabModelMap tab="generate" lang={lang} /></div>
           </TabsContent>
 
           <TabsContent value="voice">
@@ -464,6 +467,7 @@ export default function Page() {
               <TrustNote lang={lang} />
               <div className="space-y-1.5"><Button size="lg" onClick={runVoiceListing} disabled={loading || !desc.trim()} className={loading ? "btn-glow" : undefined}><Sparkles />{ar ? "ابني الإعلان من النص" : "Build listing from text"}</Button><Hint>{ar ? "يبني الإعلان من النص الظاهر فوق — عدّله أولًا لو احتجت." : "Builds the listing from the text above — edit it first if needed."}</Hint></div>
             </InputCard>
+            <div className="mt-3"><TabModelMap tab="voice" lang={lang} /></div>
           </TabsContent>
 
           <TabsContent value="compare">
@@ -482,9 +486,11 @@ export default function Page() {
                 <Button size="lg" onClick={runImport} disabled={loading || !extUrl.trim()}><Download />{loading ? t("analyzing", lang) : (ar ? "انقل المنتجات" : "Import products")}</Button>
               </div><Hint>{ar ? "رابط الصفحة الرئيسية لمتجرك القديم — تُسحب المنتجات الحقيقية ويُكمَل الناقص بالذكاء." : "Your old store's homepage link — real products are pulled and AI completes what's missing."}</Hint></div>
             </InputCard>
+            <div className="mt-3"><TabModelMap tab="import" lang={lang} /></div>
           </TabsContent>
 
           <TabsContent value="smart">
+            <div className="mb-3"><TabModelMap tab="smart" lang={lang} /></div>
             <SmartMarket
               lang={lang} country={country.code} currency={country.currency}
               savedProducts={mine.products}
@@ -496,6 +502,7 @@ export default function Page() {
 
           <TabsContent value="mine">
             <div className="space-y-4">
+            <TabModelMap tab="mine" lang={lang} />
             {mine.products.length ? (
               <SellerDashboard products={mine.products} lang={lang} onPatch={patchProduct} onDetails={openDetails} onRemove={mine.remove} />
             ) : null}

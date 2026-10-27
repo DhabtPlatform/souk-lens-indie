@@ -10,9 +10,12 @@ export async function POST(req: NextRequest) {
     const { query = "", presetId, country = "EG", currency = "EGP", budget, priority = "balanced", savedProducts } = await req.json();
     let detectedPreset = presetId as string | undefined;
     let intentNote = "";
+    const t0 = Date.now();
+    let intentMs = 0;
 
     if (!detectedPreset && hasKey() && typeof query === "string" && query.trim().length > 3) {
       try {
+        const ti = Date.now();
         const resp = await sparkText(
           `Classify this shopping request into ONE preset id from: ${PRESETS.map((p) => p.id).join(", ")}. Request: "${query}". Return JSON only: {"presetId":"...","need_ar":"one line in Arabic of what the buyer needs"}`
         );
@@ -20,8 +23,11 @@ export async function POST(req: NextRequest) {
         const clean = text.replace(/```json|```/g, "").trim();
         const obj = JSON.parse(clean.slice(clean.indexOf("{"), clean.lastIndexOf("}") + 1)) as { presetId?: string; need_ar?: string };
         if (obj.presetId && PRESETS.some((p) => p.id === obj.presetId)) { detectedPreset = obj.presetId; intentNote = obj.need_ar ?? ""; }
+        intentMs = Date.now() - ti;
       } catch { /* local detector below is authoritative fallback */ }
     }
+
+    const tb = Date.now();
 
     const result = smartSearch({
       query: String(query ?? ""), presetId: detectedPreset,
@@ -34,6 +40,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       live: hasKey(),
+      trace: [
+        { model: "muse-spark-1.3", role: "فهم نية الشراء (حي مع المفتاح)", ms: intentMs, live: hasKey() },
+        { model: "souk ranker (local)", role: "ترتيب: تقييم × خصم × توصيل × ثقة", ms: Date.now() - tb, live: false },
+      ],
       intent: { presetId: result.preset.id, title_ar: result.preset.title_ar, title_en: result.preset.title_en, note: intentNote || result.preset.desc_ar },
       bundles: result.bundles,
       alternativesBySlot: result.alternativesBySlot,
