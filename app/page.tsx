@@ -119,15 +119,39 @@ export default function Page() {
     }
   }, []);
 
-  // Restore saved language/country once, then keep <html lang/dir> + storage in sync.
+  // Init once per page load: saved prefs win; otherwise geo-detect
+  // country/currency/language (server IP lookup + browser language),
+  // then auto-run the demo so visitors see a real result immediately.
   useEffect(() => {
-    try {
-      const savedLang = localStorage.getItem("souk-lens-lang");
-      if (savedLang === "en" || savedLang === "ar") setLang(savedLang);
-      const savedCountry = localStorage.getItem("souk-lens-country");
-      const found = COUNTRIES.find((c) => c.code === savedCountry);
-      if (found) setCountry(found);
-    } catch { /* first visit */ }
+    if (autoRan.current) return;
+    autoRan.current = true;
+    (async () => {
+      let l: Lang = "en";
+      let c = COUNTRIES[0];
+      try {
+        const savedLang = localStorage.getItem("souk-lens-lang");
+        if (savedLang === "ar" || savedLang === "en") l = savedLang;
+        const savedCountry = localStorage.getItem("souk-lens-country");
+        const foundSaved = COUNTRIES.find((x) => x.code === savedCountry);
+        if (foundSaved) c = foundSaved;
+        const hasSavedPrefs = (savedLang === "ar" || savedLang === "en") && !!foundSaved;
+        if (!hasSavedPrefs) {
+          try {
+            const g = await fetch("/api/geo").then((r) => r.json()) as { country?: string; lang?: string };
+            const geoCountry = COUNTRIES.find((x) => x.code === g.country);
+            if (geoCountry) c = geoCountry;
+            if (!savedLang || (savedLang !== "ar" && savedLang !== "en")) {
+              if (g.lang === "ar" || g.lang === "en") l = g.lang;
+              else if (typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("ar")) l = "ar";
+            }
+          } catch { /* keep defaults */ }
+        }
+      } catch { /* first visit */ }
+      setLang(l); setCountry(c);
+      autoScroll.current = true;
+      setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado");
+      postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -223,18 +247,6 @@ export default function Page() {
 
   const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   const runDemo = () => { setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado"); postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency }); };
-  // Auto-run the demo once per page load so visitors see a real result
-  // immediately — no click needed. Guarded by ref: fires exactly once.
-  useEffect(() => {
-    if (autoRan.current) return;
-    autoRan.current = true;
-    autoScroll.current = true;
-    let langPref: Lang = "en";
-    try { const s = localStorage.getItem("souk-lens-lang"); if (s === "ar" || s === "en") langPref = s; } catch { /* ignore */ }
-    setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado");
-    postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: langPref === "ar" ? "ar-EG" : "en", country: country.code, currency: country.currency });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   function handleJudgeAction(a: JudgeAction) {
     if (a === "demo") runDemo();
     else if (a === "smart") setTab("smart");
