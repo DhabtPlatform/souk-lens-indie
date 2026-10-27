@@ -9,10 +9,11 @@ import { SpinViewer } from "@/components/products/spin-viewer";
 import { buildAdText, type Product } from "@/lib/product";
 import { formatPrice } from "@/lib/utils";
 import {
-  BadgeCheck, Box, Gavel, Globe2, Images, Megaphone, MessageCircle, Minus, Plus,
+  BadgeCheck, Box, Gavel, Globe2, Images, Link2, Megaphone, MessageCircle, Minus, Plus,
   Radio, Rotate3D, ShieldCheck, ShoppingCart, Star, Tag, Truck, Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { buildShareLink } from "@/lib/share";
 
 // Full buyer-facing product page content — exactly what a customer sees:
 // gallery, variants with photos, 360°, real 3D, price, shipping & policies, seller, order.
@@ -123,6 +124,17 @@ export function ProductBuyerView({
                 <MessageCircle />{ar ? "اطلب واتساب" : "Order on WhatsApp"}
               </Button>
             </div>
+            <Button
+              variant="ghost" size="sm" className="w-full text-muted-foreground"
+              onClick={async () => {
+                const url = buildShareLink(window.location.origin, `/product/${product.id}`, product);
+                if (!url) { toast.info(ar ? "المنتج كبير على الرابط — صدّره JSON من منتجاتي" : "Too big for a link — export JSON from My products"); return; }
+                try { await navigator.clipboard.writeText(url); toast.success(ar ? "اتنسخ رابط المشاركة — يفتح بدون حساب" : "Share link copied — opens with no account"); }
+                catch { toast.info(url); }
+              }}
+            >
+              <Link2 />{ar ? "انسخ رابط مشاركة يفتح بدون حساب" : "Copy share link — opens with no account"}
+            </Button>
           </Card>
 
           <div className="grid gap-2 sm:grid-cols-3">

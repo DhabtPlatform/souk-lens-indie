@@ -9,6 +9,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useMineProducts } from "@/hooks/use-mine-products";
 import type { Product } from "@/lib/product";
 import type { Lang } from "@/lib/brand";
+import { parseShareLink } from "@/lib/share";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 
 const PREVIEW_KEY = "souk-lens-preview";
@@ -46,7 +47,9 @@ export default function BuyerProductPage({ params }: { params: Promise<{ id: str
       const found = saved.find((p) => p.id === id);
       if (found) { setProduct(found); setReady(true); return; }
       const preview = JSON.parse(sessionStorage.getItem(PREVIEW_KEY) ?? "null") as Product | null;
-      if (preview && preview.id === id) setProduct(preview);
+      if (preview && preview.id === id) { setProduct(preview); setReady(true); return; }
+      const shared = parseShareLink(window.location.hash || "");
+      if (shared) { setProduct({ ...shared, id }); setReady(true); return; }
     } catch { /* ignore */ }
     setReady(true);
   }, [id, mine.products.length]);
