@@ -109,6 +109,9 @@ npm test               # 7 unit tests: share links, actual-only economics, SAM b
 - Auction/live/campaign: selling-channel activation saved with the product (a fresh auction starts at zero bids; bid simulation is labeled) + live bid simulation for the demo; payment is a hackathon demo checkout that records the order.
 - SAM map: when SAM 3.1 returns its native `box;x1=…;w=…` coordinates (parsed in `lib/extract.ts`), boxes are the model's real coordinates; the evenly-placed fallback is still honestly labeled "estimated demo positions".
 
+## Real-world check (Oct 27 — green orange)
+A real seller photo (unripe green orange on a home countertop) was run through the **deployed** build: SAM isolated it, Spark first guessed "lemon" — the honest failure mode for ambiguous produce — then with the one-word hint "green orange" it built the correct listing with a local EGP price. This is why the analyze tab now explicitly asks users to name ambiguous items. No staged data: the same flow any judge gets.
+
 ## Asset sources (Attribution)
 - Demo catalog photos (25): **Unsplash** under a free license — labeled in the UI and documented in `ATTRIBUTION.md`; replaced by real seller photos in production.
 - Brand imagery generated with **Muse Image 1.0**, original logo, open fonts (OFL) — see `ATTRIBUTION.md`.
