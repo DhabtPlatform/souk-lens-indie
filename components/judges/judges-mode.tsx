@@ -4,23 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Bot, Camera, CheckCheck, ChevronLeft, ChevronRight, MessageCircleQuestion, Package, Pause, Play, RotateCcw, ShoppingCart, Trophy } from "lucide-react";
+import { Bot, Camera, CheckCheck, ChevronLeft, ChevronRight, Package, Pause, Play, RotateCcw, ShoppingCart, Trophy } from "lucide-react";
 
 export type JudgeAction = "demo" | "smart" | "save" | "mine" | "cart";
 
 const STEPS: { time: string; icon: React.ReactNode; ar: string; en: string; sayAr: string; sayEn: string; action?: JudgeAction; actionAr?: string; actionEn?: string }[] = [
-  { time: "0–10s", icon: <Trophy />, ar: "الوعد في جملة", en: "The promise in one line", sayAr: "«Souk Lens مش محلل صور — دي منصة سوق كاملة للأسواق غير الرسمية: من صورة فرشة لإعلان ومزاد وسوق ذكي ودفع. أي فرشة في العالم تتحول لمتجر بيبيع — بصورة واحدة.»", sayEn: "“Souk Lens is not an image analyzer — it's a complete market platform for informal markets: from a stall photo to listing, auction, smart market and payment.”" },
-  { time: "10–35s", icon: <Camera />, ar: "الديمو الحي", en: "Live demo", sayAr: "بضغطة: SAM يعزل القطعة على الخريطة، Spark يسعّر بالمحلي ويكتب الإعلان، وMuse Image يعمل صورة الستوديو — شوفوا زمن كل موديل في شريط الإثبات.", sayEn: "One click: SAM isolates the item on the map, Spark prices it locally and writes the listing, Muse Image makes the studio shot — watch each model's time in the proof bar.", action: "demo", actionAr: "شغّل الديمو الحي", actionEn: "Run live demo" },
+  { time: "0–10s", icon: <Trophy />, ar: "الوعد في جملة", en: "The promise in one line", sayAr: "Souk Lens منصة سوق كاملة للأسواق غير الرسمية: من صورة فرشة واحدة إلى إعلان ومزاد وسوق ذكي ودفع.", sayEn: "Souk Lens is a complete market platform for informal markets: from one stall photo to listing, auction, smart market and payment." },
+  { time: "10–35s", icon: <Camera />, ar: "الديمو الحي", en: "Live demo", sayAr: "بضغطة واحدة: SAM يعزل القطعة على الخريطة، Spark يسعّر محليًا ويكتب الإعلان، وMuse Image يعمل صورة الستوديو، وزمن كل موديل يظهر في شريط الإثبات.", sayEn: "One click: SAM isolates the item on the map, Spark prices it locally and writes the listing, Muse Image makes the studio shot, and each model's measured time appears in the proof bar.", action: "demo", actionAr: "شغّل الديمو الحي", actionEn: "Run live demo" },
   { time: "35–50s", icon: <Package />, ar: "الحفظ والإدارة", en: "Save & manage", sayAr: "الإعلان اتخزن كامل: صور وأسعار ومتغيرات ومواصفات. ومن إدارة المنتجات: تقرير ربح فوري، وتحويل لمزاد بمحاكاة مزايدة حية.", sayEn: "The listing saved in full: images, prices, variants, specs. In product management: instant profit report, and conversion to auction with a live bidding simulation.", action: "save", actionAr: "احفظ النتيجة وافتح منتجاتي", actionEn: "Save result & open My products" },
-  { time: "50–75s", icon: <Bot />, ar: "السوق الذكي", en: "Smart Market", sayAr: "المشتري بيكتب «عاوز أجهز عروسين» — الوكيل بيبحث في المتجر ومنتجاتي، يبني 3 قوائم، وأقدر أنقل وأعتمد وأستلم فاتورة.", sayEn: "The buyer types “furnish a wedding” — the agent searches the store and my products, builds 3 lists; I can move items, approve, and get an invoice.", action: "smart", actionAr: "افتح السوق الذكي", actionEn: "Open Smart Market" },
-  { time: "75–90s", icon: <ShoppingCart />, ar: "الدفع والإغلاق", en: "Checkout & close", sayAr: "من الفاتورة للسلة للدفع. تلات موديلات Meta في Pipeline واحد، لسوق غير رسمي محدش بيخدمه — هذا هو عالمنا الذي نبني له.", sayEn: "From invoice to cart to payment. Three Meta models in one pipeline, for an informal market nobody serves — this is the world we build for.", action: "cart", actionAr: "افتح السلة", actionEn: "Open cart" },
-];
-
-const QA: { qAr: string; qEn: string; aAr: string; aEn: string }[] = [
-  { qAr: "إيه الفرق عن ChatGPT؟", qEn: "How is this different from ChatGPT?", aAr: "ChatGPT بيكتب نص. إحنا Pipeline: SAM 3.1 يعزل القطع بصريًا، Spark يسعّر محليًا ويبني منتجًا كاملًا بمتغيرات ومخزون، Muse Image ينضّف الصورة، وبعده حفظ وبيع ومزاد وسوق ذكي — منتج متكامل مش رد محادثة.", aEn: "ChatGPT writes text. We are a pipeline: SAM 3.1 visually isolates items, Spark prices locally and builds a full product with variants and stock, Muse Image cleans the shot — then saving, selling, auctions and a smart market. A complete product, not a chat reply." },
-  { qAr: "الكتالوج وأرقام المبيعات حقيقية؟", qEn: "Is the catalog / sales data real?", aAr: "موسومة في الواجهة نفسها كبيانات تجريبية للعرض وقابلة للتعديل. الحقيقي والمقاس: زمن تشغيل الموديلات، والإعلانات المولدة Live، ومنتجات المستخدم المحفوظة اللي السوق الذكي بيبحث فيها فعلًا.", aEn: "Labeled in the UI itself as demo data, and editable. What's real and measured: model run times, the Live-generated listings, and the user's saved products that Smart Market actually searches." },
-  { qAr: "لو الـAPI وقع يوم العرض؟", qEn: "What if the API fails on demo day?", aAr: "نفس الـPipeline بيشتغل بوضع Demo من غير مفتاح، وكل خطوة موسومة Live أو Demo بصراحة — العرض مش بيقع، وبيان الشفافية ده نفسه نقطة قوة.", aEn: "The same pipeline runs in Demo mode without a key, and every step is honestly labeled Live or Demo — the show never dies, and that transparency is itself a strength." },
-  { qAr: "إزاي هتكسبوا فلوس؟", qEn: "How will you make money?", aAr: "قنوات البيع جاهزة في المنتج: عمولة على المزادات والحملات الخارجية والبث، واشتراك بائعين للإدارة والتقارير — الدفع في الإنتاج لبوابة البائع مباشرة بدون احتجاز أموال.", aEn: "Selling channels are built into the product: commission on auctions, external campaigns and live sales, plus a seller subscription for management and reports — production payments go straight to the seller's gateway." },
+  { time: "50–75s", icon: <Bot />, ar: "السوق الذكي", en: "Smart Market", sayAr: "المشتري بيكتب احتياجه — الوكيل بيبحث في المتجر والمنتجات المحفوظة، يبني 3 قوائم قابلة للنقل والاعتماد، وتطلع فاتورة مبدئية.", sayEn: "The buyer states a need — the agent searches the store and saved products, builds 3 movable lists to approve, and produces a preliminary invoice.", action: "smart", actionAr: "افتح السوق الذكي", actionEn: "Open Smart Market" },
+  { time: "75–90s", icon: <ShoppingCart />, ar: "الدفع والإغلاق", en: "Checkout & close", sayAr: "من الفاتورة إلى السلة إلى الدفع، عبر ثلاث موديلات Meta في مسار واحد.", sayEn: "From invoice to cart to payment, through three Meta models in one pipeline.", action: "cart", actionAr: "افتح السلة", actionEn: "Open cart" },
 ];
 
 export function JudgesMode({ open, onOpenChange, lang, onAction, hasResults }: {
@@ -45,8 +38,8 @@ export function JudgesMode({ open, onOpenChange, lang, onAction, hasResults }: {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-2xl"><Trophy className="text-[#ffd166]" />{ar ? "جولة 90 ثانية" : "Guided 90-second tour"}</SheetTitle>
-          <SheetDescription>{ar ? "سكريبت عرض حي خطوة بخطوة: قول الجملة، نفّذ الحركة، وعدّاد بيحافظ على وقتك. ومعاه إجابات الأسئلة الصعبة وخطة بديلة." : "A step-by-step live pitch script: say the line, run the action, a timer keeps your pace. Plus tough-question answers and a fallback plan."}</SheetDescription>
+          <SheetTitle className="flex items-center gap-2 text-2xl"><Trophy className="text-[#ffd166]" />{ar ? "جولة المنتج — 90 ثانية" : "Product tour — 90 seconds"}</SheetTitle>
+          <SheetDescription>{ar ? "جولة حيّة خطوة بخطوة في المنتج بعدّاد 90 ثانية." : "A step-by-step live product walkthrough on a 90-second timer."}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 p-5">
@@ -87,20 +80,8 @@ export function JudgesMode({ open, onOpenChange, lang, onAction, hasResults }: {
             ))}
           </div>
 
-          <div>
-            <h4 className="mb-2 flex items-center gap-2 font-extrabold"><MessageCircleQuestion className="h-4 w-4 text-primary" />{ar ? "أسئلة الحكام الصعبة — وإجاباتها" : "Tough judge questions — answered"}</h4>
-            <div className="space-y-2">
-              {QA.map((x, i) => (
-                <details key={i} className="group rounded-xl border bg-card px-3.5 py-2.5">
-                  <summary className="cursor-pointer py-1 text-sm font-bold marker:text-accent">{ar ? x.qAr : x.qEn}</summary>
-                  <p className="pb-1.5 pt-1 text-sm leading-7 text-muted-foreground">{ar ? x.aAr : x.aEn}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-
           <p className="rounded-xl border border-accent/30 bg-accent/5 p-3 text-xs leading-6 text-muted-foreground">
-            {ar ? "الخطة البديلة: لو وقعت الشبكة، كمل بنفس الخطوات — الـPipeline بيشتغل Demo بنفس النتائج البصرية وكل حاجة موسومة بصراحة. ولو وقع الجهاز، السكريبت ده محفوظ في DEMO_SCRIPT.md مع لقطات الهوية في صفحة البراند." : "Fallback: if the network dies, keep the same steps — the pipeline runs in Demo with the same visuals, all honestly labeled. If the machine dies, this script lives in DEMO_SCRIPT.md with brand shots on the Brand page."}
+            {ar ? "جولة سريعة في المنتج كاملًا: تحليل، حفظ وإدارة، سوق ذكي، ودفع — في 90 ثانية." : "A fast walkthrough of the full product: analysis, saving and management, smart market, and checkout — in 90 seconds."}
           </p>
         </div>
       </SheetContent>

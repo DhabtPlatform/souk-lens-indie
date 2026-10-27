@@ -68,10 +68,10 @@ npm run dev            # http://localhost:3000
 ```
 
 ## Guided tour & impact (in-app)
-- The **"Guided 90-second tour"** hero button: a timed pitch script with in-app actions + tough-question answers + fallback plan (same script in `DEMO_SCRIPT.md`).
+- A built-in **90-second product tour** walks the full flow (analysis → management → smart market → checkout) on a timer.
 - **Impact strip**: pipeline time measured from the last real run (SAM/Spark/Image in ms) vs. a manual time labeled as a market estimate — no invented numbers.
 - **Illustrative seller story** labeled as a demo scenario (not a paid testimonial): stall → SAM → listing → sale.
-- Deploy-ready with `vercel.json` + `.env.example`; steps and checks in `DEMO_SCRIPT.md`.
+- Deploy-ready with `vercel.json` + `.env.example` (any Node 20 host; set `MODEL_API_KEY` for Live mode).
 
 ## 90-second demo
 1. Hit **"One-click demo"** in the hero — analyzes a real photo with the full pipeline.

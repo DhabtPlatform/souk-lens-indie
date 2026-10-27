@@ -31,7 +31,7 @@ import { COUNTRIES, t, type Lang } from "@/lib/brand";
 import type { Product } from "@/lib/product";
 import {
   ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Megaphone, Mic, Package,
-  Radio, Search, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Trophy, Type, Wand2,
+  Radio, Search, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Type, Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +80,14 @@ export default function Page() {
   const cart = useCart();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const ar = lang === "ar";
+
+  // Presenter coach (private): opens only via ?coach=1 or Ctrl+Shift+J — never visible to visitors/judges.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("coach")) setJudgesOpen(true);
+    const onKey = (e: KeyboardEvent) => { if (e.ctrlKey && e.shiftKey && e.code === "KeyJ") setJudgesOpen(true); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // PWA: seller installs the app and the shell works offline in the market.
   useEffect(() => {
@@ -221,7 +229,6 @@ export default function Page() {
               {ar ? "صورة، صوت، وصف، رابط منتج، أو متجر كامل — النتيجة دايما منتج محفوظ بكل تفاصيله: صور، أسعار، متغيرات، مواصفات، مخزون وSEO. والسوق الذكي يجمع لك الشراء كله في قوائم وفاتورة واحدة." : "A photo, voice note, description, product link, or a whole store — the result is always a saved product with images, prices, variants, specs, stock and SEO. Smart Market bundles your whole purchase into lists and one invoice."}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button size="lg" variant="gold" onClick={() => setJudgesOpen(true)}><Trophy />{ar ? "جولة 90 ثانية" : "Guided 90-second tour"}</Button>
               <Button size="lg" variant="gold" onClick={runDemo} disabled={loading}><Sparkles />{ar ? "ديمو بضغطة واحدة" : "One-click demo"}</Button>
               <Button size="lg" variant="accent" onClick={() => setTab("smart")}><Bot />{ar ? "جرّب السوق الذكي" : "Try Smart Market"}</Button>
               <Button size="lg" variant="outline" className="glass text-white hover:text-white" onClick={() => setTab("analyze")}><Camera />{ar ? "حلّل صورة سوق" : "Analyze a photo"}</Button>
