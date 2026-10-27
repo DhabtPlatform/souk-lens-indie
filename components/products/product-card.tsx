@@ -6,8 +6,9 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { buildAdText, type Product } from "@/lib/product";
 import { cn, formatPrice } from "@/lib/utils";
-import { BadgeCheck, Box, Check, Copy, Eye, Gavel, Globe2, ImageOff, Images, Megaphone, PackagePlus, Radio, Rotate3D, ShoppingCart, Sparkles, Star, Trash2, Truck, Undo2 } from "lucide-react";
+import { BadgeCheck, Box, Check, ChevronDown, Copy, ExternalLink, Eye, Gavel, Globe2, ImageOff, Images, Megaphone, PackagePlus, Radio, Rotate3D, ShoppingCart, Sparkles, Star, Trash2, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { ProductBuyerView } from "@/components/products/product-buyer-view";
 
 const SOURCE_LABEL: Record<string, { ar: string; en: string; variant: "default" | "accent" | "gold" | "secondary" }> = {
   image: { ar: "من صورة", en: "From image", variant: "default" },
@@ -19,7 +20,7 @@ const SOURCE_LABEL: Record<string, { ar: string; en: string; variant: "default" 
 };
 
 export function ProductCard({
-  product, lang, isMine, onAdd, onRemove, onDetails, onCart,
+  product, lang, isMine, onAdd, onRemove, onDetails, onCart, onOpenPage, mediaBusy,
 }: {
   product: Product; lang: "ar" | "en";
   isMine?: boolean;
@@ -27,9 +28,12 @@ export function ProductCard({
   onRemove?: (id: string) => void;
   onDetails: (p: Product) => void;
   onCart?: (p: Product) => void;
+  onOpenPage?: (p: Product) => void;
+  mediaBusy?: boolean;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const ar = lang === "ar";
   const discount = product.compareAtPrice && product.compareAtPrice > product.price
@@ -138,8 +142,12 @@ export function ProductCard({
         </div>
       </CardContent>
 
-      <CardFooter className="gap-2 p-4 pt-0">
+      <CardFooter className="gap-1.5 p-4 pt-0">
         <Button className="flex-1" variant="outline" onClick={() => onDetails(product)}><Eye />{ar ? "التفاصيل" : "Details"}</Button>
+        <Button size="icon" variant="ghost" onClick={() => setExpanded((v) => !v)} aria-label="expand full section" title={ar ? "قسم كامل بالتفاصيل تحت الكارت" : "Full section below the card"}>
+          <ChevronDown className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </Button>
+        {onOpenPage ? <Button size="icon" variant="ghost" onClick={() => onOpenPage(product)} aria-label="buyer page" title={ar ? "صفحة المشتري الكاملة" : "Full buyer page"}><ExternalLink /></Button> : null}
         {onCart ? <Button size="icon" variant="accent" onClick={() => { onCart(product); toast.success(ar ? "اتضاف للسلة" : "Added to cart"); }} aria-label="add to cart"><ShoppingCart /></Button> : null}
         <Button size="icon" variant="ghost" onClick={copyAd} aria-label="copy ad"><Copy /></Button>
         {isMine ? (
@@ -150,6 +158,20 @@ export function ProductCard({
           </Button>
         )}
       </CardFooter>
+      {expanded ? (
+        <div className="space-y-3 border-t bg-muted/30 p-4 animate-souk-in">
+          <div className="flex items-center gap-2 text-sm font-extrabold">
+            <Eye className="h-4 w-4 text-primary" />{ar ? "القسم الكامل — كل التفاصيل وخيارات التعديل" : "Full section — all details & edit options"}
+            {mediaBusy ? <span className="ms-auto inline-flex items-center gap-1 text-[11px] text-accent"><span className="h-2 w-2 animate-pulse rounded-full bg-accent" />{ar ? "توليد صور المتغيرات و360°…" : "Generating variant & 360° shots…"}</span> : null}
+          </div>
+          <ProductBuyerView product={product} lang={lang} onAddToCart={onCart ? (p, q) => { for (let i = 0; i < q; i++) onCart(p); } : undefined} />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => onDetails(product)}><Eye />{ar ? "تعديل كامل" : "Full edit"}</Button>
+            {onOpenPage ? <Button size="sm" variant="outline" onClick={() => onOpenPage(product)}><ExternalLink />{ar ? "صفحة المشتري" : "Buyer page"}</Button> : null}
+            {isMine ? <Button size="sm" variant="ghost" onClick={() => onRemove?.(product.id)}><Trash2 className="text-destructive" />{ar ? "حذف" : "Delete"}</Button> : null}
+          </div>
+        </div>
+      ) : null}
     </Card>
   );
 }
