@@ -35,7 +35,7 @@ import { useMineProducts } from "@/hooks/use-mine-products";
 import { COUNTRIES, t, type Lang } from "@/lib/brand";
 import type { Product } from "@/lib/product";
 import {
-  ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Megaphone, Mic, Package,
+  ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Loader2, Megaphone, Mic, Package,
   Radio, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Trophy, Type, Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -99,6 +99,8 @@ export default function Page() {
   const chunksRef = useRef<Blob[]>([]);
   const autoRan = useRef(false);
   const autoScroll = useRef(false);
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [runElapsed, setRunElapsed] = useState(0);
   const resultsRef = useRef<HTMLElement>(null);
   const mine = useMineProducts();
   const cart = useCart();
@@ -216,7 +218,7 @@ export default function Page() {
   }
 
   async function postJson(path: string, body: Record<string, unknown>) {
-    setLoading(true); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
+    setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
     const t0 = performance.now();
     try {
       const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -243,8 +245,15 @@ export default function Page() {
       }
       recordRun(performance.now() - t0, count);
       if (j.live && (body.imageMode ?? "both") !== "real" && list[0]) enrichMedia(list[0]);
-    } catch (e) { setError(String(e)); } finally { setLoading(false); }
+    } catch (e) { setError(String(e)); } finally { setLoading(false); setRunStartedAt(null); }
   }
+
+  // Live run timer for the floating analysis pill (real elapsed seconds only).
+  useEffect(() => {
+    if (!loading || runStartedAt === null) return;
+    const id = setInterval(() => setRunElapsed(Math.floor((Date.now() - (runStartedAt ?? Date.now())) / 1000)), 500);
+    return () => clearInterval(id);
+  }, [loading, runStartedAt]);
 
   const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   const runDemo = () => { setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado"); postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency }); };
@@ -284,7 +293,7 @@ export default function Page() {
         stream.getTracks().forEach((tr) => tr.stop());
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
         setVoiceAudioUrl(URL.createObjectURL(blob));
-        setLoading(true); setError(""); setDetections([]); setSourceImg(""); setStudio(null); setAlternatives([]); setComparison(""); setVerdict("");
+        setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setDetections([]); setSourceImg(""); setStudio(null); setAlternatives([]); setComparison(""); setVerdict("");
         const t0 = performance.now();
         try {
           // Meta voice needs 16kHz mono WAV — convert in-browser, then transcribe for real.
@@ -303,7 +312,7 @@ export default function Page() {
           if (j.transcript) { setDesc(j.transcript); setResults(prods); recordRun(performance.now() - t0, prods.length); if (prods.length) toast.success(ar ? "اتحول صوتك لإعلان كامل بالاسم والصور" : "Your voice became a full listing with name & images"); if (j.live && imgMode !== "real" && prods[0]) enrichMedia(prods[0]); }
           else { setResults([]); toast.info(j.note ?? (ar ? "اكتب وصف المنتج وهنولد الإعلان" : "Type the description to generate")); }
           if (typeof j.note === "string" && j.note && j.transcript) toast.info(j.note);
-        } catch (e) { setError(String(e)); } finally { setLoading(false); }
+        } catch (e) { setError(String(e)); } finally { setLoading(false); setRunStartedAt(null); }
       };
       mr.start(); setRecording(true);
     } catch { toast.error(ar ? "تعذر فتح المايك — اسمح بالوصول أو اكتب الوصف" : "Mic blocked — allow access or type"); }
@@ -648,6 +657,24 @@ export default function Page() {
 
       <ProductDetailsSheet product={selected} lang={lang} open={detailsOpen} onOpenChange={setDetailsOpen} editable onSave={patchProduct} />
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} items={cart.items} lang={lang} setQty={cart.setQty} remove={cart.remove} clear={cart.clear} onCheckout={recordOrder} />
+      {/* Floating live-analysis pill: impossible to miss while the demo runs,
+          one tap scrolls to the results being built. Timer is real elapsed time. */}
+      {loading ? (
+        <button
+          type="button"
+          onClick={() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-full border border-accent/50 bg-[#101016]/95 py-2.5 pe-5 ps-3 shadow-2xl shadow-accent/25 backdrop-blur-xl transition active:scale-95 md:bottom-6"
+          aria-live="polite"
+        >
+          <Loader2 className="h-5 w-5 animate-spin text-accent" />
+          <span className="text-sm font-black" dir="ltr">
+            {ar ? "يحلّل الآن بـ Meta AI" : "Analyzing with Meta AI"} · {runElapsed}s
+          </span>
+          <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-black text-black">
+            {ar ? "شاهد ↓" : "Watch ↓"}
+          </span>
+        </button>
+      ) : null}
       <JudgesMode open={judgesOpen} onOpenChange={setJudgesOpen} lang={lang} onAction={handleJudgeAction} hasResults={results.length > 0} />
     </div>
   );
