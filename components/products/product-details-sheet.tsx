@@ -222,11 +222,16 @@ export function ProductDetailsSheet({
             {product.glbUrl ? <GlbViewer url={product.glbUrl} lang={lang} /> : null}
             {editable ? (
               <div className="space-y-1.5">
-                <Label htmlFor="p-glb">GLB — {ar ? "رابط مجسّم حقيقي (اختياري)" : "real model URL (optional)"}</Label>
+                <Label htmlFor="p-glb">GLB — {ar ? "رابط أو ملف مجسّم حقيقي (اختياري)" : "real model URL or file (optional)"}</Label>
                 <div className="flex gap-2">
-                  <Input id="p-glb" dir="ltr" value={glbDraft} onChange={(e) => setGlbDraft(e.target.value)} placeholder="https://…/model.glb" />
+                  <Input id="p-glb" dir="ltr" value={glbDraft.startsWith("blob:") ? "" : glbDraft} onChange={(e) => setGlbDraft(e.target.value)} placeholder="https://…/model.glb" />
+                  <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-4 text-sm font-bold transition hover:border-primary/60 hover:bg-primary/5">
+                    <Box className="h-4 w-4 text-accent" />{ar ? "ارفع ملف" : "Upload"}
+                    <input type="file" accept=".glb,model/gltf-binary" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { setGlbDraft(URL.createObjectURL(f)); toast.success(ar ? "اترفق المجسم للعرض" : "Model attached for viewing"); } }} />
+                  </label>
                   <Button variant="outline" onClick={() => { onSave?.(product.id, { glbUrl: glbDraft.trim() || undefined }); toast.success(ar ? "اتحفظ رابط المجسم" : "Model URL saved"); }}><Box />{ar ? "حفظ" : "Save"}</Button>
                 </div>
+                <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "ملف مرفوع يعمل هذه الجلسة فقط — للاحتفاظ الدائم ارفع المجسم على استضافة والصق رابطه. لا يوجد توليد GLB في نماذج Meta، لذا المجسم دائمًا حقيقي من البائع." : "An uploaded file works for this session only — host it and paste the URL to keep it. Meta models cannot generate GLB, so the model is always real, from the seller."}</p>
               </div>
             ) : null}
           </Section>

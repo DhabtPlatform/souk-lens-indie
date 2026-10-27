@@ -67,6 +67,12 @@ cp .env.example .env   # set MODEL_API_KEY from https://dev.meta.ai
 npm run dev            # http://localhost:3000
 ```
 
+## Where every feature lives (nothing hidden)
+- **Product cards** show directly: variant count (with per-variant photo thumbnails when generated), 360° and 3D badges, delivery ETA, return days, supported countries, sales channel, rating and discount.
+- **Product page (Details):** variant selector with photos + "generate every variant shot", AI 360° four-angle spinner, real GLB upload/URL with true-3D viewer, shipping/delivery/returns/countries section, WhatsApp/Facebook publishing.
+- **My products:** full edit + delete per saved product, profit reports, auction/live/campaign conversion.
+- **Smart Market:** three ranked lists, move items between lists, approve → preliminary invoice → cart checkout.
+
 ## Guided tour & impact (in-app)
 - A built-in **90-second product tour** walks the full flow (analysis → management → smart market → checkout) on a timer.
 - **Impact strip**: pipeline time measured from the last real run (SAM/Spark/Image in ms) vs. a manual time labeled as a market estimate — no invented numbers.

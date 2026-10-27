@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { buildAdText, type Product } from "@/lib/product";
 import { cn, formatPrice } from "@/lib/utils";
-import { BadgeCheck, Check, Copy, Eye, Gavel, ImageOff, Megaphone, PackagePlus, Radio, ShoppingCart, Sparkles, Star, Trash2, Truck } from "lucide-react";
+import { BadgeCheck, Box, Check, Copy, Eye, Gavel, Globe2, ImageOff, Images, Megaphone, PackagePlus, Radio, Rotate3D, ShoppingCart, Sparkles, Star, Trash2, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 const SOURCE_LABEL: Record<string, { ar: string; en: string; variant: "default" | "accent" | "gold" | "secondary" }> = {
@@ -105,13 +105,27 @@ export function ProductCard({
         </div>
 
         {product.variants.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {product.variants.slice(0, 4).map((v) => (
-              <span key={v.id} className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-secondary-foreground">
-                {ar ? (v.name_ar ?? v.name) : v.name}{typeof v.price === "number" ? ` · ${formatPrice(v.price, product.currency)}` : ""}
-              </span>
-            ))}
-            {product.variants.length > 4 ? <span className="text-[11px] text-muted-foreground">+{product.variants.length - 4}</span> : null}
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              {product.variants.slice(0, 4).map((v) => (
+                <span key={v.id} className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-1 text-[11px] font-bold text-secondary-foreground">
+                  {v.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={v.image} alt="" className="h-5 w-5 rounded-full object-cover" loading="lazy" />
+                  ) : null}
+                  {ar ? (v.name_ar ?? v.name) : v.name}{typeof v.price === "number" ? ` · ${formatPrice(v.price, product.currency)}` : ""}
+                </span>
+              ))}
+              {product.variants.length > 4 ? <span className="text-[11px] text-muted-foreground">+{product.variants.length - 4}</span> : null}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="outline"><Images className="me-1 h-3 w-3" />{product.variants.length} {ar ? "متغيرات" : "variants"}{product.variants.some((v) => v.image) ? (ar ? " بالصور" : " with photos") : ""}</Badge>
+              {product.angleImages?.length ? <Badge variant="gold"><Rotate3D className="me-1 h-3 w-3" />360°</Badge> : null}
+              {product.glbUrl ? <Badge variant="accent"><Box className="me-1 h-3 w-3" />3D</Badge> : null}
+              {product.shippingDetails?.etaDaysMin !== undefined ? <Badge variant="outline"><Truck className="me-1 h-3 w-3" />{ar ? `التوصيل ${product.shippingDetails.etaDaysMin}–${product.shippingDetails.etaDaysMax ?? product.shippingDetails.etaDaysMin} يوم` : `Delivery ${product.shippingDetails.etaDaysMin}–${product.shippingDetails.etaDaysMax ?? product.shippingDetails.etaDaysMin}d`}</Badge> : null}
+              {product.returnPolicy?.days !== undefined ? <Badge variant="outline"><Undo2 className="me-1 h-3 w-3" />{ar ? `استرجاع ${product.returnPolicy.days} يوم` : `${product.returnPolicy.days}-day returns`}</Badge> : null}
+              {product.availableCountries?.length ? <Badge variant="outline"><Globe2 className="me-1 h-3 w-3" />{product.availableCountries.length} {ar ? "دول" : "countries"}</Badge> : null}
+            </div>
           </div>
         ) : null}
 
