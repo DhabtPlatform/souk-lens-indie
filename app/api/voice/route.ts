@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     let currency = "EGP";
     let transcribeMs = 0;
     let realImage: string | undefined;
+    let imgMode: "both" | "real" | "generated" = "both";
 
     if (ct.includes("multipart/form-data")) {
       const fd = await req.formData();
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
       currency = String(fd.get("currency") ?? "EGP");
       const photo = fd.get("photo");
       if (typeof photo === "string" && photo) realImage = photo;
+      const modeField = fd.get("imageMode");
+      if (modeField === "real" || modeField === "generated") imgMode = modeField;
+      if (imgMode === "generated") realImage = undefined;
       const f = fd.get("audio");
       if (f instanceof File) {
         const buf = Buffer.from(await f.arrayBuffer());
@@ -48,6 +52,8 @@ export async function POST(req: NextRequest) {
       country = String(j?.country ?? "EG");
       currency = String(j?.currency ?? "EGP");
       if (typeof j?.imageUrl === "string" && j.imageUrl) realImage = j.imageUrl;
+      if (j?.imageMode === "real" || j?.imageMode === "generated") imgMode = j.imageMode;
+      if (imgMode === "generated") realImage = undefined;
     }
 
     if (!transcript.trim()) {
@@ -60,9 +66,8 @@ export async function POST(req: NextRequest) {
     const text = extractText(listing);
     const raws = extractItems(listing, text);
     const t2 = Date.now();
-    const studio = await cleanProductShot(String(raws[0]?.name_en ?? transcript.slice(0, 80))).catch(() => ({ error: "studio failed" }));
+    const studioImage = imgMode === "real" ? null : extractStudioImage(await cleanProductShot(String(raws[0]?.name_en ?? transcript.slice(0, 80))).catch(() => ({ error: "studio failed" })));
     const studioMs = Date.now() - t2;
-    const studioImage = extractStudioImage(studio);
     const products = normalizeProducts(raws, { source: { type: "voice", transcript }, country, currency, studioImage: studioImage ?? undefined, realImage });
     if (studioImage && products[0]) products[0].images = [studioImage, ...products[0].images.filter((i) => i !== studioImage)];
 

@@ -200,7 +200,7 @@ export function ProductDetailsSheet({
             </div>
             {onSave ? (
               <div className="space-y-1.5">
-                <Button variant="outline" className="w-full" disabled={mediaBusy !== null} onClick={() => generateMedia("variants")}>
+                <Button variant="outline" className={`w-full ${mediaBusy === "variants" ? "btn-glow" : ""}`} disabled={mediaBusy !== null} onClick={() => generateMedia("variants")}>
                   {mediaBusy === "variants" ? <Loader2 className="animate-spin" /> : <Images />}{ar ? "ولّد صور كل المتغيرات بالذكاء" : "Generate every variant shot with AI"}
                 </Button>
                 <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "صورة ستوديو لكل لون/مقاس من اسم المنتج — اختيار المتغير يعرض صورته فوق." : "A studio shot per color/size from the product name — selecting a variant previews its photo above."}</p>
@@ -213,7 +213,7 @@ export function ProductDetailsSheet({
               <SpinViewer images={product.angleImages} lang={lang} label={product.name_en} />
             ) : onSave ? (
               <div className="space-y-1.5">
-                <Button variant="outline" className="w-full" disabled={mediaBusy !== null} onClick={() => generateMedia("spin")}>
+                <Button variant="outline" className={`w-full ${mediaBusy === "spin" ? "btn-glow" : ""}`} disabled={mediaBusy !== null} onClick={() => generateMedia("spin")}>
                   {mediaBusy === "spin" ? <Loader2 className="animate-spin" /> : <Rotate3D />}{ar ? "ولّد صور 360° بالذكاء" : "Generate AI 360° views"}
                 </Button>
                 <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "أربع زوايا (أمام/يمين/خلف/شمال) بعَارض تدوير تفاعلي — مولدة من اسم المنتج." : "Four angles (front/right/back/left) in an interactive spinner — generated from the product name."}</p>

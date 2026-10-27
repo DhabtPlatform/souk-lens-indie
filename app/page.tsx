@@ -43,18 +43,22 @@ type TabSection = "seller" | "buyer";
 const SAMPLE = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Avocado_Hass_-_single_and_halved.jpg/1280px-Avocado_Hass_-_single_and_halved.jpg";
 // Seller creates & sells (photo/text/voice/import + product management);
 // buyer compares & buys (smart market + URL comparison).
-const TABS: { key: TabKey; icon: React.ReactNode; section: TabSection }[] = [
-  { key: "analyze", icon: <Camera />, section: "seller" }, { key: "generate", icon: <Type />, section: "seller" },
-  { key: "voice", icon: <Mic />, section: "seller" }, { key: "import", icon: <Store />, section: "seller" },
-  { key: "mine", icon: <Package />, section: "seller" },
-  { key: "smart", icon: <Bot />, section: "buyer" }, { key: "compare", icon: <ArrowLeftRight />, section: "buyer" },
+const TABS: { key: TabKey; icon: React.ReactNode; section: TabSection; color: string }[] = [
+  { key: "analyze", icon: <Camera />, section: "seller", color: "#7c5cff" },
+  { key: "generate", icon: <Type />, section: "seller", color: "#38bdf8" },
+  { key: "voice", icon: <Mic />, section: "seller", color: "#f472b6" },
+  { key: "import", icon: <Store />, section: "seller", color: "#14b8a6" },
+  { key: "mine", icon: <Package />, section: "seller", color: "#fb7185" },
+  { key: "smart", icon: <Bot />, section: "buyer", color: "#eab308" },
+  { key: "compare", icon: <ArrowLeftRight />, section: "buyer", color: "#f59e0b" },
 ];
 const SECTIONS: { key: TabSection; icon: React.ReactNode }[] = [
   { key: "seller", icon: <Store /> }, { key: "buyer", icon: <ShoppingBag /> },
 ];
-const BOTTOM_TABS: { key: TabKey; icon: React.ReactNode }[] = [
-  { key: "analyze", icon: <Camera /> }, { key: "voice", icon: <Mic /> }, { key: "smart", icon: <Bot /> },
-  { key: "compare", icon: <ArrowLeftRight /> }, { key: "mine", icon: <Package /> },
+const BOTTOM_TABS: { key: TabKey; icon: React.ReactNode; color: string }[] = [
+  { key: "analyze", icon: <Camera />, color: "#7c5cff" }, { key: "voice", icon: <Mic />, color: "#f472b6" },
+  { key: "smart", icon: <Bot />, color: "#eab308" }, { key: "compare", icon: <ArrowLeftRight />, color: "#f59e0b" },
+  { key: "mine", icon: <Package />, color: "#fb7185" },
 ];
 
 export default function Page() {
@@ -85,6 +89,7 @@ export default function Page() {
   const [judgesOpen, setJudgesOpen] = useState(false);
   const [voiceAudioUrl, setVoiceAudioUrl] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [imgMode, setImgMode] = useState<"both" | "real" | "generated">("both");
   const [sourceImg, setSourceImg] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -177,8 +182,8 @@ export default function Page() {
     else if (a === "cart") setCartOpen(true);
     else if (a === "save") { if (results.length) { addAll(results); } }
   }
-  const runGenerate = () => postJson("/api/generate", { description: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined });
-  const runVoiceListing = () => postJson("/api/voice-listing", { transcript: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined });
+  const runGenerate = () => postJson("/api/generate", { description: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined, imageMode: imgMode });
+  const runVoiceListing = () => postJson("/api/voice-listing", { transcript: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined, imageMode: imgMode });
   const runCompare = () => postJson("/api/compare", { productUrl: extUrl, country: country.code, currency: country.currency });
   const runImport = () => postJson("/api/import", { storeUrl: extUrl, country: country.code, currency: country.currency });
 
@@ -216,6 +221,7 @@ export default function Page() {
           const fd = new FormData();
           fd.append("audio", audioFile, fileName); fd.append("country", country.code); fd.append("currency", country.currency);
           if (photoUrl) fd.append("photo", photoUrl);
+          fd.append("imageMode", imgMode);
           const r = await fetch("/api/voice", { method: "POST", body: fd });
           const j = await r.json();
           setLive(!!j.live); setRaw(j);
@@ -284,8 +290,8 @@ export default function Page() {
                 {SECTIONS.map(({ key: section }) => (
                   <SelectGroup key={section}>
                     <SelectLabel>{ar ? (section === "seller" ? "للبائع — أنشئ وبِع" : "للمشتري — قارن واشترِ") : (section === "seller" ? "Seller — create & sell" : "Buyer — compare & buy")}</SelectLabel>
-                    {TABS.filter((tb) => tb.section === section).map(({ key }) => (
-                      <SelectItem key={key} value={key}>{t(key, lang)}{key === "mine" ? ` (${mine.products.length})` : ""}</SelectItem>
+                    {TABS.filter((tb) => tb.section === section).map(({ key, color }) => (
+                      <SelectItem key={key} value={key}><span className="flex items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />{t(key, lang)}{key === "mine" ? ` (${mine.products.length})` : ""}</span></SelectItem>
                     ))}
                   </SelectGroup>
                 ))}
@@ -304,8 +310,8 @@ export default function Page() {
                     {ar ? (section === "seller" ? "للبائع — أنشئ وبِع" : "للمشتري — قارن واشترِ") : (section === "seller" ? "Seller — create & sell" : "Buyer — compare & buy")}
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {TABS.filter((tb) => tb.section === section).map(({ key, icon }) => (
-                      <TabsTrigger key={key} value={key}>{icon}{t(key, lang)}{key === "mine" && mine.products.length ? ` (${mine.products.length})` : ""}</TabsTrigger>
+                    {TABS.filter((tb) => tb.section === section).map(({ key, icon, color }) => (
+                      <TabsTrigger key={key} value={key} className="tab-trigger ps-6" style={{ ["--tab-color" as string]: color } as React.CSSProperties}>{icon}{t(key, lang)}{key === "mine" && mine.products.length ? ` (${mine.products.length})` : ""}</TabsTrigger>
                     ))}
                   </div>
                 </div>
@@ -348,9 +354,9 @@ export default function Page() {
                   <Button key={x} variant="outline" size="sm" onClick={() => setDesc(x)}>{x}</Button>
                 ))}
               </div>
-              <RealPhotoPicker photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} onFile={onPhotoFile} lang={lang} />
+              <RealPhotoPicker photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} onFile={onPhotoFile} lang={lang} mode={imgMode} setMode={setImgMode} />
               <TrustNote lang={lang} />
-              <div className="space-y-1.5"><Button size="lg" onClick={runGenerate} disabled={loading || !desc.trim()}><Sparkles />{loading ? t("analyzing", lang) : (ar ? "ولّد إعلان كامل" : "Generate full listing")}</Button><Hint>{ar ? "يخرج إعلانًا كاملًا مع صورة ستوديو مولدة في نتيجة واحدة." : "Produces a full listing plus a generated studio shot in one result."}</Hint></div>
+              <div className="space-y-1.5"><Button size="lg" onClick={runGenerate} disabled={loading || !desc.trim()} className={loading ? "btn-glow" : undefined}><Sparkles />{loading ? t("analyzing", lang) : (ar ? "ولّد إعلان كامل" : "Generate full listing")}</Button><Hint>{ar ? "يخرج إعلانًا كاملًا مع صورة ستوديو مولدة في نتيجة واحدة." : "Produces a full listing plus a generated studio shot in one result."}</Hint></div>
             </InputCard>
           </TabsContent>
 
@@ -372,9 +378,9 @@ export default function Page() {
               </div>
               <Separator />
               <div className="space-y-1.5"><Label>{ar ? "النص (قابل للتعديل)" : "Transcript (editable)"}</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder={t("descPlaceholder", lang)} /><Hint>{ar ? "راجع النص وصححه هنا قبل بناء الإعلان — هو نفس ما قلته بالظبط." : "Review and fix the text here before building — exactly what you said."}</Hint></div>
-              <RealPhotoPicker photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} onFile={onPhotoFile} lang={lang} />
+              <RealPhotoPicker photoUrl={photoUrl} setPhotoUrl={setPhotoUrl} onFile={onPhotoFile} lang={lang} mode={imgMode} setMode={setImgMode} />
               <TrustNote lang={lang} />
-              <div className="space-y-1.5"><Button size="lg" onClick={runVoiceListing} disabled={loading || !desc.trim()}><Sparkles />{ar ? "ابني الإعلان من النص" : "Build listing from text"}</Button><Hint>{ar ? "يبني الإعلان من النص الظاهر فوق — عدّله أولًا لو احتجت." : "Builds the listing from the text above — edit it first if needed."}</Hint></div>
+              <div className="space-y-1.5"><Button size="lg" onClick={runVoiceListing} disabled={loading || !desc.trim()} className={loading ? "btn-glow" : undefined}><Sparkles />{ar ? "ابني الإعلان من النص" : "Build listing from text"}</Button><Hint>{ar ? "يبني الإعلان من النص الظاهر فوق — عدّله أولًا لو احتجت." : "Builds the listing from the text above — edit it first if needed."}</Hint></div>
             </InputCard>
           </TabsContent>
 
@@ -485,7 +491,7 @@ export default function Page() {
                 ? (results[0].sourceImage || (detections.length ? sourceImg : ""))
                 : "";
               return beforeImg ? (
-                <Card className="animate-souk-in space-y-3 p-4">
+                <Card className="animate-souk-in img-flash space-y-3 p-4">
                   <h3 className="font-extrabold">{ar ? "من صورة المنتج لصورة ستوديو" : "From product photo to studio shot"}</h3>
                   <StudioCompare before={beforeImg} after={results[0].studioImage!} lang={lang} />
                   <TrustNote lang={lang} />
@@ -537,8 +543,8 @@ export default function Page() {
       {/* Mobile bottom navigation (pattern conversion, not shrink) */}
       {isMobile ? (
         <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background/90 backdrop-blur-xl md:hidden">
-          {BOTTOM_TABS.map(({ key, icon }) => (
-            <button key={key} type="button" onClick={() => setTab(key)} className={`flex min-h-[60px] flex-col items-center justify-center gap-1 text-[10px] font-bold transition ${tab === key ? "text-primary" : "text-muted-foreground"}`}>
+          {BOTTOM_TABS.map(({ key, icon, color }) => (
+            <button key={key} type="button" onClick={() => setTab(key)} style={tab === key ? { color } : undefined} className={`flex min-h-[60px] flex-col items-center justify-center gap-1 text-[10px] font-bold transition ${tab === key ? "" : "text-muted-foreground"}`}>
               {icon}<span>{t(key, lang)}{key === "mine" && mine.products.length ? ` ${mine.products.length}` : ""}</span>
             </button>
           ))}
@@ -562,8 +568,13 @@ function TrustNote({ lang }: { lang: "ar" | "en" }) {
   );
 }
 
-function RealPhotoPicker({ photoUrl, setPhotoUrl, onFile, lang }: { photoUrl: string; setPhotoUrl: (v: string) => void; onFile: (f: File | undefined) => void; lang: "ar" | "en" }) {
+function RealPhotoPicker({ photoUrl, setPhotoUrl, onFile, lang, mode, setMode }: { photoUrl: string; setPhotoUrl: (v: string) => void; onFile: (f: File | undefined) => void; lang: "ar" | "en"; mode: "both" | "real" | "generated"; setMode: (m: "both" | "real" | "generated") => void }) {
   const ar = lang === "ar";
+  const modes = [
+    { k: "both" as const, ar: "الحقيقية + المولدة", en: "Real + generated" },
+    { k: "real" as const, ar: "الحقيقية فقط", en: "Real only" },
+    { k: "generated" as const, ar: "المولدة فقط", en: "Generated only" },
+  ];
   return (
     <div className="space-y-1.5">
       <Label>{ar ? "صورة حقيقية للمنتج (اختياري — موثوقة أكثر)" : "Real product photo (optional — more trusted)"}</Label>
@@ -578,7 +589,16 @@ function RealPhotoPicker({ photoUrl, setPhotoUrl, onFile, lang }: { photoUrl: st
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photoUrl} alt="real product" className="h-24 w-24 rounded-xl border object-cover" />
       ) : null}
-      <Hint>{ar ? "أرفق صورة حقيقية من موبايلك أو الصق رابطها — تتصدر صور الإعلان لأن المشتري يصدقها. بدونها نولّد صورة ستوديو فقط." : "Attach a real photo from your phone or paste its link — it leads the listing gallery because buyers trust it. Without one, only a studio shot is generated."}</Hint>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] font-bold text-muted-foreground">{ar ? "صور الإعلان:" : "Listing photos:"}</span>
+        {modes.map((m) => (
+          <button key={m.k} type="button" onClick={() => setMode(m.k)}
+            className={`min-h-9 rounded-full border px-3 text-xs font-bold transition active:scale-[.97] ${mode === m.k ? "border-accent bg-accent text-accent-foreground shadow-lg shadow-accent/20" : "bg-card hover:border-accent/50"}`}>
+            {ar ? m.ar : m.en}
+          </button>
+        ))}
+      </div>
+      <Hint>{ar ? "الحقيقية تتصدر لأن المشتري يصدقها (بدونها تُطلب منك أولًا)، والمولدة للتجميل فقط." : "Real leads because buyers trust it (requested first without one); generated is for polish only."}</Hint>
     </div>
   );
 }
