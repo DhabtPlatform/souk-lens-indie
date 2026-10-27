@@ -24,6 +24,14 @@ export default function BuyerProductPage({ params }: { params: Promise<{ id: str
   const cart = useCart();
   const ar = lang === "ar";
 
+  function recordOrder(items: { product: Product; qty: number }[]) {
+    for (const { product: p, qty } of items) {
+      const cur = mine.products.find((x) => x.id === p.id);
+      if (!cur) continue;
+      mine.update(p.id, { soldUnits: (cur.soldUnits ?? 0) + qty, stock: Math.max(0, cur.stock - qty) });
+    }
+  }
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("souk-lens-lang");
@@ -79,7 +87,7 @@ export default function BuyerProductPage({ params }: { params: Promise<{ id: str
         )}
       </main>
 
-      <CartSheet open={cartOpen} onOpenChange={setCartOpen} items={cart.items} lang={lang} setQty={cart.setQty} remove={cart.remove} clear={cart.clear} />
+      <CartSheet open={cartOpen} onOpenChange={setCartOpen} items={cart.items} lang={lang} setQty={cart.setQty} remove={cart.remove} clear={cart.clear} onCheckout={recordOrder} />
     </div>
   );
 }

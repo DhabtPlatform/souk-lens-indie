@@ -104,18 +104,19 @@ function toProduct(r: RawCatalog, currency: string, country: string): Product {
     category: r.category_ar, category_ar: r.category_ar, brand: r.brand, condition: "new",
     price: r.price, compareAtPrice: r.before, costPrice: r.cost, currency, country,
     stock: 20, sku: `CAT-${Math.abs(r.name_en.split("").reduce((a, c) => a + c.charCodeAt(0), 0))}`,
-    description_ar: `${r.name_ar} من ${r.seller} — تقييم ${r.rating} من ${r.reviews} عميل، توصيل خلال ${r.days} أيام.`,
-    description_en: `${r.name_en} by ${r.seller} — rated ${r.rating} by ${r.reviews} buyers, delivery in ${r.days} days.`,
+    description_ar: `${r.name_ar} — منتج تجريبي داخل مخزون العرض، توصيل تقديري خلال ${r.days} أيام.`,
+    description_en: `${r.name_en} — sample listing in the demo inventory, estimated delivery in ${r.days} days.`,
     shortDescription_ar: r.name_ar,
-    features: ["بائع موثق".replace("موثق", r.verified ? "موثق ✓" : "عادي"), `تقييم ${r.rating}/5`, `توصيل ${r.days} أيام`],
-    specs: { Brand: r.brand, Seller: r.seller, Delivery: `${r.days} days` },
+    features: ["منتج تجريبي للعرض", `توصيل تقديري ${r.days} أيام`],
+    specs: { Brand: r.brand, Source: "Sample inventory", Delivery: `${r.days} days` },
     variants: [{ id: `v_${r.name_en.slice(0, 6)}`, name: "Standard", name_ar: "قياسي", price: r.price, stock: 20 }],
     images: [r.img], tags: r.slotKeys, materials: [], colors: [], sizes: [],
     shipping: `شحن ${r.ship} ${currency} — توصيل ${r.days} أيام`, warranty: "استبدال 14 يوم",
     seoTitle: `${r.name_en} | Souk Lens`, seoDescription: r.name_ar,
-    source: { type: "manual", label: "store-catalog" }, qualityScore: 90,
-    rating: r.rating, reviewCount: r.reviews, sellerName: r.seller, sellerVerified: r.verified,
-    sellerRating: r.sellerRating, sellerSales: r.sales, deliveryDays: r.days, shippingCost: r.ship,
+    source: { type: "manual", label: "sample-inventory" }, qualityScore: 82,
+    // Sample inventory carries NO invented reviews, seller ratings or sales history.
+    rating: undefined, reviewCount: undefined, sellerName: "Sample inventory", sellerVerified: false,
+    sellerRating: undefined, sellerSales: undefined, deliveryDays: r.days, shippingCost: r.ship,
     needSlot: r.slotKeys[0], createdAt: now, updatedAt: now,
   };
 }
@@ -132,11 +133,12 @@ const WEIGHTS: Record<Priority, { rating: number; discount: number; price: numbe
 
 export function scoreProduct(p: Product, priority: Priority, minPrice: number, maxPrice: number): number {
   const w = WEIGHTS[priority];
-  const rating = (p.rating ?? 4) / 5;
+  // Real listing rating when present; otherwise listing completeness (qualityScore) — never an invented review score.
+  const rating = p.rating ? p.rating / 5 : Math.min(1, (p.qualityScore ?? 70) / 100);
   const discount = p.compareAtPrice && p.compareAtPrice > p.price ? (p.compareAtPrice - p.price) / p.compareAtPrice : 0;
   const priceScore = maxPrice > minPrice ? 1 - (p.price - minPrice) / (maxPrice - minPrice) : 1;
   const delivery = 1 / Math.max(1, p.deliveryDays ?? 3);
-  const trust = ((p.sellerVerified ? 0.6 : 0.2) + ((p.sellerRating ?? 4) / 5) * 0.4);
+  const trust = p.sellerVerified ? 0.6 + ((p.sellerRating ?? 4.5) / 5) * 0.4 : p.sellerRating ? ((p.sellerRating / 5) * 0.5) : 0.25;
   return Math.round((w.rating * rating + w.discount * Math.min(1, discount * 2) + w.price * priceScore + w.delivery * delivery + w.trust * trust) * 100);
 }
 
@@ -206,20 +208,21 @@ export function detectPreset(query: string, presetId?: string): Preset {
 export function smartSearch(opts: { query: string; presetId?: string; country?: string; currency?: string; budget?: number; priority?: Priority; extraProducts?: Product[] }) {
   const preset = detectPreset(opts.query, opts.presetId);
   const currency = opts.currency ?? "EGP";
-  // Unified search space: demo store catalog + the user's own saved products (real, full listings).
+  // Unified search space: sample marketplace inventory + the user's own saved products (real, full listings).
+  // No invented trust signals are added to saved products — only operational delivery estimates.
   const saved = (opts.extraProducts ?? []).slice(0, 100).map((p) => ({
     ...p,
-    rating: p.rating ?? 4.6, reviewCount: p.reviewCount ?? 25,
-    sellerName: p.sellerName ?? "منتجاتي المحفوظة", sellerVerified: p.sellerVerified ?? true,
-    sellerRating: p.sellerRating ?? 4.8, deliveryDays: p.deliveryDays ?? 2, shippingCost: p.shippingCost ?? 40,
+    sellerName: p.sellerName ?? "My saved products",
+    deliveryDays: p.deliveryDays ?? p.shippingDetails?.etaDaysMax ?? 3,
+    shippingCost: p.shippingCost ?? p.shippingDetails?.cost ?? 40,
     currency: p.currency || currency,
   }));
   const demoCatalog = C.map((r) => toProduct(r, currency, opts.country ?? "EG"));
   const savedIds = new Set(saved.map((p) => p.id));
   const catalog = [...saved, ...demoCatalog.filter((p) => !savedIds.has(p.id))];
   const allBundles: Bundle[] = [
-    makeBundle("value", "أفضل قيمة", "Best value", "أحسن توازن بين السعر والتقييم والخصم", "price", preset, catalog, opts.budget),
-    makeBundle("top", "الأعلى تقييماً وثقة", "Top rated & trusted", "أعلى تقييمات وبائعين موثقين", opts.priority === "trust" ? "trust" : "rating", preset, catalog, opts.budget),
+    makeBundle("value", "أفضل قيمة", "Best value", "أحسن توازن بين السعر والخصم واكتمال الإعلان", "price", preset, catalog, opts.budget),
+    makeBundle("top", "أفضل مطابقة وجودة", "Best match & quality", "اكتمال إعلان وثقة موثقة عند توفرها", opts.priority === "trust" ? "trust" : "rating", preset, catalog, opts.budget),
     makeBundle("fast", "أسرع توصيل", "Fastest delivery", "أقل أيام توصيل لباب البيت", "delivery", preset, catalog, opts.budget),
   ];
   const firstId = opts.priority === "rating" || opts.priority === "trust" ? "top" : opts.priority === "delivery" ? "fast" : "value";
@@ -233,5 +236,5 @@ export function smartSearch(opts: { query: string; presetId?: string; country?: 
       .map((c) => ({ ...c, needSlot: slot.key, score: scoreProduct(c, "balanced", Math.min(...prices), Math.max(...prices)) }))
       .sort((a, b) => b.score - a.score);
   }
-  return { preset, bundles, alternativesBySlot, catalogSize: catalog.length, savedCount: saved.length, demoCount: demoCatalog.length, savedIds: [...savedIds] };
+  return { preset, bundles, alternativesBySlot, catalogSize: catalog.length, savedCount: saved.length, demoCount: demoCatalog.length, sampleCount: demoCatalog.length, savedIds: [...savedIds] };
 }

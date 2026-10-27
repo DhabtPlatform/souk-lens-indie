@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       bundles: result.bundles,
       alternativesBySlot: result.alternativesBySlot,
       catalogSize: result.catalogSize,
-      savedCount: result.savedCount, demoCount: result.demoCount, savedIds: result.savedIds,
+      savedCount: result.savedCount, demoCount: result.demoCount, sampleCount: result.sampleCount, savedIds: result.savedIds,
       presets: PRESETS.map((p) => ({ id: p.id, emoji: p.emoji, title_ar: p.title_ar, title_en: p.title_en, desc_ar: p.desc_ar, desc_en: p.desc_en })),
     });
   } catch (e) {

@@ -41,16 +41,16 @@ export function SellerDashboard({
     <div className="space-y-4">
       <Card className="animate-souk-in overflow-hidden border-primary/30">
         <CardHeader className="bg-gradient-to-l from-primary/15 via-transparent to-accent/10">
-          <CardTitle className="flex flex-wrap items-center gap-2 text-xl"><BarChart3 className="text-primary" />{ar ? "تقارير المبيعات والتكاليف والربح" : "Sales, costs & profit reports"}<Badge variant="gold">{ar ? "أرقام مبيعات تجريبية — عدّلها بأرقامك الحقيقية" : "Demo sales figures — edit with your real numbers"}</Badge></CardTitle>
-          <CardDescription className="leading-7">{ar ? "أرقام كل منتج محفوظ: اتباع كام، كلف كام، وكسب كام — عدّل التكلفة والمبيعات وهيتحدث التقرير فورًا. وحوّل أي منتج لمزاد أو بث مباشر أو حملة خارجية من نفس المكان." : "Per saved product: units sold, cost and profit — edit cost/sales and the report updates instantly. Convert any product to auction, live sale or external campaign here."}</CardDescription>
-          <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["كروت المؤشرات فوق بتلخص: الإيراد، التكاليف، صافي الربح والهامش، وقيمة المخزون والربح المتوقع.", "تحت كل منتج: عدّل تكلفة القطعة وعدد القطع المباعة ثم اضغط تحديث — كل الأرقام والرسوم بتتحسب لحظيًا.", "من أزرار «بيع المنتج عبر»: ثبّت سعرًا، أو حوّله لمزاد (سعر بداية ومزايدات حية بمحاكاة)، أو بث مباشر (منصة ومعاد)، أو حملة خارجية (ميزانية ووصول متوقع).", "قسم «الأعلى ربحًا» يرتب منتجاتك حسب صافي الربح عشان تعرف تركز على إيه."] : ["The KPI cards above summarize: revenue, costs, net profit and margin, inventory value and expected profit.", "Under each product: edit unit cost and units sold, then press update — every number and bar recalculates live.", "From the Sell-via buttons: keep a fixed price, or convert to auction (starting price and simulated live bids), live sale (platform and schedule), or external campaign (budget and expected reach).", "The Top-by-profit section ranks your products by net profit so you know what to focus on."]} /></div>
+          <CardTitle className="flex flex-wrap items-center gap-2 text-xl"><BarChart3 className="text-primary" />{ar ? "تقارير المبيعات والتكاليف والربح" : "Sales, costs & profit reports"}<Badge variant="accent">{ar ? "أرقام حقيقية فقط — طلبات التطبيق + إدخالك" : "Real entries only — app orders + your input"}</Badge></CardTitle>
+          <CardDescription className="leading-7">{ar ? "مفيش أرقام مخترعة: المبيعات بتتسجل من طلبات السلة داخل التطبيق، والتكلفة بتدخلها انت. من غير إدخال يفضل الرقم صفر. وحوّل أي منتج لمزاد أو بث مباشر أو حملة خارجية من نفس المكان." : "No invented figures: sales are recorded from in-app cart orders, and cost is typed by you. With no entry the number stays zero. Convert any product to auction, live sale or external campaign here."}</CardDescription>
+          <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["كروت المؤشرات فوق بتلخص: الإيراد، التكاليف، صافي الربح والهامش، وقيمة المخزون والربح المتوقع — من طلبات وإدخالات حقيقية فقط.", "تحت كل منتج: اكتب تكلفة القطعة، وعدد القطع المباعة هيزيد تلقائيًا مع كل طلب من السلة — أو عدّله يدويًا ثم اضغط تحديث.", "من أزرار «بيع المنتج عبر»: ثبّت سعرًا، أو حوّله لمزاد (يبدأ بصفر مزايدات)، أو بث مباشر (منصة ومعاد)، أو حملة خارجية (ميزانية ووصول تقديري).", "قسم «الأعلى ربحًا» يرتب منتجاتك حسب صافي الربح الحقيقي عشان تعرف تركز على إيه."] : ["The KPI cards above summarize revenue, costs, net profit and margin, inventory value and expected profit — from real orders and entries only.", "Under each product: type the unit cost; units sold grows automatically with every cart order — or edit it manually and press update.", "From the Sell-via buttons: keep a fixed price, or convert to auction (starts at zero bids), live sale (platform and schedule), or external campaign (budget and estimated reach).", "The Top-by-profit section ranks your products by real net profit so you know what to focus on."]} /></div>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi icon={<ShoppingBag />} label={ar ? "إيراد المبيعات" : "Revenue"} value={formatPrice(s.revenue, products[0].currency)} sub={`${s.unitsSold} ${ar ? "قطعة اتباعت" : "units sold"}`} />
-            <Kpi icon={<Wallet />} label={ar ? "إجمالي التكاليف" : "Total costs"} value={formatPrice(s.totalCost, products[0].currency)} sub={ar ? "تكلفة القطع المباعة" : "Cost of units sold"} />
+            <Kpi icon={<ShoppingBag />} label={ar ? "إيراد المبيعات" : "Revenue"} value={formatPrice(s.revenue, products[0].currency)} sub={`${s.unitsSold} ${ar ? "قطعة من طلبات التطبيق" : "units from app orders"}`} />
+            <Kpi icon={<Wallet />} label={ar ? "إجمالي التكاليف" : "Total costs"} value={formatPrice(s.totalCost, products[0].currency)} sub={ar ? "من التكلفة التي أدخلتها" : "From costs you entered"} />
             <Kpi icon={<PiggyBank />} label={ar ? "صافي الربح" : "Net profit"} value={formatPrice(s.profit, products[0].currency)} sub={`${ar ? "هامش" : "Margin"} ${s.marginPct}%`} accent />
-            <Kpi icon={<TrendingUp />} label={ar ? "قيمة المخزون / ربح متوقع" : "Inventory / potential"} value={formatPrice(s.inventoryValue, products[0].currency)} sub={`+${formatPrice(s.potentialProfit, products[0].currency)}`} />
+            <Kpi icon={<TrendingUp />} label={ar ? "قيمة المخزون / ربح متوقع" : "Inventory / potential"} value={formatPrice(s.inventoryValue, products[0].currency)} sub={s.potentialProfit ? `+${formatPrice(s.potentialProfit, products[0].currency)}` : (ar ? "أدخل التكلفة لحساب الربح المتوقع" : "Enter cost to compute expected profit")} />
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -83,8 +83,10 @@ export function SellerDashboard({
 function ProductRow({ p, ar, onPatch, onDetails, onRemove }: { p: Product; ar: boolean; onPatch: (id: string, patch: Partial<Product>) => void; onDetails: (p: Product) => void; onRemove?: (id: string) => void }) {
   const eco = productEconomics(p);
   const mode: SalesMode = p.salesMode ?? "fixed";
-  const [cost, setCost] = useState(String(eco.cost));
-  const [sold, setSold] = useState(String(eco.sold));
+  const [cost, setCost] = useState(p.costPrice ? String(p.costPrice) : "");
+  const [sold, setSold] = useState(p.soldUnits !== undefined ? String(p.soldUnits) : "");
+  useEffect(() => { setCost(p.costPrice ? String(p.costPrice) : ""); }, [p.costPrice]);
+  useEffect(() => { setSold(p.soldUnits !== undefined ? String(p.soldUnits) : ""); }, [p.soldUnits]);
   const auction = p.auction ?? defaultAuction(p);
   const live = p.liveSale ?? defaultLive(p);
   const campaign = p.campaign ?? defaultCampaign(p);
@@ -126,11 +128,11 @@ function ProductRow({ p, ar, onPatch, onDetails, onRemove }: { p: Product; ar: b
               <h4 className="truncate font-extrabold">{ar ? p.name_ar : p.name_en}</h4>
               <Badge variant={mode === "fixed" ? "secondary" : mode === "auction" ? "gold" : mode === "live" ? "destructive" : "accent"}>{MODES.find((m) => m.key === mode)?.icon}{ar ? MODES.find((m) => m.key === mode)?.ar : mode}</Badge>
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">{p.sku} · {ar ? "سعر" : "Price"} {formatPrice(p.price, p.currency)} · {ar ? "ربح القطعة" : "Unit profit"} <strong className="text-accent">{formatPrice(eco.unitProfit, p.currency)} ({eco.marginPct}%)</strong></p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{p.sku} · {ar ? "سعر" : "Price"} {formatPrice(p.price, p.currency)} · {ar ? "ربح القطعة" : "Unit profit"} <strong className="text-accent">{eco.hasCost ? `${formatPrice(eco.unitProfit, p.currency)} (${eco.marginPct}%)` : (ar ? "أدخل التكلفة" : "Enter cost")}</strong></p>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span>{ar ? "اتباع" : "Sold"}: <strong className="text-foreground">{eco.sold}</strong></span>
               <span>{ar ? "إيراد" : "Revenue"}: <strong className="text-foreground">{formatPrice(eco.revenue, p.currency)}</strong></span>
-              <span>{ar ? "ربح" : "Profit"}: <strong className="text-accent">{formatPrice(eco.profit, p.currency)}</strong></span>
+              <span>{ar ? "ربح" : "Profit"}: <strong className="text-accent">{eco.hasCost ? formatPrice(eco.profit, p.currency) : "—"}</strong></span>
               <span>{ar ? "مخزون" : "Stock"}: {p.stock}</span>
             </div>
           </div>
@@ -144,9 +146,9 @@ function ProductRow({ p, ar, onPatch, onDetails, onRemove }: { p: Product; ar: b
         </div>
 
         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-          <div className="space-y-1"><Label className="text-xs">{ar ? "تكلفة القطعة" : "Unit cost"}</Label><Input inputMode="numeric" value={cost} onChange={(e) => setCost(e.target.value)} /></div>
-          <div className="space-y-1"><Label className="text-xs">{ar ? "قطع اتباعت" : "Units sold"}</Label><Input inputMode="numeric" value={sold} onChange={(e) => setSold(e.target.value)} /></div>
-          <div className="flex items-end"><Button variant="accent" onClick={() => { onPatch(p.id, { costPrice: Number(cost) || eco.cost, soldUnits: Number(sold) || 0 }); toast.success(ar ? "اتحدث التقرير" : "Report updated"); }}>{ar ? "تحديث التقرير" : "Update"}</Button></div>
+          <div className="space-y-1"><Label className="text-xs">{ar ? "تكلفة القطعة" : "Unit cost"}</Label><Input inputMode="numeric" value={cost} placeholder={ar ? "اكتب تكلفتك الحقيقية" : "Your real cost"} onChange={(e) => setCost(e.target.value)} /></div>
+          <div className="space-y-1"><Label className="text-xs">{ar ? "قطع اتباعت (تزيد مع الطلبات)" : "Units sold (grows with orders)"}</Label><Input inputMode="numeric" value={sold} placeholder="0" onChange={(e) => setSold(e.target.value)} /></div>
+          <div className="flex items-end"><Button variant="accent" onClick={() => { onPatch(p.id, { costPrice: cost.trim() ? Number(cost) : undefined, soldUnits: sold.trim() ? Number(sold) : undefined }); toast.success(ar ? "اتحدث التقرير" : "Report updated"); }}>{ar ? "تحديث التقرير" : "Update"}</Button></div>
         </div>
 
         <Separator />

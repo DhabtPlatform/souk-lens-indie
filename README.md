@@ -91,8 +91,10 @@ npm run dev            # http://localhost:3000
 6. Switch to **Smart Market**: "furnish a wedding" → 3 lists (demo store catalog + your real saved products, each labeled by source) → move an item between lists → approve → preliminary invoice → cart checkout.
 
 ## Transparency (a strength with judges)
-- The Smart Market catalog and seller-dashboard sales figures are **demo data labeled as such in the UI** and editable with real numbers — the product is the architecture (full Product + ranker + invoices).
-- Auction/live/campaign: selling-channel activation saved with the product + live bid simulation for the demo; payment is a hackathon demo checkout.
+- Smart Market searches a clearly-labeled **sample marketplace inventory** (no invented reviews, seller ratings or sales history) plus the user's real saved products. Ranking uses listing completeness, discount, delivery estimate and verified trust only when present.
+- Seller reports use **real entries only**: units sold are recorded from actual in-app cart orders (checkout also decrements stock), and unit cost is typed by the seller. Nothing is generated from a product id — with no entry, the figure stays zero.
+- Auction/live/campaign: selling-channel activation saved with the product (a fresh auction starts at zero bids; bid simulation is labeled) + live bid simulation for the demo; payment is a hackathon demo checkout that records the order.
+- SAM map: when SAM 3.1 returns its native `box;x1=…;w=…` coordinates (parsed in `lib/extract.ts`), boxes are the model's real coordinates; the evenly-placed fallback is still honestly labeled "estimated demo positions".
 
 ## Asset sources (Attribution)
 - Demo catalog photos (25): **Unsplash** under a free license — labeled in the UI and documented in `ATTRIBUTION.md`; replaced by real seller photos in production.

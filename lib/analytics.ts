@@ -1,7 +1,8 @@
 import type { Product } from "./product";
 
-// Deterministic demo economics: every saved product gets stable sales/cost
-// figures (from its id) until the seller edits soldUnits / costPrice for real.
+// Real-entries-only economics: revenue/profit come ONLY from actual in-app orders
+// (soldUnits incremented at checkout) or numbers the seller types in themselves.
+// Nothing is generated from a product id or a price ratio.
 function hash(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
@@ -11,22 +12,26 @@ function hash(s: string): number {
 export type Economics = {
   cost: number; sold: number; revenue: number; totalCost: number; profit: number;
   marginPct: number; unitProfit: number; inventoryValue: number; inventoryCost: number; potentialProfit: number;
+  hasCost: boolean; hasSales: boolean;
 };
 
 export function productEconomics(p: Product): Economics {
-  const cost = p.costPrice && p.costPrice > 0 ? p.costPrice : Math.round(p.price * 0.62);
-  const sold = typeof p.soldUnits === "number" ? p.soldUnits : 4 + (hash(p.id) % 46);
+  const hasCost = typeof p.costPrice === "number" && p.costPrice > 0;
+  const cost = hasCost ? (p.costPrice as number) : 0;
+  const sold = typeof p.soldUnits === "number" ? p.soldUnits : 0;
   const revenue = sold * p.price;
   const totalCost = sold * cost;
-  const profit = revenue - totalCost;
-  const unitProfit = p.price - cost;
+  const profit = hasCost ? revenue - totalCost : 0;
+  const unitProfit = hasCost ? p.price - cost : 0;
   return {
     cost, sold, revenue, totalCost, profit,
-    marginPct: p.price > 0 ? Math.round((unitProfit / p.price) * 100) : 0,
+    marginPct: hasCost && p.price > 0 ? Math.round((unitProfit / p.price) * 100) : 0,
     unitProfit,
     inventoryValue: p.stock * p.price,
     inventoryCost: p.stock * cost,
-    potentialProfit: p.stock * unitProfit,
+    potentialProfit: hasCost ? p.stock * unitProfit : 0,
+    hasCost,
+    hasSales: sold > 0,
   };
 }
 
@@ -55,12 +60,14 @@ export function summarize(products: Product[]): Summary {
   };
 }
 
+// Selling channels start honest: a fresh auction has the starting price and ZERO bids;
+// live/campaign figures below are planning estimates (budget math), not history.
 export function defaultAuction(p: Product) {
   const start = Math.max(1, Math.round(p.price * 0.7));
-  return { startingPrice: start, currentBid: Math.round(start * 1.18), bids: 3 + (hash(p.id) % 14), endsInHours: 24 + (hash(p.id) % 48) };
+  return { startingPrice: start, currentBid: start, bids: 0, endsInHours: 48 };
 }
 export function defaultLive(p: Product) {
-  return { platform: "Facebook Live", scheduledAt: new Date(Date.now() + 86400000).toISOString().slice(0, 16), expectedViewers: 300 + (hash(p.id) % 2400) };
+  return { platform: "Facebook Live", scheduledAt: new Date(Date.now() + 86400000).toISOString().slice(0, 16), expectedViewers: 0 };
 }
 export function defaultCampaign(p: Product) {
   const budget = Math.max(200, Math.round(p.price * 0.3));

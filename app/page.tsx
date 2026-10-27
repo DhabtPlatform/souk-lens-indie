@@ -278,6 +278,15 @@ export default function Page() {
   function addAll(list: Product[]) { mine.addMany(list); toast.success(ar ? `اتحفظ ${list.length} منتج بكل التفاصيل والصور` : `${list.length} products saved in full`); setTab("mine"); }
   function saveSmart(list: Product[]) { mine.addMany(list); toast.success(ar ? `اتحفظت ${list.length} منتج من السوق الذكي بكل تفاصيلها` : `Saved ${list.length} smart-market products in full`); }
   function addToCart(list: Product[]) { cart.addMany(list); setCartOpen(true); }
+  // Real in-app orders: checkout increments units sold (and decrements stock)
+  // for saved products — this is what feeds the seller profit reports.
+  function recordOrder(items: { product: Product; qty: number }[]) {
+    for (const { product, qty } of items) {
+      const cur = mine.products.find((p) => p.id === product.id);
+      if (!cur) continue;
+      mine.update(product.id, { soldUnits: (cur.soldUnits ?? 0) + qty, stock: Math.max(0, cur.stock - qty) });
+    }
+  }
   function exportMine() {
     const blob = new Blob([JSON.stringify(mine.products, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "souk-lens-products.json"; a.click(); URL.revokeObjectURL(a.href);
@@ -595,7 +604,7 @@ export default function Page() {
       ) : null}
 
       <ProductDetailsSheet product={selected} lang={lang} open={detailsOpen} onOpenChange={setDetailsOpen} editable onSave={patchProduct} />
-      <CartSheet open={cartOpen} onOpenChange={setCartOpen} items={cart.items} lang={lang} setQty={cart.setQty} remove={cart.remove} clear={cart.clear} />
+      <CartSheet open={cartOpen} onOpenChange={setCartOpen} items={cart.items} lang={lang} setQty={cart.setQty} remove={cart.remove} clear={cart.clear} onCheckout={recordOrder} />
       <JudgesMode open={judgesOpen} onOpenChange={setJudgesOpen} lang={lang} onAction={handleJudgeAction} hasResults={results.length > 0} />
     </div>
   );

@@ -69,7 +69,7 @@ export function SmartMarket({
       if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
       setIntent(j.intent); setBundles(j.bundles as SmartBundle[]); setAlts(j.alternativesBySlot as AltMap);
       setSavedIds(new Set((j.savedIds ?? []) as string[]));
-      setCounts({ total: j.catalogSize ?? 0, saved: j.savedCount ?? 0, demo: j.demoCount ?? 0 });
+      setCounts({ total: j.catalogSize ?? 0, saved: j.savedCount ?? 0, demo: j.sampleCount ?? j.demoCount ?? 0 });
       setActiveBundle((j.bundles as SmartBundle[])[0]?.id ?? "value");
       toast.success(ar ? `اتجمعت 3 قوائم من ${j.catalogSize} منتج في المتجر` : `3 lists built from ${j.catalogSize} store products`);
     } catch (e) { setError(String(e)); } finally { setLoading(false); }
@@ -134,7 +134,10 @@ export function SmartMarket({
   }
 
   const visibleBundles = isMobile ? bundles.filter((b) => b.id === activeBundle) : bundles;
-  const avgRating = (b: SmartBundle) => b.items.length ? (b.items.reduce((s, i) => s + (i.rating ?? 0), 0) / b.items.length).toFixed(1) : "—";
+  const avgRating = (b: SmartBundle) => {
+    const rated = b.items.filter((i) => typeof i.rating === "number");
+    return rated.length ? (rated.reduce((s, i) => s + (i.rating ?? 0), 0) / rated.length).toFixed(1) : "—";
+  };
 
   return (
     <div className="space-y-4">
@@ -142,15 +145,15 @@ export function SmartMarket({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><Sparkles className="text-primary" />{ar ? "السوق الذكي" : "Smart Market"}</CardTitle>
           <CardDescription className="leading-7">
-            {ar ? "قوله عاوز تشتري ايه — هيبحث في كل المتجر ويجمع لك 3 قوائم: الأفضل تقييماً وسعراً وخصماً وأسرع توصيل ومن بائع موثق. انقل منتج بين القوائم، اعتمد واحدة، واستلم فاتورة مبدئية." : "Tell it what you need — it searches the whole store and builds 3 lists: best rated, best price/discount, fastest delivery, verified sellers. Move items, approve one, get a preliminary invoice."}
+            {ar ? "قوله عاوز تشتري ايه — هيبحث في مخزون العرض ومنتجاتك المحفوظة ويجمع لك 3 قوائم: أفضل قيمة، أفضل مطابقة وجودة، وأسرع توصيل. انقل منتج بين القوائم، اعتمد واحدة، واستلم فاتورة مبدئية." : "Tell it what you need — it searches the sample inventory and your saved products and builds 3 lists: best value, best match & quality, fastest delivery. Move items, approve one, get a preliminary invoice."}
           </CardDescription>
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <Badge variant="gold">{ar ? "كتالوج متجر تجريبي للعرض" : "Demo store catalog"}</Badge>
+            <Badge variant="gold">{ar ? "مخزون سوق تجريبي" : "Sample marketplace inventory"}</Badge>
             <Badge variant={savedProducts.length ? "accent" : "secondary"}>{ar ? `+ منتجاتك المحفوظة الحقيقية (${savedProducts.length})` : `+ your real saved products (${savedProducts.length})`}</Badge>
-            {counts ? <Badge variant="outline">{ar ? `اتبحث في ${counts.total} منتج (${counts.saved} محفوظ + ${counts.demo} كتالوج)` : `Searched ${counts.total} (${counts.saved} saved + ${counts.demo} catalog)`}</Badge> : null}
+            {counts ? <Badge variant="outline">{ar ? `اتبحث في ${counts.total} منتج (${counts.saved} محفوظ + ${counts.demo} عينة)` : `Searched ${counts.total} (${counts.saved} saved + ${counts.demo} sample)`}</Badge> : null}
           </div>
-          <p className="pt-1 text-[11px] text-muted-foreground" dir="auto">{ar ? "صور منتجات الكتالوج التجريبي من Unsplash (ترخيص مجاني — التفاصيل في ATTRIBUTION.md) وتُستبدل بصور البائعين الحقيقية في الإنتاج." : "Demo catalog product photos by Unsplash (free license — see ATTRIBUTION.md); replaced by real seller photos in production."}</p>
-          <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["اختار احتياجًا جاهزًا (دراسة، شقة، عروسين…) أو اكتب احتياجك بكلامك، وحدد ميزانيتك وأولويتك: أرخص سعر، أعلى تقييم، أسرع توصيل، أو بائع موثوق.", "اضغط «ابني 3 قوائم ذكية»: الوكيل الذكي يبحث في الكتالوج ومنتجاتك المحفوظة ويجمّع 3 قوائم مرتبة حسب أولويتك.", "قارن القوائم بالإجمالي والتوفير ومدة التوصيل، وانقل أي منتج من قايمة لقايمة أو بدّله ببديل مقترح.", "اعتمد القايمة اللي عجبتك — هتطلع فاتورة مبدئية للمعاينة، ومنها ضيفها للسلة للدفع أو احفظها في منتجاتي."] : ["Pick a ready need (study, apartment, wedding…) or write your own, set your budget and priority: lowest price, top rated, fastest delivery, or trusted seller.", "Press Build 3 smart lists: the agent searches the catalog and your saved products and assembles 3 ranked lists.", "Compare lists by total, savings and delivery time; move any item between lists or swap it for a suggested alternative.", "Approve the list you like — a preliminary invoice appears for review, then add it to the cart for checkout or save it to My products."]} /></div>
+          <p className="pt-1 text-[11px] text-muted-foreground" dir="auto">{ar ? "منتجات العينة للتوضيح فقط — بلا تقييمات أو مبيعات مخترعة، وصورها من Unsplash (التفاصيل في ATTRIBUTION.md). منتجاتك المحفوظة بياناتها كما أدخلتها أنت." : "Sample items are illustrative only — no invented reviews or sales, photos by Unsplash (see ATTRIBUTION.md). Your saved products keep exactly the data you entered."}</p>
+          <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["اختار احتياجًا جاهزًا (دراسة، شقة، عروسين…) أو اكتب احتياجك بكلامك، وحدد ميزانيتك وأولويتك: أرخص سعر، أفضل جودة إعلان، أسرع توصيل، أو ثقة موثقة.", "اضغط «ابني 3 قوائم ذكية»: الوكيل الذكي يبحث في مخزون العرض ومنتجاتك المحفوظة ويجمّع 3 قوائم مرتبة حسب أولويتك.", "قارن القوائم بالإجمالي والتوفير ومدة التوصيل، وانقل أي منتج من قايمة لقايمة أو بدّله ببديل مقترح.", "اعتمد القايمة اللي عجبتك — هتطلع فاتورة مبدئية للمعاينة، ومنها ضيفها للسلة للدفع أو احفظها في منتجاتي."] : ["Pick a ready need (study, apartment, wedding…) or write your own, set your budget and priority: lowest price, best listing quality, fastest delivery, or verified trust.", "Press Build 3 smart lists: the agent searches the sample inventory and your saved products and assembles 3 ranked lists.", "Compare lists by total, savings and delivery time; move any item between lists or swap it for a suggested alternative.", "Approve the list you like — a preliminary invoice appears for review, then add it to the cart for checkout or save it to My products."]} /></div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar" role="list" aria-label="presets">
@@ -181,9 +184,9 @@ export function SmartMarket({
                 <SelectContent>
                   <SelectItem value="balanced">{ar ? "توازن (موصى به)" : "Balanced"}</SelectItem>
                   <SelectItem value="price">{ar ? "أرخص سعر وأعلى خصم" : "Lowest price"}</SelectItem>
-                  <SelectItem value="rating">{ar ? "أعلى تقييم" : "Top rated"}</SelectItem>
+                  <SelectItem value="rating">{ar ? "أفضل جودة إعلان" : "Best listing quality"}</SelectItem>
                   <SelectItem value="delivery">{ar ? "أسرع توصيل" : "Fastest delivery"}</SelectItem>
-                  <SelectItem value="trust">{ar ? "بائع موثق" : "Verified seller"}</SelectItem>
+                  <SelectItem value="trust">{ar ? "ثقة موثقة عند توفرها" : "Verified trust when present"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -311,9 +314,9 @@ function BundleCard({ bundle: b, allBundles, ar, savedIds, onMove, onRemove, onR
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-extrabold">{ar ? i.name_ar : i.name_en}</p>
                 <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-[#ffd166] text-[#ffd166]" />{i.rating} ({i.reviewCount})</span>
+                  {typeof i.rating === "number" ? <span className="inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-[#ffd166] text-[#ffd166]" />{i.rating} ({i.reviewCount ?? 0})</span> : <span>{ar ? "بلا تقييمات مخترعة" : "No invented reviews"}</span>}
                   <span className="inline-flex items-center gap-0.5">{i.sellerVerified ? <BadgeCheck className="h-3.5 w-3.5 text-accent" /> : null}{i.sellerName}</span>
-                  {savedIds.has(i.id) ? <Badge variant="accent" className="text-[9px]">{ar ? "من منتجاتي" : "Mine"}</Badge> : <Badge variant="outline" className="text-[9px]">{ar ? "كتالوج" : "Catalog"}</Badge>}
+                  {savedIds.has(i.id) ? <Badge variant="accent" className="text-[9px]">{ar ? "من منتجاتي" : "Mine"}</Badge> : <Badge variant="gold" className="text-[9px]">{ar ? "عينة" : "Sample"}</Badge>}
                   <span className="inline-flex items-center gap-0.5"><Truck className="h-3 w-3" />{i.deliveryDays}d</span>
                 </p>
                 <p className="mt-0.5 text-[13px]"><strong className="text-accent">{formatPrice(i.price, i.currency)}</strong>{i.compareAtPrice ? <span className="ms-1.5 text-[11px] text-muted-foreground line-through">{formatPrice(i.compareAtPrice, i.currency)}</span> : null}<Badge variant="gold" className="ms-2">{i.score}</Badge></p>

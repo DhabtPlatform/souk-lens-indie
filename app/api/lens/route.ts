@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const seg = segR.v;
     const samDetections = extractDetections(seg, []);
     const grounding = samDetections.length
-      ? samDetections.map((d) => d.label).join(", ")
+      ? `${prompt}: ${samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")}`
       : `${prompt} · ${extractText(seg).slice(0, 400)}`;
     const sparkR = await timed(() => analyzeWithSpark(imageUrl, lang, country, currency, grounding));
     const analysis = sparkR.v;

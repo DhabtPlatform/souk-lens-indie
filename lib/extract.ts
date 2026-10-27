@@ -42,8 +42,31 @@ export function extractItems(resp: unknown, text?: string): Record<string, unkno
 export type Detection = { label: string; box: [number, number, number, number]; source: "sam" | "estimate" };
 
 // Find SAM-style detections anywhere in the response; boxes normalized to 0..1 (x1,y1,x2,y2).
+// SAM 3.1 actually returns text like:
+//   <|box;x1=662;y1=228;x2=1173;y2=643;w=1280;h=853|><|mask;...|>
+// so parse that format first (real model coordinates), then structured box arrays.
 export function extractDetections(seg: unknown, fallbackLabels: string[] = []): Detection[] {
   const found: Detection[] = [];
+  const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+  const samText = extractText(seg);
+  const boxRe = /box;x1=(\d+(?:\.\d+)?);y1=(\d+(?:\.\d+)?);x2=(\d+(?:\.\d+)?);y2=(\d+(?:\.\d+)?)(?:;w=(\d+(?:\.\d+)?);h=(\d+(?:\.\d+)?))?/g;
+  for (const m of samText.matchAll(boxRe)) {
+    let [x1, y1, x2, y2] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+    const w = m[5] ? Number(m[5]) : 0;
+    const h = m[6] ? Number(m[6]) : 0;
+    if (w > 0 && h > 0) { x1 /= w; y1 /= h; x2 /= w; y2 /= h; }
+    else if (Math.max(x1, y1, x2, y2) > 1.5) { x1 /= 1000; y1 /= 1000; x2 /= 1000; y2 /= 1000; }
+    if (x2 > x1 && y2 > y1) {
+      found.push({
+        label: fallbackLabels[found.length] ?? `Detected item ${found.length + 1}`,
+        box: [clamp01(x1), clamp01(y1), clamp01(x2), clamp01(y2)],
+        source: "sam",
+      });
+    }
+    if (found.length >= 8) return found;
+  }
+  if (found.length) return found;
+
   const seen = new Set<unknown>();
   function walk(v: unknown, depth: number) {
     if (!v || typeof v !== "object" || depth > 6 || seen.has(v)) return;
@@ -60,7 +83,6 @@ export function extractDetections(seg: unknown, fallbackLabels: string[] = []): 
     }
     for (const val of Object.values(o)) walk(val, depth + 1);
   }
-  function clamp01(n: number) { return Math.min(1, Math.max(0, n)); }
   walk(seg, 0);
   if (found.length) return found.slice(0, 8);
   // Honest fallback: evenly placed estimate boxes matched to the listings Spark returned.

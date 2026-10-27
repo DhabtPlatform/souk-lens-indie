@@ -12,12 +12,13 @@ import { CheckCheck, Minus, Plus, ShieldCheck, ShoppingCart, Trash2 } from "luci
 import { toast } from "sonner";
 
 export function CartSheet({
-  open, onOpenChange, items, lang, setQty, remove, clear,
+  open, onOpenChange, items, lang, setQty, remove, clear, onCheckout,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   items: CartItem[]; lang: "ar" | "en";
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void; clear: () => void;
+  onCheckout?: (items: CartItem[]) => void;
 }) {
   const ar = lang === "ar";
   const [orderNo, setOrderNo] = useState("");
@@ -26,7 +27,8 @@ export function CartSheet({
 
   function checkout() {
     setOrderNo(`SL-ORD-${Date.now().toString().slice(-6)}`);
-    toast.success(ar ? "اتأكد الطلب (دفع تجريبي للهاكثون)" : "Order confirmed (hackathon demo payment)");
+    onCheckout?.(items);
+    toast.success(ar ? "اتأكد الطلب واتسجل في مبيعات البائع" : "Order confirmed & recorded in seller sales");
   }
 
   return (
