@@ -1,5 +1,14 @@
 # Souk Lens — عدسة السوق (Indie submission)
 
+## Judge in 2 minutes (English-first)
+1. Open the app — the demo **runs automatically** (one stall photo → full pipeline, no setup).
+2. Watch the **proof bar**: per-model time for SAM 3.1 → Muse Spark 1.3 → Muse Image 1.0, each run labeled **LIVE** or **DEMO**.
+3. Tap the **SAM map** boxes (real `box;x1=..;w=..` coordinates when live), drag the **before/after slider**.
+4. Press **"Product tour — 90 seconds"** (or open `?coach=1`) for the guided walkthrough: analysis → save & profit report → auction → Smart Market → invoice → cart checkout.
+5. Verify integration: `GET /api/health` (live/demo mode, models, key configured — never the key itself), `lib/meta.ts`, `app/api/lens/route.ts`.
+6. Demo video (≤3:00, real app footage, AI voiceover disclosed): `video-output/souk-lens-demo.mp4`.
+7. Honesty rules enforced: sample catalog is labeled, no invented reviews/sales, seller reports use real in-app orders only.
+
 > **Souk Lens is NOT an image analyzer — it is a complete informal-market commerce platform.**
 > Snap a stall → **SAM 3.1** isolates every item on an interactive map → **Muse Spark 1.3**
 > prices locally and builds a complete product (variants / stock / specs / SEO) →
@@ -55,8 +64,10 @@ channel data shows on the card and details and is saved with the product.
 **Muse Image 1.0** cleans the product shot → save, manage, profit, auction, smart market, checkout.
 
 ## Why it competes
-- Uses 3 Meta models together in one pipeline — not a repetitive simple chatbot.
-- `Build for Your World` theme: informal-market sellers, including sellers with limited digital literacy, AR/EN + RTL/LTR.
+- **One journey, not ten features:** from one market-stall photo to a ready-to-sell store in under a minute — a judge gets it in 20 seconds.
+- Uses 3 Meta models together in one pipeline (SAM 3.1 segments → Muse Spark 1.3 prices + writes → Muse Image 1.0 cleans) — not a repetitive simple chatbot; every run shows per-model timings and a Live/Demo label.
+- `Build for Your World` theme: informal-market sellers, including sellers with limited digital literacy, AR/EN + RTL/LTR with first-visit geo auto-detect.
+- Real measured numbers on-device (runs, listings, avg seconds) instead of invented stats; sample data and simulations are labeled as such.
 - Works instantly even without a key (honest demo mode), and goes LIVE with `MODEL_API_KEY`.
 - Standalone repo built for this submission.
 
@@ -82,8 +93,8 @@ npm run dev            # http://localhost:3000
 - **Illustrative seller story** labeled as a demo scenario (not a paid testimonial): stall → SAM → listing → sale.
 - Deploy-ready with `vercel.json` + `.env.example` (any Node 20 host; set `MODEL_API_KEY` for Live mode).
 
-## 90-second demo
-1. The demo **runs automatically on page open** (replay anytime with **"One-click demo"** in the hero) — analyzes a real photo with the full pipeline.
+## 90-second demo (one journey: photo → isolate → analyze → describe → price → product)
+1. The demo **runs automatically on page open** (replay anytime with **"One-click demo"**) — first visit also auto-detects country/currency/language from geo + browser.
 2. Show the **SAM 3.1 map**: colored boxes on the photo; tap any item to open its listing (real SAM boxes, honestly labeled "estimated demo positions" when absent).
 3. Show the **model trace**: per-model time (SAM → Spark → Image) and Live status from `api.meta.ai/v1`.
 4. Drag the **before/after slider**: from market shot to Muse Image studio shot.

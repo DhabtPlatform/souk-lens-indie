@@ -1,4 +1,8 @@
-# ATTRIBUTION — مصادر الأصول في المشروع
+# ATTRIBUTION — مصادر الأصول في المشروع / Asset sources
+English summary: demo catalog photos (25) are **Unsplash** (free license, display only,
+labeled in-app; replaced by real seller photos in production). Brand backgrounds were
+generated with **Muse Image 1.0**. The logo is original SVG. Fonts (Tajawal/Cairo/Inter)
+are open (OFL) via Google Fonts.
 
 ## صور الكتالوج التجريبي (25 صورة)
 المصدر: **Unsplash** — `images.unsplash.com` (مستخدمة في `lib/smart-market.ts` كصور عرض فقط).
