@@ -177,7 +177,7 @@ function ProductRow({ p, ar, onPatch, onDetails, onRemove }: { p: Product; ar: b
           <div className="grid gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm sm:grid-cols-3 animate-souk-in">
             <Info label={ar ? "منصة البث" : "Platform"} value={live.platform} />
             <Info label={ar ? "المعاد" : "Scheduled"} value={live.scheduledAt.replace("T", " ")} />
-            <Info label={ar ? "مشاهدين متوقعين" : "Expected viewers"} value={String(live.expectedViewers)} accent />
+            <Info label={ar ? "مشاهدين متوقعين" : "Expected viewers"} value={live.expectedViewers ? String(live.expectedViewers) : "—"} accent />
           </div>
         ) : null}
         {mode === "campaign" ? (

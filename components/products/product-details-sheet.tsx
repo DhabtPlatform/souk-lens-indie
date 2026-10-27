@@ -153,10 +153,10 @@ export function ProductDetailsSheet({
           {(() => { const eco = productEconomics(product); return (
             <Section title={ar ? "المبيعات والتكلفة والربح" : "Sales, cost & profit"}>
               <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-                <Stat label={ar ? "التكلفة" : "Unit cost"} value={formatPrice(eco.cost, product.currency)} />
-                <Stat label={ar ? "ربح القطعة" : "Unit profit"} value={`${formatPrice(eco.unitProfit, product.currency)} · ${eco.marginPct}%`} accent />
+                <Stat label={ar ? "التكلفة" : "Unit cost"} value={eco.hasCost ? formatPrice(eco.cost, product.currency) : "—"} />
+                <Stat label={ar ? "ربح القطعة" : "Unit profit"} value={eco.hasCost ? `${formatPrice(eco.unitProfit, product.currency)} · ${eco.marginPct}%` : "—"} accent />
                 <Stat label={ar ? "اتباع" : "Sold"} value={`${eco.sold} · ${formatPrice(eco.revenue, product.currency)}`} />
-                <Stat label={ar ? "صافي الربح" : "Net profit"} value={formatPrice(eco.profit, product.currency)} accent />
+                <Stat label={ar ? "صافي الربح" : "Net profit"} value={eco.hasCost ? formatPrice(eco.profit, product.currency) : "—"} accent />
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Badge variant={product.salesMode === "auction" ? "gold" : "secondary"}><Gavel className="me-1 h-3 w-3" />{ar ? "مزاد" : "Auction"}{product.salesMode === "auction" && product.auction ? `: ${formatPrice(product.auction.currentBid, product.currency)} · ${product.auction.bids} bids` : ""}</Badge>
