@@ -13,6 +13,7 @@ import { SamOverlay } from "@/components/products/sam-overlay";
 import { StudioCompare } from "@/components/products/studio-compare";
 import type { Detection } from "@/lib/extract";
 import { blobToWav16k } from "@/lib/wav";
+import { HowItWorks } from "@/components/products/how-it-works";
 import { ImpactStrip } from "@/components/judges/impact-strip";
 import { JudgesMode, type JudgeAction } from "@/components/judges/judges-mode";
 import { SellerStory } from "@/components/judges/seller-story";
@@ -278,7 +279,7 @@ export default function Page() {
           ) : null}
 
           <TabsContent value="analyze">
-            <InputCard title={ar ? "تحليل صورة سوق" : "Analyze a market photo"} desc={ar ? "ارفع صورة أو الصق رابط — SAM يعزل، Spark يكتب الإعلان كامل، وMuse Image ينضف صورة المنتج." : "Upload or paste a link — SAM segments, Spark writes the full listing, Muse Image cleans the shot."} icon={<Camera className="text-primary" />}>
+            <InputCard title={ar ? "تحليل صورة سوق" : "Analyze a market photo"} desc={ar ? "ارفع صورة أو الصق رابط — SAM يعزل، Spark يكتب الإعلان كامل، وMuse Image ينضف صورة المنتج." : "Upload or paste a link — SAM segments, Spark writes the full listing, Muse Image cleans the shot."} icon={<Camera className="text-primary" />} steps={HOW.analyze[lang]} lang={lang}>
               <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
                 <div className="space-y-3">
                   <div className="space-y-1.5"><Label>{ar ? "رابط الصورة" : "Image URL"}</Label><Input dir="ltr" value={imageUrl.startsWith("data:") ? "" : imageUrl} placeholder="https://…" onChange={(e) => setImageUrl(e.target.value)} /></div>
@@ -305,7 +306,7 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="generate">
-            <InputCard title={ar ? "إعلان من وصف مكتوب" : "Listing from a written description"} desc={ar ? "اكتب اللي عندك بجملة واحدة — وهنرجع منتج كامل بالأسعار والمتغيرات والمواصفات وصورة ستوديو." : "Write what you have in one sentence — get a full product with prices, variants, specs and a studio image."} icon={<Type className="text-primary" />}>
+            <InputCard title={ar ? "إعلان من وصف مكتوب" : "Listing from a written description"} desc={ar ? "اكتب اللي عندك بجملة واحدة — وهنرجع منتج كامل بالأسعار والمتغيرات والمواصفات وصورة ستوديو." : "Write what you have in one sentence — get a full product with prices, variants, specs and a studio image."} icon={<Type className="text-primary" />} steps={HOW.generate[lang]} lang={lang}>
               <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={5} placeholder={t("descPlaceholder", lang)} />
               <div className="flex flex-wrap gap-2">
                 {["كرسي خشب زان بحالة ممتازة", "مصباح نحاس يدوي قديم شغال", "حذاء رياضي مقاس 42 جديد"].map((x) => (
@@ -317,7 +318,7 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="voice">
-            <InputCard title={ar ? "إعلان بصوتك" : "Listing from your voice"} desc={ar ? "سجل وصف المنتج — Muse Voice يحوله لنص، وSpark يبني الإعلان كامل. لو التسجيل متاحش، اكتب وهنكمل." : "Record the product — Muse Voice transcribes, Spark builds the full listing. Fallback: type it."} icon={<Mic className="text-primary" />}>
+            <InputCard title={ar ? "إعلان بصوتك" : "Listing from your voice"} desc={ar ? "سجل وصف المنتج — Muse Voice يحوله لنص، وSpark يبني الإعلان كامل. لو التسجيل متاحش، اكتب وهنكمل." : "Record the product — Muse Voice transcribes, Spark builds the full listing. Fallback: type it."} icon={<Mic className="text-primary" />} steps={HOW.voice[lang]} lang={lang}>
               <div className="flex flex-col items-center gap-4 py-2">
                 <Button size="lg" variant={recording ? "destructive" : "default"} onClick={toggleRecord} className={recording ? "animate-recording h-16 w-16 rounded-full p-0" : "h-16 w-16 rounded-full p-0"}>
                   {recording ? <Square /> : <Mic className="h-6 w-6" />}
@@ -337,7 +338,7 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="compare">
-            <InputCard title={ar ? "قارن منتج خارجي" : "Compare an external product"} desc={ar ? "الصق رابط أي منتج — هنجيب بياناته الحقيقية، نبني إعلانه، ونقترح بدائل أفضل وأرخص لبلدك مع الحكم النهائي." : "Paste any product link — we fetch its real data, build its listing, and suggest better/cheaper alternatives for your country."} icon={<ArrowLeftRight className="text-primary" />}>
+            <InputCard title={ar ? "قارن منتج خارجي" : "Compare an external product"} desc={ar ? "الصق رابط أي منتج — هنجيب بياناته الحقيقية، نبني إعلانه، ونقترح بدائل أفضل وأرخص لبلدك مع الحكم النهائي." : "Paste any product link — we fetch its real data, build its listing, and suggest better/cheaper alternatives for your country."} icon={<ArrowLeftRight className="text-primary" />} steps={HOW.compare[lang]} lang={lang}>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runCompare} disabled={loading || !extUrl.trim()}><Search />{loading ? t("analyzing", lang) : (ar ? "قارن دلوقتي" : "Compare now")}</Button>
@@ -346,7 +347,7 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="import">
-            <InputCard title={ar ? "انقل متجرك كله" : "Migrate your whole store"} desc={ar ? "الصق رابط متجرك القديم — هنجلب منتجاته الحقيقية (JSON-LD) ونكمل الناقص بالذكاء: وصف وأسعار ومتغيرات ومواصفات جاهزة للنشر." : "Paste your old store — we pull its real products (JSON-LD) and complete the rest with AI: descriptions, prices, variants and specs."} icon={<Store className="text-primary" />}>
+            <InputCard title={ar ? "انقل متجرك كله" : "Migrate your whole store"} desc={ar ? "الصق رابط متجرك القديم — هنجلب منتجاته الحقيقية (JSON-LD) ونكمل الناقص بالذكاء: وصف وأسعار ومتغيرات ومواصفات جاهزة للنشر." : "Paste your old store — we pull its real products (JSON-LD) and complete the rest with AI: descriptions, prices, variants and specs."} icon={<Store className="text-primary" />} steps={HOW.import[lang]} lang={lang}>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runImport} disabled={loading || !extUrl.trim()}><Download />{loading ? t("analyzing", lang) : (ar ? "انقل المنتجات" : "Import products")}</Button>
@@ -375,6 +376,7 @@ export default function Page() {
                   <div className="flex-1">
                     <CardTitle className="text-xl">{ar ? "منتجاتي المحفوظة — إدارة المنتجات" : "My saved products — product management"}</CardTitle>
                     <CardDescription>{ar ? "كل منتج محفوظ بكامل تفاصيله وصوره ومتغيراته وأسعاره — افتحه، عدّله، حوّله لمزاد/بث/حملة من التقرير فوق، انسخ إعلانه، أو صدّره." : "Every saved product keeps full details, images, variants and prices — open, edit, convert to auction/live/campaign from the report above, copy its ad, or export."}</CardDescription>
+                    <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["أي نتيجة من أي تبويب احفظها هنا بالزر المخصص — بتتخزن محليًا بكامل التفاصيل والصور.", "اضغط «التفاصيل» على أي منتج: عدّل السعر والمخزون والوصف، انسخ الإعلان الجاهز، أو انشره على واتساب وفيسبوك.", "من لوحة التقارير فوق: حدّث التكلفة والمبيعات لكل منتج وشوف الربح لحظيًا، وحوّل المنتج لمزاد أو بث مباشر أو حملة خارجية.", "ابحث بالاسم أو الكود، صدّر كل منتجاتك JSON، أو ضيف أي منتج للسلة للدفع."] : ["Save any result from any tab here with its button — stored locally with full details and images.", "Press Details on any product: edit price, stock and description, copy the ready ad, or publish it to WhatsApp and Facebook.", "From the reports board above: update each product's cost and sales, watch profit live, and convert it to auction, live sale or external campaign.", "Search by name or SKU, export everything as JSON, or add any product to the cart for checkout."]} /></div>
                   </div>
                   <Badge variant="accent">{mine.products.length}</Badge>
                 </div>
@@ -408,6 +410,8 @@ export default function Page() {
               <span className="text-xs text-muted-foreground">sam-3.1 + muse-spark-1.3 + muse-image-1.0 + muse-voice</span>
               {results.length ? <Button className="ms-auto" variant="accent" onClick={() => addAll(results)}><CheckCheck />{ar ? `حفظ الكل (${results.length})` : `Save all (${results.length})`}</Button> : null}
             </div>
+
+            <HowItWorks lang={lang} steps={ar ? ["شريط الإثبات فوق يوضح كل موديل اشتغل في إيه وخد وقت قد إيه وهل كان حيًا أم تجريبيًا.", "خريطة SAM: كل مربع ملوّن منتج حقيقي في الصورة — اضغطه لفتح إعلانه الكامل.", "سلايدر قبل/بعد يقارن صورة السوق الأصلية بصورة الستوديو المولدة.", "كروت المنتجات: احفظ في منتجاتي، ضيف للسلة، أو افتح التفاصيل الكاملة.", "زر JSON الخام يعرض الرد الأصلي للموديلات للمراجعة التقنية."] : ["The proof bar above shows what each model did, how long it took, and whether it was live or demo.", "SAM map: every colored box is a real item in the photo — tap it to open its full listing.", "The before/after slider compares the original market shot with the generated studio shot.", "Product cards: save to My products, add to cart, or open full details.", "The raw JSON button reveals the models' original response for technical review."]} />
 
             <ModelTrace trace={trace} lang={lang} />
 
@@ -500,14 +504,42 @@ export default function Page() {
   );
 }
 
-function InputCard({ title, desc, icon, children }: { title: string; desc: string; icon: React.ReactNode; children: React.ReactNode }) {
+function InputCard({ title, desc, icon, steps, lang, children }: { title: string; desc: string; icon: React.ReactNode; steps?: string[]; lang?: "ar" | "en"; children: React.ReactNode }) {
   return (
     <Card className="animate-souk-in overflow-hidden">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">{icon}{title}</CardTitle>
         <CardDescription className="leading-7">{desc}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
+      <CardContent className="space-y-4">
+        {steps?.length ? <HowItWorks steps={steps} lang={lang ?? "en"} /> : null}
+        {children}
+      </CardContent>
     </Card>
   );
 }
+
+const HOW: Record<TabKey, { ar: string[]; en: string[] }> = {
+  analyze: {
+    ar: ["الصق رابط صورة أو ارفعها من جهازك — المعاينة على اليمين بتوريك اللي هيتحلل.", "اكتب اسم الحاجة اللي بتدور عليها (اختياري) عشان التحديد يبقى أدق.", "اضغط «حلّل وابني الإعلانات»: SAM يعزل القطع، وSpark يكتب لكل قطعة إعلانًا كاملًا بالسعر والمتغيرات، وMuse Image ينضّف صورة أول منتج.", "اضغط أي مربع على خريطة SAM عشان تفتح إعلانه، واسحب سلايدر قبل/بعد لمقارنة صورة السوق بصورة الستوديو.", "اضغط «حفظ الكل» عشان المنتجات تروح منتجاتي بكامل تفاصيلها وصورها."],
+    en: ["Paste an image URL or upload from your device — the preview shows what will be analyzed.", "Name what you're looking for (optional) for sharper detection.", "Press Analyze: SAM isolates each item, Spark writes a full listing with price and variants per item, Muse Image cleans the hero shot.", "Tap any box on the SAM map to open its listing, and drag the before/after slider to compare market vs studio.", "Press Save all to keep the products in My products with full details and images."],
+  },
+  generate: {
+    ar: ["اكتب جملة واحدة توصف المنتج (مثال: كرسي خشب زان بحالة ممتازة) أو اضغط مثالًا جاهزًا.", "اضغط «ولّد إعلان كامل»: Spark يبني المنتج بالأسعار والمتغيرات والمواصفات، وMuse Image يولّد صورة ستوديو.", "راجع النتيجة واحفظها في منتجاتي أو ضيفها للسلة مباشرة."],
+    en: ["Write one sentence describing the product, or tap a ready example.", "Press Generate: Spark builds the product with prices, variants and specs, and Muse Image generates a studio shot.", "Review the result, save it to My products or add it to the cart."],
+  },
+  voice: {
+    ar: ["اضغط زر المايك واتكلم عن المنتج، ثم اضغط للإيقاف — التسجيل بيتحول تلقائيًا لصيغة WAV اللي يقبلها نموذج Meta.", "بعد الإيقاف بيظهر النص المفرّغ وتقدر تسمع تسجيلك الأصلي وتعدّل النص قبل النشر.", "اضغط «ابني الإعلان من النص»: Spark يبني إعلانًا باسم فعلي وأسعار ومتغيرات، وMuse Image يولّد صورة المنتج.", "النص الصوتي بيتحفظ كمصدر مع المنتج وبيظهر في تفاصيله."],
+    en: ["Tap the mic, describe the product, tap to stop — the recording auto-converts to the WAV format Meta's model accepts.", "After stopping, the transcript appears; you can replay your original audio and edit the text before publishing.", "Press Build: Spark builds a listing with a real name, prices and variants, and Muse Image generates the shot.", "The transcript is saved as the product's source and shown in its details."],
+  },
+  compare: {
+    ar: ["الصق رابط أي منتج خارجي — بنجيب بياناته الحقيقية (العنوان والصورة والسعر) ونبني إعلانه.", "Spark مع بحث الويب بيقترح بدائل أفضل وأرخص لبلدك مع مقارنة وحكم نهائي.", "احفظ المنتج الأصلي أو أي بديل في منتجاتي أو ضيفه للسلة."],
+    en: ["Paste any external product link — we fetch its real data (title, image, price) and build its listing.", "Spark with web search suggests better, cheaper alternatives for your country, with a comparison and final verdict.", "Save the original or any alternative to My products or the cart."],
+  },
+  import: {
+    ar: ["الصق رابط متجرك القديم — بنسحب منتجاته الحقيقية (JSON-LD) ونكمّل الناقص بالذكاء: وصف وأسعار ومتغيرات ومواصفات.", "راجع المنتجات المستوردة واحفظها كلها في منتجاتي جاهزة للنشر.", "من هناك تقدر تحوّل أي منتج لمزاد أو بث أو حملة خارجية."],
+    en: ["Paste your old store link — we pull its real products (JSON-LD) and AI completes the rest: descriptions, prices, variants, specs.", "Review the imported products and save them all to My products, ready to publish.", "From there convert any product to auction, live sale or external campaign."],
+  },
+  smart: { ar: [], en: [] },
+  mine: { ar: [], en: [] },
+};

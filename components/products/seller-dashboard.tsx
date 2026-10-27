@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { HowItWorks } from "@/components/products/how-it-works";
 import type { Product, SalesMode } from "@/lib/product";
 import { defaultAuction, defaultCampaign, defaultLive, productEconomics, summarize } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
@@ -41,6 +42,7 @@ export function SellerDashboard({
         <CardHeader className="bg-gradient-to-l from-primary/15 via-transparent to-accent/10">
           <CardTitle className="flex flex-wrap items-center gap-2 text-xl"><BarChart3 className="text-primary" />{ar ? "تقارير المبيعات والتكاليف والربح" : "Sales, costs & profit reports"}<Badge variant="gold">{ar ? "أرقام مبيعات تجريبية — عدّلها بأرقامك الحقيقية" : "Demo sales figures — edit with your real numbers"}</Badge></CardTitle>
           <CardDescription className="leading-7">{ar ? "أرقام كل منتج محفوظ: اتباع كام، كلف كام، وكسب كام — عدّل التكلفة والمبيعات وهيتحدث التقرير فورًا. وحوّل أي منتج لمزاد أو بث مباشر أو حملة خارجية من نفس المكان." : "Per saved product: units sold, cost and profit — edit cost/sales and the report updates instantly. Convert any product to auction, live sale or external campaign here."}</CardDescription>
+          <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["كروت المؤشرات فوق بتلخص: الإيراد، التكاليف، صافي الربح والهامش، وقيمة المخزون والربح المتوقع.", "تحت كل منتج: عدّل تكلفة القطعة وعدد القطع المباعة ثم اضغط تحديث — كل الأرقام والرسوم بتتحسب لحظيًا.", "من أزرار «بيع المنتج عبر»: ثبّت سعرًا، أو حوّله لمزاد (سعر بداية ومزايدات حية بمحاكاة)، أو بث مباشر (منصة ومعاد)، أو حملة خارجية (ميزانية ووصول متوقع).", "قسم «الأعلى ربحًا» يرتب منتجاتك حسب صافي الربح عشان تعرف تركز على إيه."] : ["The KPI cards above summarize: revenue, costs, net profit and margin, inventory value and expected profit.", "Under each product: edit unit cost and units sold, then press update — every number and bar recalculates live.", "From the Sell-via buttons: keep a fixed price, or convert to auction (starting price and simulated live bids), live sale (platform and schedule), or external campaign (budget and expected reach).", "The Top-by-profit section ranks your products by net profit so you know what to focus on."]} /></div>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

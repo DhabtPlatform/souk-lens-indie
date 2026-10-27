@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { HowItWorks } from "@/components/products/how-it-works";
 import type { CartItem } from "@/hooks/use-cart";
 import { buildInvoice } from "@/lib/smart-market";
 import { formatPrice } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function CartSheet({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2 text-2xl"><ShoppingCart className="text-primary" />{ar ? "سلة الدفع" : "Checkout cart"}</SheetTitle>
           <SheetDescription>{ar ? "منتجات بكل تفاصيلها من السوق الذكي أو نتائج البحث — عدّل الكمية وادفع." : "Full-detail products from Smart Market or search — adjust qty and pay."}</SheetDescription>
+          <div className="px-5 pt-3"><HowItWorks lang={lang} steps={ar ? ["المنتجات بتوصل هنا من زر السلة على أي كارت، أو دفعة واحدة من قايمة معتمدة في السوق الذكي.", "زود الكمية أو نقصها بالزرارين، أو احذف منتجًا — الإجمالي والشحن والتوفير بيتحسبوا تلقائيًا.", "اضغط «تأكيد الدفع»: بيطلع رقم طلب، والدفع هنا محاكاة للعرض — في الإنتاج يتوجه لبوابة دفع البائع مباشرة."] : ["Items land here from the cart button on any card, or all at once from an approved Smart Market list.", "Raise or lower qty with the buttons, or remove an item — total, shipping and savings recalculate automatically.", "Press Confirm payment: you get an order number. Payment here is a demo simulation — in production it goes straight to the seller's payment gateway."]} /></div>
         </SheetHeader>
 
         <div className="space-y-4 p-5">

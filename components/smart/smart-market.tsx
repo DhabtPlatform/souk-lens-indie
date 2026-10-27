@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { HowItWorks } from "@/components/products/how-it-works";
 import type { Product } from "@/lib/product";
 import { buildInvoice, PRESETS, type Bundle, type Priority } from "@/lib/smart-market";
 import { formatPrice } from "@/lib/utils";
@@ -148,6 +149,7 @@ export function SmartMarket({
             {counts ? <Badge variant="outline">{ar ? `اتبحث في ${counts.total} منتج (${counts.saved} محفوظ + ${counts.demo} كتالوج)` : `Searched ${counts.total} (${counts.saved} saved + ${counts.demo} catalog)`}</Badge> : null}
           </div>
           <p className="pt-1 text-[11px] text-muted-foreground" dir="auto">{ar ? "صور منتجات الكتالوج التجريبي من Unsplash (ترخيص مجاني — التفاصيل في ATTRIBUTION.md) وتُستبدل بصور البائعين الحقيقية في الإنتاج." : "Demo catalog product photos by Unsplash (free license — see ATTRIBUTION.md); replaced by real seller photos in production."}</p>
+          <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["اختار احتياجًا جاهزًا (دراسة، شقة، عروسين…) أو اكتب احتياجك بكلامك، وحدد ميزانيتك وأولويتك: أرخص سعر، أعلى تقييم، أسرع توصيل، أو بائع موثوق.", "اضغط «ابني 3 قوائم ذكية»: الوكيل الذكي يبحث في الكتالوج ومنتجاتك المحفوظة ويجمّع 3 قوائم مرتبة حسب أولويتك.", "قارن القوائم بالإجمالي والتوفير ومدة التوصيل، وانقل أي منتج من قايمة لقايمة أو بدّله ببديل مقترح.", "اعتمد القايمة اللي عجبتك — هتطلع فاتورة مبدئية للمعاينة، ومنها ضيفها للسلة للدفع أو احفظها في منتجاتي."] : ["Pick a ready need (study, apartment, wedding…) or write your own, set your budget and priority: lowest price, top rated, fastest delivery, or trusted seller.", "Press Build 3 smart lists: the agent searches the catalog and your saved products and assembles 3 ranked lists.", "Compare lists by total, savings and delivery time; move any item between lists or swap it for a suggested alternative.", "Approve the list you like — a preliminary invoice appears for review, then add it to the cart for checkout or save it to My products."]} /></div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar" role="list" aria-label="presets">
