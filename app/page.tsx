@@ -14,6 +14,7 @@ import { StudioCompare } from "@/components/products/studio-compare";
 import type { Detection } from "@/lib/extract";
 import { blobToWav16k } from "@/lib/wav";
 import { HowItWorks } from "@/components/products/how-it-works";
+import { Hint } from "@/components/products/field-hint";
 import { ImpactStrip } from "@/components/judges/impact-strip";
 import { JudgesMode, type JudgeAction } from "@/components/judges/judges-mode";
 import { SellerStory } from "@/components/judges/seller-story";
@@ -282,15 +283,15 @@ export default function Page() {
             <InputCard title={ar ? "تحليل صورة سوق" : "Analyze a market photo"} desc={ar ? "ارفع صورة أو الصق رابط — SAM يعزل، Spark يكتب الإعلان كامل، وMuse Image ينضف صورة المنتج." : "Upload or paste a link — SAM segments, Spark writes the full listing, Muse Image cleans the shot."} icon={<Camera className="text-primary" />} steps={HOW.analyze[lang]} lang={lang}>
               <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
                 <div className="space-y-3">
-                  <div className="space-y-1.5"><Label>{ar ? "رابط الصورة" : "Image URL"}</Label><Input dir="ltr" value={imageUrl.startsWith("data:") ? "" : imageUrl} placeholder="https://…" onChange={(e) => setImageUrl(e.target.value)} /></div>
-                  <div className="space-y-1.5"><Label>{ar ? "بتدور على ايه؟ (اختياري)" : "Looking for? (optional)"}</Label><Input value={imageLabel} onChange={(e) => setImageLabel(e.target.value)} placeholder={ar ? "مثال: lamp, clothes, fruit" : "e.g. lamp, clothes"} /></div>
+                  <div className="space-y-1.5"><Label>{ar ? "رابط الصورة" : "Image URL"}</Label><Input dir="ltr" value={imageUrl.startsWith("data:") ? "" : imageUrl} placeholder="https://…" onChange={(e) => setImageUrl(e.target.value)} /><Hint>{ar ? "رابط مباشر لصورة (https) — أو ارفع من جهازك في المربع تحت." : "Direct image link (https) — or upload from your device below."}</Hint></div>
+                  <div className="space-y-1.5"><Label>{ar ? "بتدور على ايه؟ (اختياري)" : "Looking for? (optional)"}</Label><Input value={imageLabel} onChange={(e) => setImageLabel(e.target.value)} placeholder={ar ? "مثال: lamp, clothes, fruit" : "e.g. lamp, clothes"} /><Hint>{ar ? "كلمة تدل النموذج على ما يهمك في الصورة فيعزله بدقة أعلى." : "A word that tells the model what matters in the photo for sharper detection."}</Hint></div>
                   <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-card/50 p-5 text-center transition hover:border-primary/60 hover:bg-primary/5">
                     <ImagePlus className="h-6 w-6 text-accent" />
                     <span className="text-sm font-bold">{ar ? "ارفع صورة من جهازك" : "Upload from your device"}</span>
                     <span className="text-xs text-muted-foreground">{ar ? "تتبعت مباشرة بدون رابط خارجي" : "Sent directly, no external link needed"}</span>
                     <input type="file" accept="image/*" hidden onChange={(e) => onImageFile(e.target.files?.[0])} />
                   </label>
-                  <Button size="lg" className="w-full sm:w-auto" onClick={runAnalyze} disabled={loading || !imageUrl}><Wand2 />{loading ? t("analyzing", lang) : (ar ? "حلّل وابني الإعلانات" : "Analyze & build listings")}</Button>
+                  <div className="space-y-1.5"><Button size="lg" className="w-full sm:w-auto" onClick={runAnalyze} disabled={loading || !imageUrl}><Wand2 />{loading ? t("analyzing", lang) : (ar ? "حلّل وابني الإعلانات" : "Analyze & build listings")}</Button><Hint>{ar ? "يشغّل SAM ثم Spark ثم Muse Image بالترتيب على نفس الصورة." : "Runs SAM, then Spark, then Muse Image in order on the same photo."}</Hint></div>
                 </div>
                 <div className="overflow-hidden rounded-2xl border bg-muted">
                   {imageUrl ? (
@@ -307,13 +308,13 @@ export default function Page() {
 
           <TabsContent value="generate">
             <InputCard title={ar ? "إعلان من وصف مكتوب" : "Listing from a written description"} desc={ar ? "اكتب اللي عندك بجملة واحدة — وهنرجع منتج كامل بالأسعار والمتغيرات والمواصفات وصورة ستوديو." : "Write what you have in one sentence — get a full product with prices, variants, specs and a studio image."} icon={<Type className="text-primary" />} steps={HOW.generate[lang]} lang={lang}>
-              <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={5} placeholder={t("descPlaceholder", lang)} />
+              <div className="space-y-1.5"><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={5} placeholder={t("descPlaceholder", lang)} /><Hint>{ar ? "جملة واحدة تكفي — السعر والمواصفات والمتغيرات تُستنتج تلقائيًا." : "One sentence is enough — price, specs and variants are inferred automatically."}</Hint></div>
               <div className="flex flex-wrap gap-2">
                 {["كرسي خشب زان بحالة ممتازة", "مصباح نحاس يدوي قديم شغال", "حذاء رياضي مقاس 42 جديد"].map((x) => (
                   <Button key={x} variant="outline" size="sm" onClick={() => setDesc(x)}>{x}</Button>
                 ))}
               </div>
-              <Button size="lg" onClick={runGenerate} disabled={loading || !desc.trim()}><Sparkles />{loading ? t("analyzing", lang) : (ar ? "ولّد إعلان كامل" : "Generate full listing")}</Button>
+              <div className="space-y-1.5"><Button size="lg" onClick={runGenerate} disabled={loading || !desc.trim()}><Sparkles />{loading ? t("analyzing", lang) : (ar ? "ولّد إعلان كامل" : "Generate full listing")}</Button><Hint>{ar ? "يخرج إعلانًا كاملًا مع صورة ستوديو مولدة في نتيجة واحدة." : "Produces a full listing plus a generated studio shot in one result."}</Hint></div>
             </InputCard>
           </TabsContent>
 
@@ -332,26 +333,26 @@ export default function Page() {
                 ) : null}
               </div>
               <Separator />
-              <div className="space-y-1.5"><Label>{ar ? "النص (قابل للتعديل)" : "Transcript (editable)"}</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder={t("descPlaceholder", lang)} /></div>
-              <Button size="lg" onClick={runVoiceListing} disabled={loading || !desc.trim()}><Sparkles />{ar ? "ابني الإعلان من النص" : "Build listing from text"}</Button>
+              <div className="space-y-1.5"><Label>{ar ? "النص (قابل للتعديل)" : "Transcript (editable)"}</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder={t("descPlaceholder", lang)} /><Hint>{ar ? "راجع النص وصححه هنا قبل بناء الإعلان — هو نفس ما قلته بالظبط." : "Review and fix the text here before building — exactly what you said."}</Hint></div>
+              <div className="space-y-1.5"><Button size="lg" onClick={runVoiceListing} disabled={loading || !desc.trim()}><Sparkles />{ar ? "ابني الإعلان من النص" : "Build listing from text"}</Button><Hint>{ar ? "يبني الإعلان من النص الظاهر فوق — عدّله أولًا لو احتجت." : "Builds the listing from the text above — edit it first if needed."}</Hint></div>
             </InputCard>
           </TabsContent>
 
           <TabsContent value="compare">
             <InputCard title={ar ? "قارن منتج خارجي" : "Compare an external product"} desc={ar ? "الصق رابط أي منتج — هنجيب بياناته الحقيقية، نبني إعلانه، ونقترح بدائل أفضل وأرخص لبلدك مع الحكم النهائي." : "Paste any product link — we fetch its real data, build its listing, and suggest better/cheaper alternatives for your country."} icon={<ArrowLeftRight className="text-primary" />} steps={HOW.compare[lang]} lang={lang}>
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="space-y-1.5"><div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runCompare} disabled={loading || !extUrl.trim()}><Search />{loading ? t("analyzing", lang) : (ar ? "قارن دلوقتي" : "Compare now")}</Button>
-              </div>
+              </div><Hint>{ar ? "أي رابط منتج من أي متجر — نجلب بياناته الحقيقية ثم نقارن ونقترح بدائل لبلدك." : "Any product link from any store — we fetch its real data, then compare and suggest alternatives for your country."}</Hint></div>
             </InputCard>
           </TabsContent>
 
           <TabsContent value="import">
             <InputCard title={ar ? "انقل متجرك كله" : "Migrate your whole store"} desc={ar ? "الصق رابط متجرك القديم — هنجلب منتجاته الحقيقية (JSON-LD) ونكمل الناقص بالذكاء: وصف وأسعار ومتغيرات ومواصفات جاهزة للنشر." : "Paste your old store — we pull its real products (JSON-LD) and complete the rest with AI: descriptions, prices, variants and specs."} icon={<Store className="text-primary" />} steps={HOW.import[lang]} lang={lang}>
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="space-y-1.5"><div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runImport} disabled={loading || !extUrl.trim()}><Download />{loading ? t("analyzing", lang) : (ar ? "انقل المنتجات" : "Import products")}</Button>
-              </div>
+              </div><Hint>{ar ? "رابط الصفحة الرئيسية لمتجرك القديم — تُسحب المنتجات الحقيقية ويُكمَل الناقص بالذكاء." : "Your old store's homepage link — real products are pulled and AI completes what's missing."}</Hint></div>
             </InputCard>
           </TabsContent>
 
@@ -385,8 +386,8 @@ export default function Page() {
                     <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input value={mineQuery} onChange={(e) => setMineQuery(e.target.value)} placeholder={ar ? "ابحث بالاسم أو الكود…" : "Search name or SKU…"} className="ps-9" />
                   </div>
-                  <Button variant="outline" onClick={exportMine} disabled={!mine.products.length}><FileJson />{ar ? "تصدير JSON" : "Export JSON"}</Button>
-                  <Button variant="ghost" onClick={() => { mine.clear(); toast.success(ar ? "اتمسحت منتجاتك" : "Cleared"); }} disabled={!mine.products.length}><Trash2 />{ar ? "مسح الكل" : "Clear"}</Button>
+                  <div className="space-y-1.5"><Button variant="outline" onClick={exportMine} disabled={!mine.products.length}><FileJson />{ar ? "تصدير JSON" : "Export JSON"}</Button><Hint>{ar ? "ملف بكل منتجاتك وتفاصيلها وصورها." : "A file with all your products, details and images."}</Hint></div>
+                  <div className="space-y-1.5"><Button variant="ghost" onClick={() => { mine.clear(); toast.success(ar ? "اتمسحت منتجاتك" : "Cleared"); }} disabled={!mine.products.length}><Trash2 />{ar ? "مسح الكل" : "Clear"}</Button><Hint>{ar ? "يمسح التخزين المحلي نهائيًا." : "Permanently wipes local storage."}</Hint></div>
                 </div>
               </CardHeader>
               <CardContent>

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { HowItWorks } from "@/components/products/how-it-works";
+import { Hint } from "@/components/products/field-hint";
 import type { Product } from "@/lib/product";
 import { buildInvoice, PRESETS, type Bundle, type Priority } from "@/lib/smart-market";
 import { formatPrice } from "@/lib/utils";
@@ -171,6 +172,7 @@ export function SmartMarket({
             <div className="space-y-1.5">
               <Label htmlFor="smart-budget">{ar ? "الميزانية (اختياري)" : "Budget (optional)"}</Label>
               <Input id="smart-budget" inputMode="numeric" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="20000" />
+              <Hint>{ar ? "اتركها فاضية بدون حد أقصى — تُستخدم لضبط القوائم على ميزانيتك." : "Leave empty for no cap — used to fit the lists to your budget."}</Hint>
             </div>
             <div className="space-y-1.5">
               <Label>{ar ? "الأهم عندك" : "Priority"}</Label>
@@ -185,10 +187,13 @@ export function SmartMarket({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
-              <Button size="lg" className="w-full" onClick={() => run()} disabled={loading}>
-                <Sparkles />{loading ? (ar ? "بيجمع القوائم…" : "Building lists…") : (ar ? "ابني 3 قوائم ذكية" : "Build 3 smart lists")}
-              </Button>
+            <div className="space-y-1.5">
+              <div className="flex items-end">
+                <Button size="lg" className="w-full" onClick={() => run()} disabled={loading}>
+                  <Sparkles />{loading ? (ar ? "بيجمع القوائم…" : "Building lists…") : (ar ? "ابني 3 قوائم ذكية" : "Build 3 smart lists")}
+                </Button>
+              </div>
+              <Hint>{ar ? "الوكيل يبحث في الكتالوج ومنتجاتك، يجمّع 3 قوائم مرتبة، ويحسب الفواتير تلقائيًا." : "The agent searches the catalog and your products, assembles 3 ranked lists, and invoices automatically."}</Hint>
             </div>
           </div>
         </CardContent>
