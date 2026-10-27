@@ -13,7 +13,7 @@ import type { Product, SalesMode } from "@/lib/product";
 import { defaultAuction, defaultCampaign, defaultLive, productEconomics, summarize } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
 import {
-  BarChart3, Eye, Gavel, Megaphone, PiggyBank, Radio, ShoppingBag, Tag, TrendingUp, Wallet,
+  BarChart3, Eye, Gavel, Megaphone, PenLine, PiggyBank, Radio, ShoppingBag, Tag, Trash2, TrendingUp, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,11 +25,12 @@ const MODES: { key: SalesMode; ar: string; en: string; icon: React.ReactNode }[]
 ];
 
 export function SellerDashboard({
-  products, lang, onPatch, onDetails,
+  products, lang, onPatch, onDetails, onRemove,
 }: {
   products: Product[]; lang: "ar" | "en";
   onPatch: (id: string, patch: Partial<Product>) => void;
   onDetails: (p: Product) => void;
+  onRemove?: (id: string) => void;
 }) {
   const ar = lang === "ar";
   const s = useMemo(() => summarize(products), [products]);
@@ -73,13 +74,13 @@ export function SellerDashboard({
       </Card>
 
       <div className="space-y-3">
-        {products.map((p) => <ProductRow key={p.id} p={p} ar={ar} onPatch={onPatch} onDetails={onDetails} />)}
+        {products.map((p) => <ProductRow key={p.id} p={p} ar={ar} onPatch={onPatch} onDetails={onDetails} onRemove={onRemove} />)}
       </div>
     </div>
   );
 }
 
-function ProductRow({ p, ar, onPatch, onDetails }: { p: Product; ar: boolean; onPatch: (id: string, patch: Partial<Product>) => void; onDetails: (p: Product) => void }) {
+function ProductRow({ p, ar, onPatch, onDetails, onRemove }: { p: Product; ar: boolean; onPatch: (id: string, patch: Partial<Product>) => void; onDetails: (p: Product) => void; onRemove?: (id: string) => void }) {
   const eco = productEconomics(p);
   const mode: SalesMode = p.salesMode ?? "fixed";
   const [cost, setCost] = useState(String(eco.cost));
@@ -133,7 +134,13 @@ function ProductRow({ p, ar, onPatch, onDetails }: { p: Product; ar: boolean; on
               <span>{ar ? "مخزون" : "Stock"}: {p.stock}</span>
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={() => onDetails(p)}><Eye />{ar ? "الإعلان" : "Listing"}</Button>
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => onDetails(p)}><Eye />{ar ? "الإعلان" : "Listing"}</Button>
+            <Button size="sm" variant="outline" onClick={() => onDetails(p)}><PenLine />{ar ? "تعديل" : "Edit"}</Button>
+            {onRemove ? (
+              <Button size="sm" variant="ghost" onClick={() => { if (window.confirm(ar ? `حذف «${p.name_ar}» نهائيًا؟` : `Delete "${p.name_en}" permanently?`)) { onRemove(p.id); toast.success(ar ? "اتحذف المنتج" : "Product deleted"); } }} aria-label="delete"><Trash2 className="text-destructive" /></Button>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">

@@ -10,7 +10,20 @@ export const ProductVariantSchema = z.object({
   price: z.number().optional(),
   stock: z.number().optional(),
   attributes: z.record(z.string(), z.string()).optional(),
+  image: z.string().optional(),
 });
+export const ShippingDetailsSchema = z.object({
+  carrier: z.string().optional(),
+  etaDaysMin: z.number().optional(),
+  etaDaysMax: z.number().optional(),
+  cost: z.number().optional(),
+  freeOver: z.number().optional(),
+  shipsFrom: z.string().optional(),
+}).partial();
+export const ReturnPolicySchema = z.object({
+  days: z.number().optional(),
+  terms: z.string().optional(),
+}).partial();
 export type ProductVariant = z.infer<typeof ProductVariantSchema> & { id: string };
 
 export const ProductSourceSchema = z.object({
@@ -56,6 +69,11 @@ export type Product = {
   colors: string[];
   sizes: string[];
   shipping: string;
+  shippingDetails?: z.infer<typeof ShippingDetailsSchema>;
+  returnPolicy?: z.infer<typeof ReturnPolicySchema>;
+  availableCountries?: string[];
+  glbUrl?: string;
+  angleImages?: string[];
   warranty: string;
   seoTitle: string;
   seoDescription: string;
@@ -122,6 +140,7 @@ export function normalizeProduct(
       priceModifier: o.priceModifier !== undefined ? num(o.priceModifier, 0) : undefined,
       stock: o.stock !== undefined ? num(o.stock, 10) : 10,
       attributes: specsOf(o.attributes),
+      image: (typeof o.image === "string" && o.image ? o.image : undefined),
     };
   });
   // Real seller photo always leads the gallery (buyer trust); generated studio shot follows for polish.
@@ -164,6 +183,25 @@ export function normalizeProduct(
     colors,
     sizes,
     shipping: safeText(raw.shipping, "شحن حسب المدينة — يُحسب عند الطلب"),
+    shippingDetails: (raw.shippingDetails && typeof raw.shippingDetails === "object" && !Array.isArray(raw.shippingDetails))
+      ? {
+          carrier: safeText((raw.shippingDetails as RawItem).carrier) || undefined,
+          etaDaysMin: (raw.shippingDetails as RawItem).etaDaysMin !== undefined ? num((raw.shippingDetails as RawItem).etaDaysMin) : undefined,
+          etaDaysMax: (raw.shippingDetails as RawItem).etaDaysMax !== undefined ? num((raw.shippingDetails as RawItem).etaDaysMax) : undefined,
+          cost: (raw.shippingDetails as RawItem).cost !== undefined ? num((raw.shippingDetails as RawItem).cost) : undefined,
+          freeOver: (raw.shippingDetails as RawItem).freeOver !== undefined ? num((raw.shippingDetails as RawItem).freeOver) : undefined,
+          shipsFrom: safeText((raw.shippingDetails as RawItem).shipsFrom) || undefined,
+        }
+      : undefined,
+    returnPolicy: (raw.returnPolicy && typeof raw.returnPolicy === "object" && !Array.isArray(raw.returnPolicy))
+      ? {
+          days: (raw.returnPolicy as RawItem).days !== undefined ? num((raw.returnPolicy as RawItem).days) : undefined,
+          terms: safeText((raw.returnPolicy as RawItem).terms) || undefined,
+        }
+      : undefined,
+    availableCountries: strArr(raw.availableCountries ?? raw.shipsToCountries).length ? strArr(raw.availableCountries ?? raw.shipsToCountries) : undefined,
+    glbUrl: safeText(raw.glbUrl) || undefined,
+    angleImages: Array.isArray(raw.angleImages) ? raw.angleImages.map((x) => safeText(x)).filter((s) => s && (s.startsWith("http") || s.startsWith("data:") || s.startsWith("/"))) : undefined,
     warranty: safeText(raw.warranty, "—"),
     seoTitle: safeText(raw.seoTitle, `${name_en} | Souk Lens`),
     seoDescription: safeText(raw.seoDescription, descAr.slice(0, 150)),
@@ -199,4 +237,4 @@ export function buildAdText(p: Product, lang: "ar" | "en" = "ar"): string {
   return `${p.name_ar}\n${p.description_ar}\nالسعر: ${priceLine}\nالفئة: ${p.category_ar} · الحالة: ${p.condition}\nالمتغيرات: ${p.variants.map((v) => v.name_ar ?? v.name).join("، ")}\nكود المنتج: ${p.sku}\nالمميزات:\n${p.features.map((f) => `• ${f}`).join("\n")}`;
 }
 
-export const FULL_PRODUCT_JSON_HINT = `Return valid JSON only: {"items":[{"name_ar":"","name_en":"","category":"","category_ar":"","brand":"","condition":"new|used|used-good","price":0,"compareAtPrice":0,"costPrice":0,"currency":"","stock":10,"sku":"","description_ar":"","description_en":"","shortDescription_ar":"","features":[""],"specs":{"":""},"variants":[{"name":"","name_ar":"","price":0,"stock":10,"attributes":{"":""}}],"tags":[""],"materials":[""],"colors":[""],"sizes":[""],"shipping":"","warranty":"","seoTitle":"","seoDescription":""}]}`;
+export const FULL_PRODUCT_JSON_HINT = `Return valid JSON only: {"items":[{"name_ar":"","name_en":"","category":"","category_ar":"","brand":"","condition":"new|used|used-good","price":0,"compareAtPrice":0,"costPrice":0,"currency":"","stock":10,"sku":"","description_ar":"","description_en":"","shortDescription_ar":"","features":[""],"specs":{"":""},"variants":[{"name":"","name_ar":"","price":0,"stock":10,"attributes":{"color":"","size":""}}],"tags":[""],"materials":[""],"colors":[""],"sizes":[""],"shipping":"","shippingDetails":{"carrier":"","etaDaysMin":1,"etaDaysMax":3,"cost":0,"freeOver":0,"shipsFrom":""},"returnPolicy":{"days":14,"terms":""},"availableCountries":[""],"warranty":"","seoTitle":"","seoDescription":""}]}`;

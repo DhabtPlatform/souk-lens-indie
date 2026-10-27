@@ -84,6 +84,27 @@ export async function cleanProductShot(prompt: string) {
   });
 }
 
+// 3b. Muse Image: per-variant studio shot (same product, this variant's color/size/material)
+export async function variantShot(productName: string, variantLabel: string) {
+  if (!hasKey()) return null;
+  return post("/images/generations", {
+    model: IMAGE,
+    prompt: `Professional e-commerce studio photo, white background, soft light, same product: ${productName} — variant shown: ${variantLabel}. Keep product identity, change only the variant trait.`,
+    n: 1,
+  });
+}
+
+// 3c. Muse Image: multi-angle studio shots for a 360° viewer (front / right / back / left)
+export const SPIN_ANGLES = ["front view", "right side view", "back view", "left side view"] as const;
+export async function angleShot(productName: string, angle: string) {
+  if (!hasKey()) return null;
+  return post("/images/generations", {
+    model: IMAGE,
+    prompt: `Professional e-commerce studio photo, white background, soft light, product: ${productName} — camera angle: ${angle}. Same product, same colors, only the viewpoint changes.`,
+    n: 1,
+  });
+}
+
 // 4. Generic Spark text call (with optional web search grounding + country hint)
 export async function sparkText(prompt: string, opts?: { search?: boolean; country?: string }) {
   const body: Record<string, unknown> = {

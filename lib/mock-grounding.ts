@@ -35,6 +35,9 @@ export function mockItem(text: string) {
       specs: { Item: base.label }, variants: [{ name: "Standard", name_ar: "قياسي", price: base.price, stock: 10 }],
       tags: [base.label], materials: [], colors: [], sizes: [],
       shipping: "شحن حسب المدينة", warranty: "—", seoTitle: `${base.name_en} | Souk Lens`, seoDescription: base.desc_ar,
+      shippingDetails: { carrier: "Souk Express", etaDaysMin: 1, etaDaysMax: 3, cost: 40, freeOver: 500, shipsFrom: "Cairo" },
+      returnPolicy: { days: 14, terms: "استرجاع خلال 14 يوم بحالته الأصلية" },
+      availableCountries: ["EG", "SA", "AE"],
     };
   }
   return null;

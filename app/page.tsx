@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,20 +34,27 @@ import { COUNTRIES, t, type Lang } from "@/lib/brand";
 import type { Product } from "@/lib/product";
 import {
   ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Megaphone, Mic, Package,
-  Radio, Search, ShieldCheck, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Type, Wand2,
+  Radio, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Type, Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type TabKey = "analyze" | "generate" | "compare" | "voice" | "import" | "smart" | "mine";
+type TabSection = "seller" | "buyer";
 const SAMPLE = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Avocado_Hass_-_single_and_halved.jpg/1280px-Avocado_Hass_-_single_and_halved.jpg";
-const TABS: { key: TabKey; icon: React.ReactNode }[] = [
-  { key: "analyze", icon: <Camera /> }, { key: "generate", icon: <Type /> }, { key: "voice", icon: <Mic /> },
-  { key: "compare", icon: <ArrowLeftRight /> }, { key: "import", icon: <Store /> },
-  { key: "smart", icon: <Bot /> }, { key: "mine", icon: <Package /> },
+// Seller creates & sells (photo/text/voice/import + product management);
+// buyer compares & buys (smart market + URL comparison).
+const TABS: { key: TabKey; icon: React.ReactNode; section: TabSection }[] = [
+  { key: "analyze", icon: <Camera />, section: "seller" }, { key: "generate", icon: <Type />, section: "seller" },
+  { key: "voice", icon: <Mic />, section: "seller" }, { key: "import", icon: <Store />, section: "seller" },
+  { key: "mine", icon: <Package />, section: "seller" },
+  { key: "smart", icon: <Bot />, section: "buyer" }, { key: "compare", icon: <ArrowLeftRight />, section: "buyer" },
 ];
-const MOBILE_TABS: { key: TabKey; icon: React.ReactNode }[] = [
-  { key: "analyze", icon: <Camera /> }, { key: "smart", icon: <Bot /> }, { key: "voice", icon: <Mic /> },
-  { key: "import", icon: <Store /> }, { key: "mine", icon: <Package /> },
+const SECTIONS: { key: TabSection; icon: React.ReactNode }[] = [
+  { key: "seller", icon: <Store /> }, { key: "buyer", icon: <ShoppingBag /> },
+];
+const BOTTOM_TABS: { key: TabKey; icon: React.ReactNode }[] = [
+  { key: "analyze", icon: <Camera /> }, { key: "voice", icon: <Mic /> }, { key: "smart", icon: <Bot /> },
+  { key: "compare", icon: <ArrowLeftRight /> }, { key: "mine", icon: <Package /> },
 ];
 
 export default function Page() {
@@ -267,22 +274,41 @@ export default function Page() {
         <ImpactStrip trace={trace} savedCount={mine.products.length} lang={lang} />
         <SellerStory lang={lang} />
 
-        {/* Mode switch: Tabs on desktop, Select on mobile (component branching, not shrink) */}
+        {/* Mode switch: grouped Seller/Buyer tabs on desktop, grouped Select on mobile */}
         {isMobile ? (
           <div className="mt-5 space-y-2">
-            <Label>{ar ? "اختار طريقة الإنشاء" : "Choose creation mode"}</Label>
+            <Label>{ar ? "اختار القسم والطريقة" : "Choose section & mode"}</Label>
             <Select value={tab} onValueChange={(v) => setTab(v as TabKey)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TABS.map(({ key }) => <SelectItem key={key} value={key}>{t(key, lang)}{key === "mine" ? ` (${mine.products.length})` : ""}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {SECTIONS.map(({ key: section }) => (
+                  <SelectGroup key={section}>
+                    <SelectLabel>{ar ? (section === "seller" ? "للبائع — أنشئ وبِع" : "للمشتري — قارن واشترِ") : (section === "seller" ? "Seller — create & sell" : "Buyer — compare & buy")}</SelectLabel>
+                    {TABS.filter((tb) => tb.section === section).map(({ key }) => (
+                      <SelectItem key={key} value={key}>{t(key, lang)}{key === "mine" ? ` (${mine.products.length})` : ""}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         ) : null}
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} dir={ar ? "rtl" : "ltr"} className="mt-5">
           {!isMobile ? (
-            <TabsList className="flex w-full flex-wrap justify-start gap-1">
-              {TABS.map(({ key, icon }) => (
-                <TabsTrigger key={key} value={key}>{icon}{t(key, lang)}{key === "mine" && mine.products.length ? ` (${mine.products.length})` : ""}</TabsTrigger>
+            <TabsList className="grid w-full gap-2 bg-transparent p-0 md:grid-cols-2">
+              {SECTIONS.map(({ key: section, icon: sIcon }) => (
+                <div key={section} className="rounded-2xl border bg-muted/70 p-1.5 backdrop-blur">
+                  <div className="flex items-center gap-1.5 px-2 pb-1 pt-0.5 text-[11px] font-black uppercase tracking-wide text-muted-foreground">
+                    <span className="[&_svg]:h-3.5 [&_svg]:w-3.5">{sIcon}</span>
+                    {ar ? (section === "seller" ? "للبائع — أنشئ وبِع" : "للمشتري — قارن واشترِ") : (section === "seller" ? "Seller — create & sell" : "Buyer — compare & buy")}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {TABS.filter((tb) => tb.section === section).map(({ key, icon }) => (
+                      <TabsTrigger key={key} value={key}>{icon}{t(key, lang)}{key === "mine" && mine.products.length ? ` (${mine.products.length})` : ""}</TabsTrigger>
+                    ))}
+                  </div>
+                </div>
               ))}
             </TabsList>
           ) : null}
@@ -383,7 +409,7 @@ export default function Page() {
           <TabsContent value="mine">
             <div className="space-y-4">
             {mine.products.length ? (
-              <SellerDashboard products={mine.products} lang={lang} onPatch={patchProduct} onDetails={openDetails} />
+              <SellerDashboard products={mine.products} lang={lang} onPatch={patchProduct} onDetails={openDetails} onRemove={mine.remove} />
             ) : null}
             <Card>
               <CardHeader>
@@ -391,7 +417,7 @@ export default function Page() {
                   <div className="flex-1">
                     <CardTitle className="text-xl">{ar ? "منتجاتي المحفوظة — إدارة المنتجات" : "My saved products — product management"}</CardTitle>
                     <CardDescription>{ar ? "كل منتج محفوظ بكامل تفاصيله وصوره ومتغيراته وأسعاره — افتحه، عدّله، حوّله لمزاد/بث/حملة من التقرير فوق، انسخ إعلانه، أو صدّره." : "Every saved product keeps full details, images, variants and prices — open, edit, convert to auction/live/campaign from the report above, copy its ad, or export."}</CardDescription>
-                    <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["أي نتيجة من أي تبويب احفظها هنا بالزر المخصص — بتتخزن محليًا بكامل التفاصيل والصور.", "اضغط «التفاصيل» على أي منتج: عدّل السعر والمخزون والوصف، انسخ الإعلان الجاهز، أو انشره على واتساب وفيسبوك.", "من لوحة التقارير فوق: حدّث التكلفة والمبيعات لكل منتج وشوف الربح لحظيًا، وحوّل المنتج لمزاد أو بث مباشر أو حملة خارجية.", "ابحث بالاسم أو الكود، صدّر كل منتجاتك JSON، أو ضيف أي منتج للسلة للدفع."] : ["Save any result from any tab here with its button — stored locally with full details and images.", "Press Details on any product: edit price, stock and description, copy the ready ad, or publish it to WhatsApp and Facebook.", "From the reports board above: update each product's cost and sales, watch profit live, and convert it to auction, live sale or external campaign.", "Search by name or SKU, export everything as JSON, or add any product to the cart for checkout."]} /></div>
+                    <div className="pt-1"><HowItWorks lang={lang} steps={ar ? ["أي نتيجة من أي تبويب احفظها هنا بالزر المخصص — بتتخزن محليًا بكامل التفاصيل والصور.", "اضغط «التفاصيل» على أي منتج: عدّل السعر والمخزون والوصف، انسخ الإعلان الجاهز، أو انشره على واتساب وفيسبوك.", "من التفاصيل أيضًا: ولّد صورة لكل متغير (لون/مقاس) بالذكاء، وولّد عرض 360° بأربع زوايا، أو الصق رابط مجسّم GLB حقيقي للعرض ثلاثي الأبعاد.", "من لوحة التقارير فوق: حدّث التكلفة والمبيعات لكل منتج وشوف الربح لحظيًا، وحوّل المنتج لمزاد أو بث مباشر أو حملة خارجية — وعدّل أو احذف أي منتج من صفّه مباشرة.", "ابحث بالاسم أو الكود، صدّر كل منتجاتك JSON، أو ضيف أي منتج للسلة للدفع."] : ["Save any result from any tab here with its button — stored locally with full details and images.", "Press Details on any product: edit price, stock and description, copy the ready ad, or publish it to WhatsApp and Facebook.", "Also from Details: generate an AI shot per variant (color/size), generate 360° views in four angles, or paste a real GLB link for true 3D.", "From the reports board above: update each product's cost and sales, watch profit live, convert to auction/live/campaign — and edit or delete any product right from its row.", "Search by name or SKU, export everything as JSON, or add any product to the cart for checkout."]} /></div>
                   </div>
                   <Badge variant="accent">{mine.products.length}</Badge>
                 </div>
@@ -511,7 +537,7 @@ export default function Page() {
       {/* Mobile bottom navigation (pattern conversion, not shrink) */}
       {isMobile ? (
         <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background/90 backdrop-blur-xl md:hidden">
-          {MOBILE_TABS.map(({ key, icon }) => (
+          {BOTTOM_TABS.map(({ key, icon }) => (
             <button key={key} type="button" onClick={() => setTab(key)} className={`flex min-h-[60px] flex-col items-center justify-center gap-1 text-[10px] font-bold transition ${tab === key ? "text-primary" : "text-muted-foreground"}`}>
               {icon}<span>{t(key, lang)}{key === "mine" && mine.products.length ? ` ${mine.products.length}` : ""}</span>
             </button>
