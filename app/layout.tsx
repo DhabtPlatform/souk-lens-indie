@@ -1,0 +1,26 @@
+import type { Metadata } from "next";
+import { Cairo, Inter, Tajawal } from "next/font/google";
+import { Toaster } from "sonner";
+import "./globals.css";
+
+const tajawal = Tajawal({ subsets: ["arabic", "latin"], weight: ["400", "500", "700", "800", "900"], variable: "--font-tajawal", display: "swap" });
+const cairo = Cairo({ subsets: ["arabic", "latin"], weight: ["400", "600", "700", "800"], variable: "--font-cairo", display: "swap" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700", "800", "900"], variable: "--font-inter", display: "swap" });
+
+export const metadata: Metadata = {
+  title: "Souk Lens — عدسة السوق | Meta AI Hackathon",
+  description: "Snap, speak, search — turn anything into a ready listing. SAM 3.1 + Muse Spark + Muse Image + Voice.",
+  icons: { icon: "/logo.svg", apple: "/logo.svg", shortcut: "/logo.svg" },
+  openGraph: { title: "Souk Lens — عدسة السوق", description: "Turn any photo, voice note, link or old store into a complete listing.", images: ["/brand/og-cover.svg"] },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${tajawal.variable} ${cairo.variable} ${inter.variable}`}>
+      <body>
+        {children}
+        <Toaster richColors position="top-center" toastOptions={{ style: { fontFamily: "inherit" } }} />
+      </body>
+    </html>
+  );
+}

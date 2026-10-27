@@ -1,0 +1,10 @@
+:root {
+  --sl-primary: #7c5cff;
+  --sl-accent: #00d4a4;
+  --sl-gold: #ffd166;
+  --sl-bg: #0b0b10;
+  --sl-card: #16161d;
+  --sl-ink: #f5f5f5;
+  --sl-muted: #b9b9c7;
+  --sl-font: 'Tajawal','Cairo','Segoe UI',system-ui,sans-serif;
+}
