@@ -330,17 +330,18 @@ export default function Page() {
       <AppHeader lang={lang} setLang={setLang} country={country} setCountry={setCountry} live={live} cartCount={cart.count} onCartClick={() => setCartOpen(true)} />
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* Hero */}
-        <section className="relative mt-5 overflow-hidden rounded-[1.75rem] border shadow-2xl shadow-primary/10">
-          <Image src="/brand/hero-souq.jpg" alt="Souk Lens hero" width={1600} height={800} className="h-[300px] w-full object-cover sm:h-[340px]" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b10] via-[#0b0b10]/55 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+        {/* Hero — flexible height: the section grows with its content, so the
+            headline is never clipped on any screen or language. */}
+        <section className="relative mt-5 flex min-h-[480px] flex-col justify-end overflow-hidden rounded-[1.75rem] border shadow-2xl shadow-primary/10 sm:min-h-[420px]">
+          <Image src="/brand/hero-souq.jpg" alt="Souk Lens hero" fill sizes="(max-width: 768px) 100vw, 1280px" className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b10] via-[#0b0b10]/60 to-[#0b0b10]/10" />
+          <div className="relative inset-x-0 p-5 sm:p-7">
             <div className="flex flex-wrap gap-2">
               <Badge variant="gold">Meta Hackathon · Indie</Badge>
               <Badge variant="accent">SAM 3.1 · Muse Spark · Muse Image · Voice</Badge>
             </div>
-            <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight sm:text-5xl">{ar ? <>من صورة واحدة لفرشة السوق إلى <span className="gradient-text">متجر جاهز للبيع في أقل من دقيقة</span></> : "From one market-stall photo to a ready-to-sell store in under a minute"}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-white/80 sm:text-base">
+            <h1 className="mt-3 max-w-3xl text-balance text-[27px] font-black leading-[1.3] tracking-tight sm:text-4xl sm:leading-[1.2] lg:text-5xl">{ar ? <>من صورة واحدة لفرشة السوق إلى <span className="gradient-text">متجر جاهز للبيع في أقل من دقيقة</span></> : <>From one market-stall photo to a <span className="gradient-text">ready-to-sell store in under a minute</span></>}</h1>
+            <p className="mt-2 max-w-2xl text-[13px] leading-7 text-white/85 sm:text-base">
               {ar ? "صوّر الفرشة ← SAM 3.1 يعزل كل قطعة ← Muse Spark يسعّر ويكتب الإعلان كاملًا ← Muse Image ينضّف الصورة. الصوت والنص والروابط ونقل المتجر متاحة أيضًا — وكل نتيجة منتج محفوظ جاهز للبيع." : "Snap a stall → SAM 3.1 isolates each item → Muse Spark prices and writes the full listing → Muse Image cleans the shot. Voice, text, links and store import work too — every result is a saved, sellable product."}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
