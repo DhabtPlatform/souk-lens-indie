@@ -47,13 +47,14 @@ export function ProductCard({
   }
 
   return (
-    <Card className="group overflow-hidden animate-souk-in hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-0.5 flex flex-col">
-      <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+    <Card className="group overflow-hidden animate-souk-in hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-0.5">
+      <div className="flex flex-col md:flex-row">
+      <div className="relative aspect-[4/3] bg-muted overflow-hidden md:aspect-auto md:min-h-[270px] md:w-72 lg:w-80 shrink-0">
         {img && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={img} alt={product.name_en} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" onError={() => setImgError(true)} />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+          <div className="flex h-full min-h-48 flex-col items-center justify-center gap-2 text-muted-foreground md:min-h-[270px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/empty-stall.jpg" alt="" className="w-28 rounded-xl opacity-80" />
             <span className="inline-flex items-center gap-1 text-xs"><ImageOff className="h-3.5 w-3.5" />{ar ? "بدون صورة" : "No image"}</span>
@@ -76,6 +77,7 @@ export function ProductCard({
         ) : null}
       </div>
 
+      <div className="flex min-w-0 flex-1 flex-col">
       <CardContent className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -162,6 +164,8 @@ export function ProductCard({
           <Button size="lg" variant="ghost" onClick={copyAd} aria-label="copy ad"><Copy /></Button>
         </div>
       </CardFooter>
+      </div>
+      </div>
       {expanded ? (
         <div className="space-y-3 border-t bg-muted/30 p-5 animate-souk-in">
           <div className="flex items-center gap-2 text-sm font-extrabold">

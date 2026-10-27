@@ -477,7 +477,7 @@ export default function Page() {
               </CardHeader>
               <CardContent>
                 {!mine.loaded || filteredMine.length ? (
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid max-w-5xl gap-5">
                     {filteredMine.map((p) => <ProductCard key={p.id} product={p} lang={lang} isMine onRemove={mine.remove} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} mediaBusy={!!mediaJobs[p.id]} />)}
                   </div>
                 ) : <EmptyState lang={lang} />}
@@ -543,7 +543,7 @@ export default function Page() {
             })()}
 
             {!loading && !error && results.length ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid max-w-5xl gap-5">
                 {results.map((p) => <ProductCard key={p.id} product={p} lang={lang} onAdd={mine.add} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} mediaBusy={!!mediaJobs[p.id]} />)}
               </div>
             ) : null}
@@ -556,7 +556,7 @@ export default function Page() {
             {alternatives.length ? (
               <div className="space-y-3">
                 <h3 className="text-lg font-black">{ar ? "بدائل أفضل لبلدك" : "Better alternatives for your country"}</h3>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid max-w-5xl gap-5">
                   {alternatives.map((p) => <ProductCard key={p.id} product={p} lang={lang} onAdd={mine.add} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} />)}
                 </div>
               </div>

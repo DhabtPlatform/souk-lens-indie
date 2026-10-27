@@ -14,7 +14,7 @@ import { photoToGlbCard } from "@/lib/glb";
 import { buildAdText, type Product } from "@/lib/product";
 import { productEconomics } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
-import { Copy, Download, Gavel, Globe2, Images, Link2, Loader2, Megaphone, MessageCircle, Radio, Rotate3D, Save, Share2, Box, Tag, Truck, Undo2 } from "lucide-react";
+import { Copy, Download, Gavel, Globe2, Images, Link2, Loader2, Megaphone, MessageCircle, Radio, Rotate3D, RotateCcw, Save, Share2, Box, Tag, Truck, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export function ProductDetailsSheet({
@@ -98,6 +98,10 @@ export function ProductDetailsSheet({
   async function copyAd() {
     try { await navigator.clipboard.writeText(buildAdText(item, lang)); toast.success(ar ? "اتنسخ إعلان المنتج" : "Ad copied"); } catch { toast.error("Copy failed"); }
   }
+  function resetFields() {
+    setPrice(String(item.price)); setStock(String(item.stock));
+    setTitle(ar ? item.name_ar : item.name_en); setDesc(item.description_ar);
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -172,7 +176,14 @@ export function ProductDetailsSheet({
                 <div className="space-y-1.5"><Label htmlFor="p-stock">{ar ? "المخزون" : "Stock"}</Label><Input id="p-stock" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} /></div>
               </div>
               <div className="space-y-1.5"><Label htmlFor="p-desc">{ar ? "الوصف" : "Description"}</Label><Textarea id="p-desc" value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} /></div>
-              <Button className="w-full" onClick={() => { onSave?.(product.id, { price: Number(price) || product.price, stock: Number(stock) || 0, name_ar: ar ? title : product.name_ar, name_en: !ar ? title : product.name_en, description_ar: desc }); toast.success(ar ? "اتحفظت التعديلات" : "Saved"); }}><Save />{ar ? "حفظ التعديلات" : "Save edits"}</Button>
+              <div className="flex flex-col gap-2">
+                <Button className="w-full" onClick={() => { onSave?.(product.id, { price: Number(price) || product.price, stock: Number(stock) || 0, name_ar: ar ? title : product.name_ar, name_en: !ar ? title : product.name_en, description_ar: desc }); toast.success(ar ? "اتحفظت التعديلات" : "Saved"); }}><Save />{ar ? "حفظ التعديلات" : "Save edits"}</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => { resetFields(); toast.success(ar ? "رجعت القيم الافتراضية المحفوظة" : "Restored saved values"); }}><RotateCcw />{ar ? "استعادة افتراضي" : "Restore default"}</Button>
+                  <Button variant="ghost" className="flex-1" onClick={() => { resetFields(); onOpenChange(false); }}><X />{ar ? "إلغاء التغييرات" : "Cancel changes"}</Button>
+                </div>
+              </div>
+              <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "الحفظ يحدّث الإعلان والسلة والتقارير فورًا. الاستعادة ترجع آخر قيم محفوظة بدون إغلاق. الإلغاء يتجاهل ما كتبته ويغلق." : "Save updates the listing, cart and reports instantly. Restore brings back saved values without closing. Cancel discards your typing and closes."}</p>
             </div>
           ) : null}
 
