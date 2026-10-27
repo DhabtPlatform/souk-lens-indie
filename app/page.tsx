@@ -270,7 +270,7 @@ export default function Page() {
           </div>
         ) : null}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mt-5">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} dir={ar ? "rtl" : "ltr"} className="mt-5">
           {!isMobile ? (
             <TabsList className="flex w-full flex-wrap justify-start gap-1">
               {TABS.map(({ key, icon }) => (
@@ -325,10 +325,12 @@ export default function Page() {
                   {recording ? <Square /> : <Mic className="h-6 w-6" />}
                 </Button>
                 <p className="text-sm text-muted-foreground">{recording ? (ar ? "بيسجل… اضغط للإيقاف" : "Recording… tap to stop") : (ar ? "اضغط واتكلم عن المنتج — بيتحول لـ WAV وبيتحلل بنموذج Meta للصوت" : "Tap and describe — converted to WAV and transcribed by Meta's voice model")}</p>
+                <Hint>{ar ? "لازم تضغط إيقاف الأول — نموذج Meta يستقبل ملف صوت كاملًا ولا يدعم البث الحي، والتحليل يبدأ بعد الإيقاف مباشرة." : "You must tap stop first — Meta's model accepts a complete audio file only (no live streaming); analysis starts right after stopping."}</Hint>
                 {voiceAudioUrl ? (
                   <div className="w-full space-y-1.5">
                     <Label>{ar ? "تسجيلك (المصدر)" : "Your recording (source)"}</Label>
                     <audio controls src={voiceAudioUrl} className="w-full" />
+                    <Hint>{ar ? "زر التشغيل للمراجعة فقط — التحليل يعمل على الملف مباشرة بدون تشغيله." : "Playback is for your review only — analysis runs on the file directly without playing it."}</Hint>
                   </div>
                 ) : null}
               </div>
