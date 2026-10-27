@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!hasKey()) {
       const products = normalizeProducts([baseRaw], { source: { type: "url", url: productUrl }, country, currency, fallbackImage: (meta as { image?: string }).image });
-      return NextResponse.json({ ok: true, live: false, meta, products, items: products, comparison: "ضع MODEL_API_KEY للمقارنة الحية عبر Muse Spark + بحث الويب.", alternatives: [] });
+      return NextResponse.json({ ok: true, live: false, meta, products, items: products, comparison: "Demo mode on this deployment: MODEL_API_KEY is not set in the host environment, so live Muse Spark + web-search comparison is off. Set it in the deployment variables to enable. (Locally the key is already in .env.)", alternatives: [] });
     }
 
     const resp = await sparkText(

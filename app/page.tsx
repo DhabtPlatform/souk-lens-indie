@@ -12,6 +12,7 @@ import { ModelTrace, STAGE_PRESETS, type TraceInfo } from "@/components/products
 import { SamOverlay } from "@/components/products/sam-overlay";
 import { StudioCompare } from "@/components/products/studio-compare";
 import type { Detection } from "@/lib/extract";
+import { blobToWav16k } from "@/lib/wav";
 import { ImpactStrip } from "@/components/judges/impact-strip";
 import { JudgesMode, type JudgeAction } from "@/components/judges/judges-mode";
 import { SellerStory } from "@/components/judges/seller-story";
@@ -73,6 +74,7 @@ export default function Page() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [trace, setTrace] = useState<TraceInfo | null>(null);
   const [judgesOpen, setJudgesOpen] = useState(false);
+  const [voiceAudioUrl, setVoiceAudioUrl] = useState("");
   const [sourceImg, setSourceImg] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -187,15 +189,24 @@ export default function Page() {
       mr.onstop = async () => {
         stream.getTracks().forEach((tr) => tr.stop());
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
-        const fd = new FormData();
-        fd.append("audio", blob, "voice.webm"); fd.append("country", country.code); fd.append("currency", country.currency);
+        setVoiceAudioUrl(URL.createObjectURL(blob));
         setLoading(true); setError("");
+        const t0 = performance.now();
         try {
+          // Meta voice needs 16kHz mono WAV — convert in-browser, then transcribe for real.
+          let audioFile: Blob = blob; let fileName = "voice.webm";
+          try { audioFile = await blobToWav16k(blob); fileName = "voice.wav"; }
+          catch { /* send original as last resort */ }
+          const fd = new FormData();
+          fd.append("audio", audioFile, fileName); fd.append("country", country.code); fd.append("currency", country.currency);
           const r = await fetch("/api/voice", { method: "POST", body: fd });
           const j = await r.json();
           setLive(!!j.live); setRaw(j);
-          if (j.transcript) { setDesc(j.transcript); setResults((j.products ?? []) as Product[]); if ((j.products ?? []).length) toast.success(ar ? "اتحول الصوت لإعلان كامل" : "Voice became a full listing"); }
+          const prods = (j.products ?? []) as Product[];
+          setTrace({ endpoint: "/api/voice", live: !!j.live, elapsedMs: Math.round(performance.now() - t0), count: prods.length, stages: (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS["/api/voice-listing"] ?? []) as TraceInfo["stages"] });
+          if (j.transcript) { setDesc(j.transcript); setResults(prods); if (prods.length) toast.success(ar ? "اتحول صوتك لإعلان كامل بالاسم والصور" : "Your voice became a full listing with name & images"); }
           else { setResults([]); toast.info(j.note ?? (ar ? "اكتب وصف المنتج وهنولد الإعلان" : "Type the description to generate")); }
+          if (typeof j.note === "string" && j.note && j.transcript) toast.info(j.note);
         } catch (e) { setError(String(e)); } finally { setLoading(false); }
       };
       mr.start(); setRecording(true);
@@ -311,7 +322,13 @@ export default function Page() {
                 <Button size="lg" variant={recording ? "destructive" : "default"} onClick={toggleRecord} className={recording ? "animate-recording h-16 w-16 rounded-full p-0" : "h-16 w-16 rounded-full p-0"}>
                   {recording ? <Square /> : <Mic className="h-6 w-6" />}
                 </Button>
-                <p className="text-sm text-muted-foreground">{recording ? (ar ? "بيسجل… اضغط للإيقاف" : "Recording… tap to stop") : (ar ? "اضغط واتكلم عن المنتج" : "Tap and describe the product")}</p>
+                <p className="text-sm text-muted-foreground">{recording ? (ar ? "بيسجل… اضغط للإيقاف" : "Recording… tap to stop") : (ar ? "اضغط واتكلم عن المنتج — بيتحول لـ WAV وبيتحلل بنموذج Meta للصوت" : "Tap and describe — converted to WAV and transcribed by Meta's voice model")}</p>
+                {voiceAudioUrl ? (
+                  <div className="w-full space-y-1.5">
+                    <Label>{ar ? "تسجيلك (المصدر)" : "Your recording (source)"}</Label>
+                    <audio controls src={voiceAudioUrl} className="w-full" />
+                  </div>
+                ) : null}
               </div>
               <Separator />
               <div className="space-y-1.5"><Label>{ar ? "النص (قابل للتعديل)" : "Transcript (editable)"}</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder={t("descPlaceholder", lang)} /></div>

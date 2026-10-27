@@ -97,13 +97,16 @@ export async function sparkText(prompt: string, opts?: { search?: boolean; count
 
 // 5. Listing JSON from a text description (no image needed)
 export async function listingFromText(desc: string, country = "EG", currency = "EGP") {
-  if (!hasKey())
+  if (!hasKey()) {
+    // Grounded demo: the product is named after what was actually described, never a fixed placeholder.
+    const grounded = mockItem(desc);
+    if (grounded) return { mock: true, items: [{ ...grounded, description_ar: desc.slice(0, 220), description_en: desc.slice(0, 220) }] };
+    const title = desc.trim().replace(/\s+/g, " ").slice(0, 42) || "منتج من الوصف";
     return {
       mock: true,
       items: [
         {
-          name_ar: "منتج من الوصف",
-          name_en: "Described product",
+          name_ar: title, name_en: title,
           category: "General", category_ar: "عام", brand: "—",
           condition: "new",
           price: 450, compareAtPrice: 550, costPrice: 300,
@@ -116,10 +119,11 @@ export async function listingFromText(desc: string, country = "EG", currency = "
           variants: [{ name: "Standard", name_ar: "قياسي", price: 450, stock: 12 }],
           tags: ["souk-lens"], colors: [], sizes: [],
           shipping: "شحن حسب المدينة", warranty: "—",
-          seoTitle: "Described product | Souk Lens", seoDescription: desc.slice(0, 150),
+          seoTitle: `${title} | Souk Lens`, seoDescription: desc.slice(0, 150),
         },
       ],
     };
+  }
   const { FULL_PRODUCT_JSON_HINT } = await import("./product");
   return post("/responses", {
     model: SPARK,
