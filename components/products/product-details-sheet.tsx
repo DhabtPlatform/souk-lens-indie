@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StudioCompare } from "@/components/products/studio-compare";
 import { SpinViewer } from "@/components/products/spin-viewer";
 import { GlbViewer } from "@/components/products/glb-viewer";
+import { photoToGlbCard } from "@/lib/glb";
 import { buildAdText, type Product } from "@/lib/product";
 import { productEconomics } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
@@ -31,10 +32,11 @@ export function ProductDetailsSheet({
   const [glbDraft, setGlbDraft] = useState("");
   const [imgIdx, setImgIdx] = useState(0);
   const [selVarId, setSelVarId] = useState<string | null>(null);
-  const [mediaBusy, setMediaBusy] = useState<"variants" | "spin" | null>(null);
+  const [mediaBusy, setMediaBusy] = useState<"variants" | "spin" | "glb" | null>(null);
+  const [glbFileUrl, setGlbFileUrl] = useState("");
 
   useEffect(() => {
-    if (product) { setPrice(String(product.price)); setStock(String(product.stock)); setTitle(ar ? product.name_ar : product.name_en); setDesc(product.description_ar); setGlbDraft(product.glbUrl ?? ""); setImgIdx(0); setSelVarId(product.variants[0]?.id ?? null); setMediaBusy(null); }
+    if (product) { setPrice(String(product.price)); setStock(String(product.stock)); setTitle(ar ? product.name_ar : product.name_en); setDesc(product.description_ar); setGlbDraft(product.glbUrl ?? ""); setImgIdx(0); setSelVarId(product.variants[0]?.id ?? null); setMediaBusy(null); setGlbFileUrl(""); }
   }, [product, ar]);
 
   if (!product) return null;
@@ -42,8 +44,7 @@ export function ProductDetailsSheet({
   const selVar = item.variants.find((v) => v.id === selVarId) ?? item.variants[0];
   const img = selVar?.image ?? item.images[imgIdx];
 
-  async function generateMedia(kind: "variants" | "spin") {
-    if (!onSave) return;
+  async function generateMedia(kind: "variants" | "spin") {    if (!onSave) return;
     setMediaBusy(kind);
     try {
       const r = await fetch("/api/media", {
@@ -69,6 +70,23 @@ export function ProductDetailsSheet({
         toast.success(ar ? "اتولد عرض 360°" : "360° views generated");
       }
     } catch (e) { toast.error(String(e)); } finally { setMediaBusy(null); }
+  }
+
+  // Image (generated / attached / from link) -> real .glb 3D photo card, built locally.
+  async function photoToGlb() {
+    const src = selVar?.image ?? item.images[imgIdx] ?? item.images[0];
+    if (!src) { toast.info(ar ? "لا توجد صورة للتحويل" : "No photo to convert"); return; }
+    if (!onSave) return;
+    setMediaBusy("glb");
+    try {
+      const { blob } = await photoToGlbCard(src);
+      const url = URL.createObjectURL(blob);
+      setGlbFileUrl(url);
+      onSave(item.id, { glbUrl: url });
+      toast.success(ar ? "اتولد ملف GLB حقيقي — معروض تحت وقابل للتحميل" : "Real GLB file generated — previewed below and downloadable");
+    } catch {
+      toast.error(ar ? "تعذر قراءة الصورة (قد يمنع المصدر الخارجي ذلك) — جرّب صورة مرفوعة" : "Could not read the photo (external source may block it) — try an uploaded one");
+    } finally { setMediaBusy(null); }
   }
 
   function downloadJson() {
@@ -220,6 +238,19 @@ export function ProductDetailsSheet({
               </div>
             ) : null}
             {product.glbUrl ? <GlbViewer url={product.glbUrl} lang={lang} /> : null}
+            {onSave ? (
+              <div className="space-y-1.5">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button variant="outline" className={`flex-1 ${mediaBusy === "glb" ? "btn-glow" : ""}`} disabled={mediaBusy !== null} onClick={photoToGlb}>
+                    {mediaBusy === "glb" ? <Loader2 className="animate-spin" /> : <Box />}{ar ? "حوّل صورة المنتج إلى مجسّم GLB" : "Convert product photo to GLB"}
+                  </Button>
+                  {glbFileUrl ? (
+                    <Button variant="accent" asChild><a href={glbFileUrl} download={`${item.slug}.glb`}><Download />GLB</a></Button>
+                  ) : null}
+                </div>
+                <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "يعمل على الصورة الحالية (مولدة/مرفقة/رابط): بطاقة ثلاثية الأبعاد بخامة الصورة — ملف GLB حقيقي للتدوير والتحميل، وليس مسحًا كاملًا. نماذج Meta لا تولّد GLB، لذا يُبنى محليًا بصدق." : "Works on the current photo (generated/attached/link): a 3D card textured with the photo — a real GLB for rotate & download, not a full scan. Meta models cannot generate GLB, so it is built locally, honestly."}</p>
+              </div>
+            ) : null}
             {editable ? (
               <div className="space-y-1.5">
                 <Label htmlFor="p-glb">GLB — {ar ? "رابط أو ملف مجسّم حقيقي (اختياري)" : "real model URL or file (optional)"}</Label>
