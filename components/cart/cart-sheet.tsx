@@ -51,7 +51,7 @@ export function CartSheet({
                 {items.map(({ product: p, qty }) => (
                   <div key={p.id} className="flex gap-3 rounded-xl border bg-card p-3 animate-souk-in">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.images[0] ?? "/brand/empty-stall.png"} alt={p.name_en} className="h-[72px] w-[72px] shrink-0 rounded-lg object-cover" loading="lazy" />
+                    <img src={p.images[0] ?? "/brand/empty-stall.jpg"} alt={p.name_en} className="h-[72px] w-[72px] shrink-0 rounded-lg object-cover" loading="lazy" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-extrabold">{ar ? p.name_ar : p.name_en}</p>
                       <p className="text-xs text-muted-foreground">{p.sellerName ?? p.brand} · {p.sku}</p>
@@ -81,7 +81,7 @@ export function CartSheet({
           ) : (
             <div className="py-8 text-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/empty-stall.png" alt="" className="mx-auto w-40 rounded-3xl" />
+              <img src="/brand/empty-stall.jpg" alt="" className="mx-auto w-40 rounded-3xl" />
               <p className="mt-3 font-extrabold">{ar ? "السلة فاضية" : "Cart is empty"}</p>
               <p className="text-sm leading-7 text-muted-foreground">{ar ? "اعتمد قايمة من السوق الذكي وضيفها هنا للدفع." : "Approve a Smart Market list and add it here."}</p>
             </div>

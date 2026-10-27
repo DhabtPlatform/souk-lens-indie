@@ -51,7 +51,7 @@ export function ProductCard({
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/empty-stall.png" alt="" className="w-28 rounded-xl opacity-80" />
+            <img src="/brand/empty-stall.jpg" alt="" className="w-28 rounded-xl opacity-80" />
             <span className="inline-flex items-center gap-1 text-xs"><ImageOff className="h-3.5 w-3.5" />{ar ? "بدون صورة" : "No image"}</span>
           </div>
         )}

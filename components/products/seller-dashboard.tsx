@@ -117,7 +117,7 @@ function ProductRow({ p, ar, onPatch, onDetails }: { p: Product; ar: boolean; on
       <CardContent className="space-y-3 p-4">
         <div className="flex gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.images[0] ?? "/brand/empty-stall.png"} alt={p.name_en} className="h-16 w-16 shrink-0 rounded-xl object-cover" loading="lazy" />
+          <img src={p.images[0] ?? "/brand/empty-stall.jpg"} alt={p.name_en} className="h-16 w-16 shrink-0 rounded-xl object-cover" loading="lazy" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h4 className="truncate font-extrabold">{ar ? p.name_ar : p.name_en}</h4>

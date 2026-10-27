@@ -202,7 +202,7 @@ export default function Page() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6">
         {/* Hero */}
         <section className="relative mt-5 overflow-hidden rounded-[1.75rem] border shadow-2xl shadow-primary/10">
-          <Image src="/brand/hero-souq.png" alt="Souk Lens hero" width={1600} height={800} className="h-[300px] w-full object-cover sm:h-[340px]" priority />
+          <Image src="/brand/hero-souq.jpg" alt="Souk Lens hero" width={1600} height={800} className="h-[300px] w-full object-cover sm:h-[340px]" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b10] via-[#0b0b10]/55 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
             <div className="flex flex-wrap gap-2">
@@ -272,7 +272,7 @@ export default function Page() {
                     <img src={imageUrl} alt="input" className="h-full max-h-[330px] w-full object-cover" />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src="/brand/empty-stall.png" alt="" className="mx-auto w-44 py-10" />
+                    <img src="/brand/empty-stall.jpg" alt="" className="mx-auto w-44 py-10" />
                   )}
                 </div>
               </div>

@@ -8,7 +8,7 @@
 
 ## صور الهوية والخلفيات
 مولّدة خصيصًا للمشروع عبر **Muse Image 1.0** (`scripts/gen-brand-images.mjs`):
-`public/brand/hero-souq.png`، `public/brand/app-icon-art.png`، `public/brand/empty-stall.png`.
+`public/brand/hero-souq.jpg`، `public/brand/app-icon-art.jpg`، `public/brand/empty-stall.jpg`.
 
 ## الشعار
 تصميم أصلي للمشروع (SVG مرسوم يدويًا): `public/logo.svg` + `public/brand/logo-*.svg`

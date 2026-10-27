@@ -85,8 +85,8 @@ export default function BrandPage() {
         <h2 style={S.h2}>Generated brand imagery</h2>
         <p style={S.p}>Generated with <code dir="ltr">muse-image-1.0</code> via <code dir="ltr">scripts/gen-brand-images.mjs</code> — the vector logo stays the source of truth for sharpness; imagery is for backgrounds and empty states.</p>
         <div style={{ display: "grid", gap: 12 }}>
-          <LogoCard src="/brand/hero-souq.png" label="Hero — app background" />
-          <LogoCard src="/brand/empty-stall.png" label="Empty state" />
+          <LogoCard src="/brand/hero-souq.jpg" label="Hero — app background" />
+          <LogoCard src="/brand/empty-stall.jpg" label="Empty state" />
         </div>
 
         <h2 style={S.h2}>Voice & tone</h2>

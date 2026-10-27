@@ -19,7 +19,7 @@ export function SellerStory({ lang }: { lang: "ar" | "en" }) {
       <div className="grid md:grid-cols-[300px_1fr]">
         <div className="relative min-h-44">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/hero-souq.png" alt="market stall" className="absolute inset-0 h-full w-full object-cover" />
+          <img src="/brand/hero-souq.jpg" alt="market stall" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4">
             <Badge variant="gold">{ar ? "قصة عرض توضيحية" : "Illustrative demo story"}</Badge>

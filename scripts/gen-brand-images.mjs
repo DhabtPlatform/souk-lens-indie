@@ -15,19 +15,19 @@ function loadKey() {
 
 const JOBS = {
   hero: {
-    file: "public/brand/hero-souq.png",
+    file: "public/brand/hero-souq.jpg",
     size: "1536x1024",
     prompt:
       "Cinematic wide shot of a vibrant Egyptian souq market alley at golden hour, colorful stalls with brass lamps, ceramics and textiles, a large glowing violet-to-mint magnifying glass hovering over one stall highlighting its goods, dark moody background, no text, no words, no letters, professional brand hero illustration",
   },
   icon: {
-    file: "public/brand/app-icon-art.png",
+    file: "public/brand/app-icon-art.jpg",
     size: "1024x1024",
     prompt:
       "Flat mobile app icon artwork, dark violet background, centered white magnifying glass with mint-green handle over a small golden market stall with tiny brass lamp, minimal, crisp edges, no text, no words, no letters",
   },
   empty: {
-    file: "public/brand/empty-stall.png",
+    file: "public/brand/empty-stall.jpg",
     size: "1024x1024",
     prompt:
       "Minimal line illustration of an empty Middle Eastern market stall with striped awning, soft violet and mint accents on dark background, friendly, lots of empty space, no text, no words, no letters",

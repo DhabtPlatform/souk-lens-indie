@@ -23,7 +23,7 @@ export function EmptyState({ lang, compact }: { lang: "ar" | "en"; compact?: boo
   return (
     <Card className="flex flex-col items-center gap-3 border-dashed px-6 py-10 text-center animate-souk-in">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/empty-stall.png" alt="" className={compact ? "w-28 rounded-2xl" : "w-44 rounded-3xl"} />
+      <img src="/brand/empty-stall.jpg" alt="" className={compact ? "w-28 rounded-2xl" : "w-44 rounded-3xl"} />
       <h3 className="text-lg font-extrabold">{ar ? "لسه مفيش منتجات هنا" : "Nothing here yet"}</h3>
       <p className="max-w-md text-sm leading-7 text-muted-foreground">
         {ar ? "صوّر منتج، اتكلم عنه، الصق رابط، أو انقل متجرك — وكل نتيجة هتتحول لإعلان كامل بيتخزن بكل تفاصيله وصوره." : "Snap it, say it, paste a link, or import a store — every result becomes a full listing saved with all details and images."}

@@ -67,7 +67,7 @@ export function ProductDetailsSheet({
               <img src={img} alt={product.name_en} className="aspect-[4/3] w-full object-cover" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src="/brand/empty-stall.png" alt="" className="mx-auto w-52 py-8" />
+              <img src="/brand/empty-stall.jpg" alt="" className="mx-auto w-52 py-8" />
             )}
           </div>
           {product.images.length > 1 ? (
