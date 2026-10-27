@@ -76,6 +76,8 @@ channel data shows on the card and details and is saved with the product.
 npm install
 cp .env.example .env   # set MODEL_API_KEY from https://dev.meta.ai
 npm run dev            # http://localhost:3000
+npm run typecheck      # static safety
+npm test               # 7 unit tests: share links, actual-only economics, SAM box parsing
 ```
 
 ## Where every feature lives (nothing hidden)
