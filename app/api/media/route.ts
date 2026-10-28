@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { angleShot, hasKey, SPIN_ANGLES, variantShot } from "@/lib/meta";
+import { angleShot, cleanProductShot, hasKey, SPIN_ANGLES, variantShot } from "@/lib/meta";
 import { extractStudioImage as extractImg } from "@/lib/extract";
 
-// POST { productName, variants?: {id,label}[], angles?: boolean }
-// Generates per-variant studio shots + 4 multi-angle shots (360°) via Muse Image.
+// POST { productName, variants?: {id,label}[], angles?: boolean, studioFor?: { name: string } }
+// Generates per-variant studio shots + 4 multi-angle shots (360°) via Muse Image,
+// or ONE professional studio shot for a single product on demand (studioFor).
 // Explicit user action only (each shot is a paid generation). Demo mode returns empty.
 export async function POST(req: NextRequest) {
   try {
-    const { productName = "", variants = [], angles = false } = await req.json();
+    const { productName = "", variants = [], angles = false, studioFor } = await req.json();
     if (!hasKey()) {
-      return NextResponse.json({ ok: true, live: false, variantImages: {}, angleImages: [], note: "Demo mode: set MODEL_API_KEY to generate variant & 360° shots." });
+      return NextResponse.json({ ok: true, live: false, variantImages: {}, angleImages: [], studioImage: null, note: "Demo mode: set MODEL_API_KEY to generate studio shots." });
+    }
+    if (studioFor && typeof studioFor.name === "string" && studioFor.name.trim()) {
+      try {
+        const r = await cleanProductShot(studioFor.name.slice(0, 80));
+        return NextResponse.json({ ok: true, live: true, studioImage: extractImg(r) });
+      } catch (e) {
+        return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+      }
     }
     const vList = (Array.isArray(variants) ? variants : []).slice(0, 6) as { id?: string; label?: string }[];
     const [vRes, aRes] = await Promise.all([

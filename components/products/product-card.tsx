@@ -20,7 +20,7 @@ const SOURCE_LABEL: Record<string, { ar: string; en: string; variant: "default" 
 };
 
 export function ProductCard({
-  product, lang, isMine, onAdd, onRemove, onDetails, onCart, onOpenPage, mediaBusy,
+  product, lang, isMine, onAdd, onRemove, onDetails, onCart, onOpenPage, mediaBusy, onStudioShot,
 }: {
   product: Product; lang: "ar" | "en";
   isMine?: boolean;
@@ -30,6 +30,7 @@ export function ProductCard({
   onCart?: (p: Product) => void;
   onOpenPage?: (p: Product) => void;
   mediaBusy?: boolean;
+  onStudioShot?: (p: Product) => void;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
@@ -161,6 +162,7 @@ export function ProductCard({
           </Button>
           {onOpenPage ? <Button className="flex-1" variant="secondary" onClick={() => onOpenPage(product)} aria-label="buyer page" title={ar ? "صفحة المشتري الكاملة" : "Full buyer page"}><ExternalLink />{ar ? "صفحة المشتري" : "Buyer page"}</Button> : null}
           {onCart ? <Button size="lg" variant="accent" onClick={() => { onCart(product); toast.success(ar ? "اتضاف للسلة" : "Added to cart"); }} aria-label="add to cart"><ShoppingCart /></Button> : null}
+          {onStudioShot && !product.studioImage ? <Button size="lg" variant="ghost" disabled={mediaBusy} onClick={() => onStudioShot(product)} aria-label="studio shot" title={ar ? "ولّد صورة ستوديو احترافية لهذا المنتج" : "Generate a professional studio shot for this product"}><Sparkles /></Button> : null}
           <Button size="lg" variant="ghost" onClick={copyAd} aria-label="copy ad"><Copy /></Button>
         </div>
       </CardFooter>

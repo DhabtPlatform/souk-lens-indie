@@ -236,8 +236,29 @@ export default function Page() {
       setMediaJobs((m) => { const n = { ...m }; delete n[p.id]; return n; });
     }
   }
-  function patchProduct(id: string, patch: Partial<Product>) {
-    setResults((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  // On-demand pro shot per product: one paid Muse Image call per explicit tap
+  // (never bulk — protects time and credit). Attaches as the product's studio shot.
+  async function studioShotOne(p: Product) {
+    if (enrichingRef.current.has(p.id)) return;
+    enrichingRef.current.add(p.id);
+    setMediaJobs((m) => ({ ...m, [p.id]: true }));
+    try {
+      const r = await fetch("/api/media", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studioFor: { name: p.name_en } }),
+      });
+      const j = await r.json();
+      if (j.studioImage) {
+        patchProduct(p.id, { studioImage: j.studioImage as string, images: [j.studioImage as string, ...(mine.products.find((x) => x.id === p.id)?.images ?? p.images).filter((u) => u !== j.studioImage)] });
+        toast.success(ar ? "صورة ستوديو احترافية جاهزة" : "Professional studio shot ready");
+      } else toast.info(j.note ?? (ar ? "تعذر التوليد" : "Generation failed"));
+    } catch { toast.error(ar ? "تعذر التوليد" : "Generation failed"); }
+    finally {
+      enrichingRef.current.delete(p.id);
+      setMediaJobs((m) => { const n = { ...m }; delete n[p.id]; return n; });
+    }
+  }
+  function patchProduct(id: string, patch: Partial<Product>) {    setResults((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     setAlternatives((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     if (mine.products.some((p) => p.id === id)) mine.update(id, patch);
     setSelected((prev) => (prev?.id === id ? { ...prev, ...patch } : prev));
@@ -596,7 +617,7 @@ export default function Page() {
               <CardContent>
                 {!mine.loaded || filteredMine.length ? (
                   <div className="grid max-w-5xl gap-5">
-                    {filteredMine.map((p) => <ProductCard key={p.id} product={p} lang={lang} isMine onRemove={mine.remove} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} mediaBusy={!!mediaJobs[p.id]} />)}
+                    {filteredMine.map((p) => <ProductCard key={p.id} product={p} lang={lang} isMine onRemove={mine.remove} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} mediaBusy={!!mediaJobs[p.id]} onStudioShot={studioShotOne} />)}
                   </div>
                 ) : <EmptyState lang={lang} />}
               </CardContent>
@@ -685,7 +706,7 @@ export default function Page() {
 
             {!loading && !error && results.length ? (
               <div className="grid max-w-5xl gap-5">
-                {results.map((p) => <ProductCard key={p.id} product={p} lang={lang} onAdd={mine.add} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} mediaBusy={!!mediaJobs[p.id]} />)}
+                {results.map((p) => <ProductCard key={p.id} product={p} lang={lang} onAdd={mine.add} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} mediaBusy={!!mediaJobs[p.id]} onStudioShot={studioShotOne} />)}
               </div>
             ) : null}
 
@@ -698,7 +719,7 @@ export default function Page() {
               <div className="space-y-3">
                 <h3 className="text-lg font-black">{ar ? "بدائل أفضل لبلدك" : "Better alternatives for your country"}</h3>
                 <div className="grid max-w-5xl gap-5">
-                  {alternatives.map((p) => <ProductCard key={p.id} product={p} lang={lang} onAdd={mine.add} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} />)}
+                  {alternatives.map((p) => <ProductCard key={p.id} product={p} lang={lang} onAdd={mine.add} onDetails={openDetails} onCart={(x) => addToCart([x])} onOpenPage={openBuyerPage} onStudioShot={studioShotOne} />)}
                 </div>
               </div>
             ) : null}
