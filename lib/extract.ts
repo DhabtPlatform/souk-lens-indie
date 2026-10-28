@@ -51,6 +51,12 @@ export function iou(a: Detection["box"], b: Detection["box"]): number {
   return ua > 0 ? inter / ua : 0;
 }
 
+// Box number from a raw Spark item (set-of-marks linkage). Infinity = unranked.
+export function boxIdOf(raw: Record<string, unknown>): number {
+  const v = raw.boxId ?? raw.box_number ?? raw.boxNumber;
+  const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) && (n as number) > 0 ? (n as number) : Infinity;
+}
 // Merge a second segmentation pass: keep every box that does not heavily
 // overlap one we already have. Raises coverage without double-counting.
 export function mergeDetections(base: Detection[], extra: Detection[], thr = 0.5): Detection[] {

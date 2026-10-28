@@ -188,6 +188,19 @@ export default function Page() {
   }, [mine.products, mineQuery]);
 
   function openDetails(p: Product) { setSelected(p); setDetailsOpen(true); }
+  function removeBox(i: number) {
+    const bi = results.findIndex((p) => p.boxId === i + 1);
+    const ri = bi >= 0 ? bi : i < results.length ? i : -1;
+    setDetections((prev) => prev.filter((_, j) => j !== i));
+    if (ri >= 0) {
+      setResults((prev) => prev.filter((_, j) => j !== ri));
+      setSelected((prev) => (prev && results[ri] && prev.id === results[ri].id ? null : prev));
+      toast.success(ar ? "اتحذف المربع وإعلانه" : "Box and its listing removed");
+    }
+  }
+  function moveBox(i: number, box: Detection["box"]) {
+    setDetections((prev) => prev.map((d, j) => (j === i ? { ...d, box } : d)));
+  }
   function openBuyerPage(p: Product) {
     try { sessionStorage.setItem("souk-lens-preview", JSON.stringify(p)); } catch { /* ignore */ }
     window.open(`/product/${p.id}`, "_blank", "noopener");
@@ -653,7 +666,7 @@ export default function Page() {
             ) : null}
 
             {!loading && !error && results.length && detections.length ? (
-              <SamOverlay image={sourceImg || imageUrl} detections={detections} products={results} lang={lang} onDetails={openDetails} onInspectBox={inspectRegion} />
+              <SamOverlay image={sourceImg || imageUrl} detections={detections} products={results} lang={lang} onDetails={openDetails} onInspectBox={inspectRegion} onRemoveBox={removeBox} onMoveBox={moveBox} />
             ) : null}
 
             {(() => {

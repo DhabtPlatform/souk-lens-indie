@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
-import { buildGrounding, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections } from "@/lib/extract";
+import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
+import { boxIdOf, buildGrounding, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
-import { cropRegions, sourceBytes } from "@/lib/crop";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
 // POST { imageUrl, prompt, lang, country, currency }
@@ -45,10 +45,33 @@ export async function POST(req: NextRequest) {
       ? samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")
       : extractText(seg).slice(0, 400);
     const grounding = buildGrounding(prompt, detectionPart, focusStr, samDetections.length);
-    const sparkR = await timed(() => analyzeWithSpark(imageUrl, lang, country, currency, grounding));
+    // Set-of-marks: number the SAM regions ON a copy of the photo so Spark
+    // names each numbered region — names bind to boxes by construction.
+    // The original photo (not the annotated copy) feeds galleries and crops.
+    let sparkImage = imageUrl;
+    const numbered = samDetections.length > 1;
+    if (numbered) {
+      try {
+        const srcBytes = await sourceBytes(imageUrl);
+        if (srcBytes) {
+          const ann = await annotateBoxes(
+            srcBytes,
+            samDetections.map((d) => ({ x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] }))
+          );
+          sparkImage = `data:image/jpeg;base64,${ann.toString("base64")}`;
+        }
+      } catch { /* original image stands */ }
+    }
+    const sparkR = await timed(() => analyzeWithSpark(
+      sparkImage,
+      lang,
+      country,
+      currency,
+      grounding + (numbered ? "\nThe attached image has numbered markers 1.." + samDetections.length + " on the detected regions. Every item MUST include its boxId (the number nearest to it)." : "")
+    ));
     const analysis = sparkR.v;
     const analysisText = extractText(analysis);
-    const raws = extractItems(analysis, analysisText);
+    const raws = [...extractItems(analysis, analysisText)].sort((a, b) => boxIdOf(a) - boxIdOf(b));
     // Studio image for the hero product only (cost control)
     const firstName = String(raws[0]?.name_en ?? prompt);
     const studioR = await timed(() => cleanProductShot(firstName)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
@@ -60,6 +83,11 @@ export async function POST(req: NextRequest) {
       studioImage: studioImage ?? undefined,
     });
     if (studioImage && products[0] && !products[0].images.includes(studioImage)) products[0].images = [studioImage, ...products[0].images];
+    // Carry each listing's box number onto its product (map chips, crops, delete).
+    products.forEach((p, i) => {
+      const b = boxIdOf(raws[i] ?? {});
+      if (Number.isFinite(b)) p.boxId = b;
+    });
     const detections = extractDetections(seg, products.map((p) => p.name_en));
     // Real per-item crops: each SAM-boxed product leads with its own actual
     // region from the seller's photo (enhancement-only, never blocks results).

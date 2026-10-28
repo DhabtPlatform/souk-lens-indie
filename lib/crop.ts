@@ -48,3 +48,20 @@ export function sourceBytes(imageUrl: string): Promise<Buffer | null> {
     return Promise.resolve(null);
   }
 }
+
+// Numbered markers over each SAM box (set-of-marks): Spark names every
+// numbered region, so names bind to boxes by construction, not by guessing.
+export async function annotateBoxes(imageBytes: Buffer, boxes: CropBox[]): Promise<Buffer> {
+  const meta = await sharp(imageBytes).metadata();
+  const w = meta.width ?? 1000;
+  const h = meta.height ?? 1000;
+  const s = Math.max(w, h) / 1000;
+  const dots = boxes.slice(0, 14).map((b, i) => {
+    const cx = ((Math.min(b.x1, b.x2) + Math.max(b.x1, b.x2)) / 2) * w;
+    const cy = ((Math.min(b.y1, b.y2) + Math.max(b.y1, b.y2)) / 2) * h;
+    const r = 26 * s;
+    return `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${r.toFixed(0)}" fill="#00d4a4" stroke="white" stroke-width="${(3 * s).toFixed(0)}"/><text x="${cx.toFixed(0)}" y="${(cy + 9 * s).toFixed(0)}" font-size="${(30 * s).toFixed(0)}" font-weight="900" text-anchor="middle" fill="black" font-family="Arial,sans-serif">${i + 1}</text>`;
+  }).join("");
+  const svg = `<svg width="${w}" height="${h}">${dots}</svg>`;
+  return sharp(imageBytes).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).jpeg({ quality: 80 }).toBuffer();
+}

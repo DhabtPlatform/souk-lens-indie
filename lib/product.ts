@@ -79,6 +79,7 @@ export type Product = {
   seoDescription: string;
   source: ProductSource;
   qualityScore: number;
+  boxId?: number;
   rating?: number;
   reviewCount?: number;
   sellerName?: string;
