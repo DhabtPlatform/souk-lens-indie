@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxArea, buildGrounding, ensureCoverage, extractDetections, mergeDetections, subdivideRegion } from "@/lib/extract";
+import { boxArea, buildGrounding, ensureCoverage, extractDetections, mergeDetections, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -90,6 +90,13 @@ describe("seller focus grounding", () => {
     const r2 = ensureCoverage([tight]);
     expect(r2.subdivided).toBe(false);
     expect(r2.regions).toHaveLength(1);
+  });
+  it("sortReadingOrder numbers left-to-right, top-to-bottom", () => {
+    const right = { label: "r", box: [0.55, 0.26, 0.92, 0.75] as [number, number, number, number], source: "sam" as const };
+    const left = { label: "l", box: [0.07, 0.26, 0.5, 0.74] as [number, number, number, number], source: "sam" as const };
+    const bottom = { label: "b", box: [0.1, 0.8, 0.4, 0.95] as [number, number, number, number], source: "sam" as const };
+    const out = sortReadingOrder([right, bottom, left]);
+    expect(out.map((d) => d.label)).toEqual(["l", "r", "b"]);
   });
 });
 

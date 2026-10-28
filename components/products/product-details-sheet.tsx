@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { StudioCompare } from "@/components/products/studio-compare";
-import { FeaturesEditor, PolicyEditor, SpecsEditor, VariantManager, VariantPriceHint } from "@/components/products/product-editors";
+import { FeaturesEditor, ImagesEditor, PolicyEditor, SpecsEditor, VariantManager, VariantPriceHint } from "@/components/products/product-editors";
 import { SpinViewer } from "@/components/products/spin-viewer";
 import { GlbViewer } from "@/components/products/glb-viewer";
 import { photoToGlbCard } from "@/lib/glb";
@@ -200,6 +200,7 @@ export function ProductDetailsSheet({
 
           {editable && onSave ? (
             <div className="space-y-3">
+              <ImagesEditor product={product} lang={lang} onSave={onSave} />
               <VariantManager product={product} lang={lang} onSave={onSave} />
               <PolicyEditor product={product} lang={lang} onSave={onSave} />
               <SpecsEditor product={product} lang={lang} onSave={onSave} />

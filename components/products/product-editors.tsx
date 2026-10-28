@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Product, ProductVariant } from "@/lib/product";
 import { uid } from "@/lib/utils";
 import { formatPrice } from "@/lib/utils";
-import { PencilLine, Plus, Save, Trash2, Truck, Undo2 } from "lucide-react";
+import { PencilLine, Plus, Save, Star, Trash2, Truck, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 type SaveFn = (id: string, patch: Partial<Product>) => void;
@@ -83,12 +83,34 @@ export function VariantManager({ product, lang, onSave }: { product: Product; la
       <h4 className="flex items-center gap-1.5 font-extrabold"><PencilLine className="h-4 w-4 text-accent" />{ar ? "تعديل المتغيرات" : "Edit variants"}</h4>
       <div className="space-y-2">
         {rows.map((r, i) => (
-          <div key={r.id} className="grid grid-cols-[1fr_84px_70px_36px] items-end gap-1.5 sm:grid-cols-[1fr_1fr_96px_80px_36px]">
-            <div className="space-y-1"><Label>{ar ? "الاسم" : "Name"}</Label><Input value={r.name} onChange={(e) => set(i, "name", e.target.value)} /></div>
-            <div className="space-y-1"><Label>{ar ? "بالعربي" : "Arabic"}</Label><Input value={r.name_ar} onChange={(e) => set(i, "name_ar", e.target.value)} placeholder="—" /></div>
-            <div className="space-y-1"><Label>{ar ? "السعر" : "Price"}</Label><Input inputMode="decimal" value={r.price} onChange={(e) => set(i, "price", e.target.value)} dir="ltr" /></div>
-            <div className="space-y-1"><Label>{ar ? "مخزون" : "Stock"}</Label><Input inputMode="numeric" value={r.stock} onChange={(e) => set(i, "stock", e.target.value)} dir="ltr" /></div>
-            <Button size="icon" variant="ghost" onClick={() => removeVariant(i)} aria-label="delete variant"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+          <div key={r.id} className="space-y-1.5 rounded-xl border p-2">
+            <div className="grid grid-cols-[1fr_84px_70px_36px] items-end gap-1.5 sm:grid-cols-[1fr_1fr_96px_80px_36px]">
+              <div className="space-y-1"><Label>{ar ? "الاسم" : "Name"}</Label><Input value={r.name} onChange={(e) => set(i, "name", e.target.value)} /></div>
+              <div className="space-y-1"><Label>{ar ? "بالعربي" : "Arabic"}</Label><Input value={r.name_ar} onChange={(e) => set(i, "name_ar", e.target.value)} placeholder="—" /></div>
+              <div className="space-y-1"><Label>{ar ? "السعر" : "Price"}</Label><Input inputMode="decimal" value={r.price} onChange={(e) => set(i, "price", e.target.value)} dir="ltr" /></div>
+              <div className="space-y-1"><Label>{ar ? "مخزون" : "Stock"}</Label><Input inputMode="numeric" value={r.stock} onChange={(e) => set(i, "stock", e.target.value)} dir="ltr" /></div>
+              <Button size="icon" variant="ghost" onClick={() => removeVariant(i)} aria-label="delete variant"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {r.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={r.image} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" loading="lazy" />
+              ) : null}
+              <Input value={r.image ?? ""} onChange={(e) => set(i, "image", e.target.value)} placeholder={ar ? "رابط صورة المتغير (اختياري)" : "Variant image URL (optional)"} dir="ltr" className="h-9 text-xs" />
+              <label className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-dashed px-2.5 text-xs font-bold transition hover:border-primary/60 hover:bg-primary/5">
+                {ar ? "رفع" : "Upload"}
+                <input type="file" accept="image/*" hidden onChange={(e) => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  const rd = new FileReader();
+                  rd.onload = () => set(i, "image", String(rd.result));
+                  rd.readAsDataURL(f);
+                  e.target.value = "";
+                }} />
+              </label>
+              {r.image ? (
+                <Button size="icon" variant="ghost" onClick={() => set(i, "image", "")} aria-label="clear variant image"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>
@@ -232,6 +254,71 @@ export function FeaturesEditor({ product, lang, onSave }: { product: Product; la
       <h4 className="font-extrabold">{ar ? "تعديل المميزات" : "Edit features"}</h4>
       <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={ar ? "ميزة في كل سطر…" : "One feature per line…"} />
       <Button className="w-full" onClick={() => { onSave(product.id, { features: text.split("\n").map((s) => s.trim()).filter(Boolean) }); toast.success(ar ? "اتحفظت المميزات" : "Features saved"); }}><Save />{ar ? "حفظ المميزات" : "Save features"}</Button>
+    </div>
+  );
+}
+
+// Main gallery: reorder (star = main), delete (one must remain), add by URL or upload.
+export function ImagesEditor({ product, lang, onSave }: { product: Product; lang: "ar" | "en"; onSave: SaveFn }) {
+  const ar = lang === "ar";
+  const [url, setUrl] = useState("");
+  const imgs = product.images;
+  function setMain(src: string) {
+    onSave(product.id, { images: [src, ...imgs.filter((u) => u !== src)] });
+    toast.success(ar ? "بقت الصورة الرئيسية" : "Set as main image");
+  }
+  function remove(src: string) {
+    if (imgs.length <= 1) { toast.error(ar ? "لازم تفضل صورة واحدة على الأقل" : "Keep at least one image"); return; }
+    onSave(product.id, { images: imgs.filter((u) => u !== src) });
+  }
+  function addSrc(src: string) {
+    const s = src.trim();
+    if (!s) return;
+    if (imgs.includes(s)) { toast.info(ar ? "الصورة موجودة بالفعل" : "Already in the gallery"); return; }
+    onSave(product.id, { images: [...imgs, s] });
+    setUrl("");
+    toast.success(ar ? "اتضافت الصورة" : "Image added");
+  }
+  return (
+    <div className="space-y-2 rounded-2xl border bg-card p-4">
+      <h4 className="font-extrabold">{ar ? "تعديل صور المنتج" : "Edit product photos"}</h4>
+      <div className="flex flex-wrap gap-2">
+        {imgs.map((src, i) => (
+          <div key={src + i} className="relative h-16 w-16 shrink-0">
+            <div className="h-16 w-16 overflow-hidden rounded-xl border-2" style={{ borderColor: i === 0 ? "#00d4a4" : "transparent" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+            </div>
+            {i === 0 ? (
+              <span className="absolute -top-2 start-1 flex h-5 items-center rounded-full bg-[#00d4a4] px-1.5 text-[10px] font-black text-black">{ar ? "رئيسية" : "MAIN"}</span>
+            ) : (
+              <button type="button" title={ar ? "اجعلها الرئيسية" : "Set as main"} aria-label="set as main"
+                onClick={() => setMain(src)}
+                className="absolute -bottom-1 -end-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-[#ffd166] backdrop-blur transition hover:bg-black">
+                <Star className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button type="button" title={ar ? "احذف الصورة" : "Delete photo"} aria-label="delete photo"
+              onClick={() => remove(src)}
+              className="absolute -top-2 end-0 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-[13px] font-black text-white backdrop-blur transition hover:bg-red-500">×</button>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder={ar ? "رابط صورة جديدة…" : "New image URL…"} dir="ltr" className="h-9 text-xs" />
+        <Button size="sm" onClick={() => addSrc(url)}><Plus className="h-4 w-4" />{ar ? "أضف" : "Add"}</Button>
+        <label className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-dashed px-3 text-xs font-bold transition hover:border-primary/60 hover:bg-primary/5">
+          {ar ? "رفع" : "Upload"}
+          <input type="file" accept="image/*" hidden onChange={(e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            const rd = new FileReader();
+            rd.onload = () => addSrc(String(rd.result));
+            rd.readAsDataURL(f);
+            e.target.value = "";
+          }} />
+        </label>
+      </div>
+      <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "النجمة تنقل الصورة للأول (الرئيسية) وتظهر في البطاقة وصفحة المشتري والسلة فورًا." : "The star moves a photo first (main) — reflected on the card, buyer page and cart instantly."}</p>
     </div>
   );
 }

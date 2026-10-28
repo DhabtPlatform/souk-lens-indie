@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
-import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections } from "@/lib/extract";
+import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, sortReadingOrder } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
     const cov = ensureCoverage(samDetections);
     samDetections = cov.regions;
     const subdivided = cov.subdivided;
+    // Visual numbering: left-to-right, top-to-bottom — before the set-of-marks
+    // copy is drawn and before Spark sees the numbers, so boxIds stay bound.
+    samDetections = sortReadingOrder(samDetections);
     const detectionPart = samDetections.length
       ? samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")
       : extractText(seg).slice(0, 400);

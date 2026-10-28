@@ -100,6 +100,23 @@ export function ensureCoverage(detections: Detection[]): { regions: Detection[];
   return { regions: split, subdivided };
 }
 
+// SAM returns boxes in detection-confidence order, not visual order — so box 1
+// could sit on the RIGHT item while box 2 sits on the left, looking "mirrored"
+// to the seller. Sort row-major (top-to-bottom bands, left-to-right inside)
+// BEFORE annotating/grounding so numbers follow the visual layout. Numbering
+// still binds by construction (annotate happens after the sort).
+export function sortReadingOrder(ds: Detection[]): Detection[] {
+  const sorted = [...ds].sort((a, b) => a.box[1] - b.box[1]);
+  const rows: Detection[][] = [];
+  for (const d of sorted) {
+    const row = rows.find((r) => Math.abs(r[0].box[1] - d.box[1]) < 0.18);
+    if (row) row.push(d);
+    else rows.push([d]);
+  }
+  rows.forEach((r) => r.sort((a, b) => a.box[0] - b.box[0]));
+  return rows.flat();
+}
+
 // Seller focus: "all items" (default) or a comma-separated list of visible item
 // names to generate listings for ONLY. Appended to the Spark grounding so the
 // instruction travels with the model prompt, honestly labeled end to end.

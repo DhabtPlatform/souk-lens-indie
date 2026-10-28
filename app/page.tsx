@@ -69,6 +69,14 @@ export default function Page() {
   const [country, setCountry] = useState<Country>(COUNTRIES[0]);
   const [imageUrl, setImageUrl] = useState(SAMPLE);
   const [imageLabel, setImageLabel] = useState("");
+  // Seller-overridable auto-run photo (tiny footer dot opens it; saved prefs win).
+  // Lets the seller point the automatic run at their own stall photo instead of
+  // the built-in sample — stored locally, never uploaded anywhere by itself.
+  const [customDefault, setCustomDefault] = useState(() => {
+    try { return localStorage.getItem("souk-lens-default-img") || ""; } catch { return ""; }
+  });
+  const [showImgCfg, setShowImgCfg] = useState(false);
+  const [defaultUrlDraft, setDefaultUrlDraft] = useState("");
   const [scope, setScope] = useState<"all" | "specific">("all");
   const [focusNames, setFocusNames] = useState("");
   const [focusEcho, setFocusEcho] = useState("");
@@ -171,10 +179,14 @@ export default function Page() {
       autoScroll.current = true;
       // Public origins analyze the real multi-item stall (Meta fetches it);
       // localhost falls back to the avocado sample (Meta cannot reach localhost).
+      // A seller-set default photo (footer dot) overrides both.
       const pub = (() => { try { const h = window.location.hostname; return h !== "localhost" && h !== "127.0.0.1" && h !== "::1"; } catch { return false; } })();
-      const autoImg = pub ? "/stall-veg.jpg" : SAMPLE;
-      const autoPrompt = pub ? "mixed vegetables market stall" : "avocado";
-      setTab("analyze"); setImageUrl(autoImg); setImageLabel(pub ? "" : "avocado");
+      let savedDefault = "";
+      try { savedDefault = localStorage.getItem("souk-lens-default-img") || ""; } catch { /* ignore */ }
+      if (savedDefault) setCustomDefault(savedDefault);
+      const autoImg = savedDefault || (pub ? "/stall-veg.jpg" : SAMPLE);
+      const autoPrompt = savedDefault ? "market goods" : (pub ? "mixed vegetables market stall" : "avocado");
+      setTab("analyze"); setImageUrl(autoImg); setImageLabel(savedDefault ? "" : (pub ? "" : "avocado"));
       postJson("/api/lens", { imageUrl: autoImg, prompt: autoPrompt, lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,6 +201,14 @@ export default function Page() {
   useEffect(() => {
     try { localStorage.setItem("souk-lens-country", country.code); } catch { /* ignore */ }
   }, [country]);
+
+  function persistDefault(src: string) {
+    setCustomDefault(src);
+    try {
+      if (src) localStorage.setItem("souk-lens-default-img", src);
+      else localStorage.removeItem("souk-lens-default-img");
+    } catch { toast.error(ar ? "الصورة كبيرة على التخزين المحلي — استخدم رابطًا بدل الرفع" : "Photo too large for local storage — use a link instead"); }
+  }
 
   const filteredMine = useMemo(() => {
     const q = mineQuery.trim().toLowerCase();
@@ -326,9 +346,11 @@ export default function Page() {
   }
   const runDemo = () => {
     const pub = (() => { try { const h = window.location.hostname; return h !== "localhost" && h !== "127.0.0.1" && h !== "::1"; } catch { return false; } })();
-    const img = pub ? "/stall-veg.jpg" : SAMPLE;
-    setTab("analyze"); setImageUrl(img); setImageLabel(pub ? "" : "avocado");
-    postJson("/api/lens", { imageUrl: img, prompt: pub ? "mixed vegetables market stall" : "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+    let savedDefault = "";
+    try { savedDefault = localStorage.getItem("souk-lens-default-img") || ""; } catch { /* ignore */ }
+    const img = savedDefault || (pub ? "/stall-veg.jpg" : SAMPLE);
+    setTab("analyze"); setImageUrl(img); setImageLabel(savedDefault ? "" : (pub ? "" : "avocado"));
+    postJson("/api/lens", { imageUrl: img, prompt: savedDefault ? "market goods" : (pub ? "mixed vegetables market stall" : "avocado"), lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   };
   function runStall(src: string) {
     setTab("analyze"); setImageUrl(src); setImageLabel(""); setScope("all"); setFocusNames("");
@@ -770,6 +792,34 @@ export default function Page() {
         <footer className="flex flex-wrap items-center gap-2 py-8 text-xs text-muted-foreground">
           <span>Souk Lens · Meta Global AI Developer Hackathon (Indie) · {country.code} {country.currency}</span>
           <a href="/brand" className="font-bold text-accent hover:underline">{ar ? "الهوية والبراند" : "Brand identity"}</a>
+          {/* Inconspicuous seller control: sets the photo the auto-run analyzes. */}
+          <button type="button" onClick={() => setShowImgCfg((v) => !v)}
+            title={ar ? "صورة التشغيل التلقائي" : "Auto-run photo"} aria-label={ar ? "صورة التشغيل التلقائي" : "Auto-run photo"}
+            className="opacity-30 transition hover:opacity-80" style={{ fontSize: 10, lineHeight: 1 }}>·</button>
+          {showImgCfg ? (
+            <div className="flex w-full items-center gap-1.5 rounded-xl border p-2">
+              <Input value={defaultUrlDraft} onChange={(e) => setDefaultUrlDraft(e.target.value)}
+                placeholder={ar ? "رابط صورة افتراضية للتشغيل التلقائي…" : "Default auto-run image URL…"} dir="ltr" className="h-8 text-xs" />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (!defaultUrlDraft.trim()) return;
+                persistDefault(defaultUrlDraft.trim()); setDefaultUrlDraft("");
+                toast.success(ar ? "اتحفظت الصورة الافتراضية" : "Default image saved");
+              }}>{ar ? "حفظ" : "Save"}</Button>
+              <label className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-dashed px-2.5 text-[11px] font-bold transition hover:border-primary/60 hover:bg-primary/5">
+                {ar ? "رفع" : "Upload"}
+                <input type="file" accept="image/*" hidden onChange={(e) => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  const rd = new FileReader();
+                  rd.onload = () => { persistDefault(String(rd.result)); toast.success(ar ? "اتحفظت الصورة الافتراضية" : "Default image saved"); };
+                  rd.readAsDataURL(f);
+                  e.target.value = "";
+                }} />
+              </label>
+              {customDefault ? (
+                <Button size="sm" variant="ghost" onClick={() => { persistDefault(""); setDefaultUrlDraft(""); toast.success(ar ? "رجعت الصورة الأصلية" : "Back to the built-in photo"); }}>{ar ? "مسح" : "Clear"}</Button>
+              ) : null}
+            </div>
+          ) : null}
           <span className="ms-auto hidden sm:inline">Next.js · shadcn/ui · Tailwind · Meta Model API</span>
         </footer>
       </main>
