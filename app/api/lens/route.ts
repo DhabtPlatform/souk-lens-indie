@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
-import { boxIdOf, buildGrounding, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections } from "@/lib/extract";
+import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
         samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
       } catch { /* single pass stands */ }
     }
+    // Whole-scene box? When SAM returns one region covering most of the frame,
+    // the count cap would force a single "assortment" listing. ensureCoverage()
+    // subdivides huge regions into a grid so every pile keeps its own numbered
+    // box. Tight boxes (single close-up items) pass through untouched.
+    const cov = ensureCoverage(samDetections);
+    samDetections = cov.regions;
+    const subdivided = cov.subdivided;
     const detectionPart = samDetections.length
       ? samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")
       : extractText(seg).slice(0, 400);
@@ -67,7 +74,7 @@ export async function POST(req: NextRequest) {
       lang,
       country,
       currency,
-      grounding + (numbered ? "\nThe attached image has numbered markers 1.." + samDetections.length + " on the detected regions. Every item MUST include its boxId (the number nearest to it)." : "")
+      grounding + (numbered ? "\nThe attached image has numbered markers 1.." + samDetections.length + " on the detected regions. Every item MUST include its boxId (the number nearest to it)." : "") + (subdivided ? "\nSome numbered cells may show the SAME single object (e.g. one pumpkin filling several cells) — then return ONE listing for it, not one per cell." : "")
     ));
     let analysis = sparkR.v;
     let analysisText = extractText(analysis);

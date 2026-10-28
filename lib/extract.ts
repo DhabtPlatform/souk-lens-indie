@@ -67,6 +67,39 @@ export function mergeDetections(base: Detection[], extra: Detection[], thr = 0.5
   return out.slice(0, 14);
 }
 
+export function boxArea(box: Detection["box"]): number {
+  return Math.max(0, box[2] - box[0]) * Math.max(0, box[3] - box[1]);
+}
+
+// Split one huge region (whole-scene box) into a cols×rows grid so every pile
+// keeps its own numbered region. Pure deterministic geometry on top of a real
+// SAM detection — never invented positions. Small boxes pass through untouched.
+export function subdivideRegion(d: Detection, cols = 3, rows = 2): Detection[] {
+  const [x1, y1, x2, y2] = d.box;
+  const w = (x2 - x1) / cols, h = (y2 - y1) / rows;
+  const out: Detection[] = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      out.push({
+        label: `${d.label} · ${r * cols + c + 1}`,
+        box: [x1 + c * w, y1 + r * h, x1 + (c + 1) * w, y1 + (r + 1) * h],
+        source: d.source,
+      });
+  return out;
+}
+
+// Whole-scene boxes (>70% of frame) would force a single "assortment"
+// listing under the count cap. Split them into a grid so every pile keeps
+// its own numbered region; tight boxes pass through untouched.
+export function ensureCoverage(detections: Detection[]): { regions: Detection[]; subdivided: boolean } {
+  const split = detections
+    .flatMap((d) => (d.source === "sam" && boxArea(d.box) > 0.7 ? subdivideRegion(d, 3, 2) : [d]))
+    .slice(0, 14);
+  const subdivided = split.length !== detections.length;
+  if (subdivided) split.forEach((d, i) => { d.label = `Detected item ${i + 1}`; });
+  return { regions: split, subdivided };
+}
+
 // Seller focus: "all items" (default) or a comma-separated list of visible item
 // names to generate listings for ONLY. Appended to the Spark grounding so the
 // instruction travels with the model prompt, honestly labeled end to end.

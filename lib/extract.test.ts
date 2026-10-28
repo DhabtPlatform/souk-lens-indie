@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGrounding, extractDetections, mergeDetections } from "@/lib/extract";
+import { boxArea, buildGrounding, ensureCoverage, extractDetections, mergeDetections, subdivideRegion } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -55,6 +55,41 @@ describe("seller focus grounding", () => {
     const m = mergeDetections(a, b);
     expect(m.length).toBe(2);
     expect(m[1].label).toBe("z");
+  });
+  it("splits a whole-scene box into an exact tiling grid", () => {
+    const big = { label: "Detected item 1", box: [0.02, 0.02, 0.98, 0.98] as [number, number, number, number], source: "sam" as const };
+    expect(boxArea(big.box)).toBeGreaterThan(0.7);
+    const cells = subdivideRegion(big, 3, 2);
+    expect(cells).toHaveLength(6);
+    // First cell starts at parent origin, last cell ends at parent far corner.
+    expect(cells[0].box[0]).toBeCloseTo(0.02, 6);
+    expect(cells[0].box[1]).toBeCloseTo(0.02, 6);
+    expect(cells[5].box[2]).toBeCloseTo(0.98, 6);
+    expect(cells[5].box[3]).toBeCloseTo(0.98, 6);
+    // Every cell stays inside the parent box.
+    for (const c of cells) {
+      expect(c.box[0]).toBeGreaterThanOrEqual(0.02);
+      expect(c.box[1]).toBeGreaterThanOrEqual(0.02);
+      expect(c.box[2]).toBeLessThanOrEqual(0.98);
+      expect(c.box[3]).toBeLessThanOrEqual(0.98);
+      expect(c.box[2]).toBeGreaterThan(c.box[0]);
+      expect(c.box[3]).toBeGreaterThan(c.box[1]);
+    }
+  });
+  it("leaves small single-item boxes below the split threshold", () => {
+    const small = { label: "x", box: [0.2, 0.2, 0.5, 0.6] as [number, number, number, number], source: "sam" as const };
+    expect(boxArea(small.box)).toBeLessThan(0.7);
+  });
+  it("ensureCoverage splits one huge region, keeps tight ones", () => {
+    const huge = { label: "Detected item 1", box: [0, 0, 1, 1] as [number, number, number, number], source: "sam" as const };
+    const r1 = ensureCoverage([huge]);
+    expect(r1.subdivided).toBe(true);
+    expect(r1.regions).toHaveLength(6);
+    expect(r1.regions[0].label).toBe("Detected item 1");
+    const tight = { label: "Detected item 1", box: [0.2, 0.2, 0.5, 0.6] as [number, number, number, number], source: "sam" as const };
+    const r2 = ensureCoverage([tight]);
+    expect(r2.subdivided).toBe(false);
+    expect(r2.regions).toHaveLength(1);
   });
 });
 
