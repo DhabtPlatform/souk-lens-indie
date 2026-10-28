@@ -52,6 +52,8 @@ export function ProductBuyerView({
             )}
             {discount > 0 ? <Badge variant="destructive" className="absolute start-3 top-3">-{discount}%</Badge> : null}
             {selVar?.image ? <Badge variant="accent" className="absolute end-3 top-3"><Images className="me-1 h-3 w-3" />{ar ? "صورة المتغير" : "Variant photo"}</Badge> : null}
+            {!selVar?.image && mainImg && mainImg === product.studioImage ? <Badge variant="gold" className="absolute end-3 top-3">{ar ? "صورة ستوديو بالذكاء الاصطناعي" : "AI studio shot"}</Badge> : null}
+            {!selVar?.image && mainImg && (mainImg === product.sourceImage || (!product.studioImage && imgIdx === 0)) ? <Badge variant="success" className="absolute end-3 top-3">{ar ? "صورة حقيقية" : "Real photo"}</Badge> : null}
           </div>
           {product.images.length > 1 ? (
             <div className="flex gap-2 overflow-x-auto no-scrollbar">

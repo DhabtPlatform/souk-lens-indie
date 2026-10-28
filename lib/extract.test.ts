@@ -22,10 +22,17 @@ describe("seller focus grounding", () => {
     expect(g).toContain("#1 at [0.1,0.2]");
   });
   it("instructs ONLY the named items with focus", () => {
-    const g = buildGrounding("market goods", "#1 at [0.1,0.2]", "tomato, cucumber");
+    const g = buildGrounding("market goods", "#1 at [0.1,0.2]", "tomato, cucumber", 2);
     expect(g).toContain("SELLER FOCUS");
     expect(g).toContain("tomato, cucumber");
     expect(g).toContain("ONLY");
+    expect(g).toContain("never rename them");
+    expect(g).toContain("AT MOST 2");
+  });
+  it("caps listings to SAM regions without focus", () => {
+    const g = buildGrounding("market goods", "#1 at [0.1,0.2]", "", 1);
+    expect(g).not.toContain("SELLER FOCUS");
+    expect(g).toContain("AT MOST 1");
   });
   it("returns empty (not fake boxes) for garbage", () => {
     expect(extractDetections({ nothing: true }, [])).toEqual([]);

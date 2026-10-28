@@ -44,11 +44,14 @@ export type Detection = { label: string; box: [number, number, number, number]; 
 // Seller focus: "all items" (default) or a comma-separated list of visible item
 // names to generate listings for ONLY. Appended to the Spark grounding so the
 // instruction travels with the model prompt, honestly labeled end to end.
-export function buildGrounding(prompt: string, detectionPart: string, focus = ""): string {
+export function buildGrounding(prompt: string, detectionPart: string, focus = "", maxItems = 0): string {
   const base = detectionPart || `${prompt} · `;
+  const cap = maxItems > 0
+    ? `\nCOUNT RULE: SAM found exactly ${maxItems} item region(s) above. Return AT MOST ${maxItems} listing(s), each tied to one numbered region (#1..#${maxItems}). Never list anything not visible in one of these regions.`
+    : "";
   const f = focus.trim().replace(/\s+/g, " ");
-  if (!f) return `${prompt}: ${base}`;
-  return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Ignore every other object in the photo.`;
+  if (!f) return `${prompt}: ${base}${cap}`;
+  return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Use the seller's exact names — never rename them to something else. Ignore every other object in the photo.${cap}`;
 }
 // Find SAM-style detections anywhere in the response; boxes normalized to 0..1 (x1,y1,x2,y2).
 // SAM 3.1 actually returns text like:
