@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { StudioCompare } from "@/components/products/studio-compare";
+import { FeaturesEditor, PolicyEditor, SpecsEditor, VariantManager, VariantPriceHint } from "@/components/products/product-editors";
 import { SpinViewer } from "@/components/products/spin-viewer";
 import { GlbViewer } from "@/components/products/glb-viewer";
 import { photoToGlbCard } from "@/lib/glb";
@@ -197,6 +198,15 @@ export function ProductDetailsSheet({
             </div>
           ) : null}
 
+          {editable && onSave ? (
+            <div className="space-y-3">
+              <VariantManager product={product} lang={lang} onSave={onSave} />
+              <PolicyEditor product={product} lang={lang} onSave={onSave} />
+              <SpecsEditor product={product} lang={lang} onSave={onSave} />
+              <FeaturesEditor product={product} lang={lang} onSave={onSave} />
+            </div>
+          ) : null}
+
           <Section title={ar ? "الوصف الكامل" : "Full description"}>
             <p className="leading-8 text-muted-foreground">{product.description_ar}</p>
             <p className="leading-8 text-muted-foreground" dir="ltr">{product.description_en}</p>
@@ -223,6 +233,7 @@ export function ProductDetailsSheet({
                 </button>
               ))}
             </div>
+            <VariantPriceHint product={product} lang={lang} />
             <div className="overflow-hidden rounded-xl border">
               {product.variants.map((v) => (
                 <div key={v.id} className="flex items-center justify-between gap-3 border-b bg-card px-3.5 py-3 text-sm last:border-0" style={{ background: selVar?.id === v.id ? "rgba(0,212,164,.05)" : undefined }}>
