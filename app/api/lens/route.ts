@@ -69,9 +69,26 @@ export async function POST(req: NextRequest) {
       currency,
       grounding + (numbered ? "\nThe attached image has numbered markers 1.." + samDetections.length + " on the detected regions. Every item MUST include its boxId (the number nearest to it)." : "")
     ));
-    const analysis = sparkR.v;
-    const analysisText = extractText(analysis);
-    const raws = [...extractItems(analysis, analysisText)].sort((a, b) => boxIdOf(a) - boxIdOf(b));
+    let analysis = sparkR.v;
+    let analysisText = extractText(analysis);
+    let raws = [...extractItems(analysis, analysisText)].sort((a, b) => boxIdOf(a) - boxIdOf(b));
+    let sparkMs = sparkR.ms;
+    // Empty Spark response despite real SAM regions = transient model flake,
+    // not proof the photo is empty. One retry only (cost control); if it is
+    // still empty, the UI shows the honest no-result diagnosis instead.
+    if (live && raws.length === 0 && samDetections.length > 0) {
+      try {
+        const retry = await timed(() => analyzeWithSpark(
+          sparkImage, lang, country, currency,
+          grounding + "\nPrevious attempt returned no items although regions were detected. Look again carefully and list what is visible."
+        ));
+        const rAnalysis = retry.v;
+        const rText = extractText(rAnalysis);
+        const rRaws = [...extractItems(rAnalysis, rText)].sort((a, b) => boxIdOf(a) - boxIdOf(b));
+        sparkMs += retry.ms;
+        if (rRaws.length > 0) { analysis = rAnalysis; analysisText = rText; raws = rRaws; }
+      } catch { /* first (empty) attempt stands */ }
+    }
     // Studio image for the hero product only (cost control)
     const firstName = String(raws[0]?.name_en ?? prompt);
     const studioR = await timed(() => cleanProductShot(firstName)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
@@ -113,7 +130,7 @@ export async function POST(req: NextRequest) {
     } catch { /* crops are enhancement-only */ }
     const trace = [
       { model: "sam-3.1", role: "Segmentation — عزل كل قطعة في الصورة", ms: samMs, live, status: detections.length ? "ok" : "empty" },
-      { model: "muse-spark-1.3", role: "تعرّف + تسعير محلي + إعلان كامل", ms: sparkR.ms, live, status: products.length ? "ok" : "empty" },
+      { model: "muse-spark-1.3", role: "تعرّف + تسعير محلي + إعلان كامل", ms: sparkMs, live, status: products.length ? "ok" : "empty" },
       { model: "muse-image-1.0", role: "صورة ستوديو نظيفة للمنتج الأول", ms: studioR.ms, live, status: studioImage ? "ok" : "skipped" },
     ];
 

@@ -76,7 +76,10 @@ export function buildGrounding(prompt: string, detectionPart: string, focus = ""
     ? `\nCOUNT RULE: SAM found exactly ${maxItems} item region(s) above. Return AT MOST ${maxItems} listing(s), each tied to one numbered region (#1..#${maxItems}). Never list anything not visible in one of these regions.`
     : "";
   const f = focus.trim().replace(/\s+/g, " ");
-  if (!f) return `${prompt}: ${base}${cap}`;
+  const cover = !f && maxItems > 1
+    ? `\nCOVERAGE RULE: give EVERY numbered region above its own separate listing — never merge multiple regions into one combined listing. If a region holds no sellable item, skip just that region.`
+    : "";
+  if (!f) return `${prompt}: ${base}${cap}${cover}`;
   return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Use the seller's exact names — never rename them to something else. Ignore every other object in the photo.${cap}`;
 }
 // Find SAM-style detections anywhere in the response; boxes normalized to 0..1 (x1,y1,x2,y2).

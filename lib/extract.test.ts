@@ -34,6 +34,15 @@ describe("seller focus grounding", () => {
     expect(g).not.toContain("SELLER FOCUS");
     expect(g).toContain("AT MOST 1");
   });
+  it("demands one listing per region (no merging) for multi-region stalls", () => {
+    const g = buildGrounding("market goods", "#1 at [0.1,0.2]; #2 at [0.5,0.5]", "", 2);
+    expect(g).toContain("COVERAGE RULE");
+    expect(g).toContain("never merge");
+  });
+  it("skips the coverage rule for a single region and for seller focus", () => {
+    expect(buildGrounding("market goods", "#1 at [0.1,0.2]", "", 1)).not.toContain("COVERAGE RULE");
+    expect(buildGrounding("market goods", "#1 at [0.1,0.2]; #2 at [0.5,0.5]", "tomato", 2)).not.toContain("COVERAGE RULE");
+  });
   it("returns empty (not fake boxes) for garbage", () => {
     expect(extractDetections({ nothing: true }, [])).toEqual([]);
   });
