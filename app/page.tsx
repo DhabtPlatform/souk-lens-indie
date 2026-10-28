@@ -7,7 +7,7 @@ import { ProductCard } from "@/components/products/product-card";
 import { ProductDetailsSheet } from "@/components/products/product-details-sheet";
 import { SellerDashboard } from "@/components/products/seller-dashboard";
 import { SmartMarket } from "@/components/smart/smart-market";
-import { EmptyState, ProductSkeletonGrid } from "@/components/products/states";
+import { EmptyState, NoResultDiagnosis, ProductSkeletonGrid } from "@/components/products/states";
 import { ModelTrace, STAGE_PRESETS, type TraceInfo } from "@/components/products/model-trace";
 import { TabModelMap } from "@/components/products/tab-model-map";
 import { SamOverlay } from "@/components/products/sam-overlay";
@@ -102,6 +102,10 @@ export default function Page() {
   const chunksRef = useRef<Blob[]>([]);
   const autoRan = useRef(false);
   const autoScroll = useRef(false);
+  // Guards overlapping runs (e.g. user hits Analyze while auto-run is in
+  // flight): only the LATEST request may apply results, so a slow earlier
+  // run can never clobber what the user actually asked for last.
+  const reqIdRef = useRef(0);
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
   const [runElapsed, setRunElapsed] = useState(0);
   const resultsRef = useRef<HTMLElement>(null);
@@ -270,11 +274,13 @@ export default function Page() {
   }
 
   async function postJson(path: string, body: Record<string, unknown>) {
+    const myReq = ++reqIdRef.current;
     setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setFocusEcho(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
     const t0 = performance.now();
     try {
       const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = await r.json();
+      if (myReq !== reqIdRef.current) return; // superseded by a newer run
       if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
       setLive(!!j.live); setRaw(j.raw ?? j);
       if (typeof j.focus === "string" && j.focus) setFocusEcho(j.focus);
@@ -298,7 +304,7 @@ export default function Page() {
       }
       recordRun(performance.now() - t0, count);
       if (j.live && (body.imageMode ?? "both") !== "real" && list[0]) enrichMedia(list[0]);
-    } catch (e) { setError(String(e)); } finally { setLoading(false); setRunStartedAt(null); }
+    } catch (e) { if (myReq === reqIdRef.current) setError(String(e)); } finally { if (myReq === reqIdRef.current) { setLoading(false); setRunStartedAt(null); } }
   }
 
   // Live run timer for the floating analysis pill (real elapsed seconds only).
@@ -365,6 +371,7 @@ export default function Page() {
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
         setVoiceAudioUrl(URL.createObjectURL(blob));
         setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setDetections([]); setSourceImg(""); setStudio(null); setAlternatives([]); setComparison(""); setVerdict("");
+        const myReq = ++reqIdRef.current;
         const t0 = performance.now();
         try {
           // Meta voice needs 16kHz mono WAV — convert in-browser, then transcribe for real.
@@ -377,13 +384,14 @@ export default function Page() {
           fd.append("imageMode", imgMode);
           const r = await fetch("/api/voice", { method: "POST", body: fd });
           const j = await r.json();
+          if (myReq !== reqIdRef.current) return; // superseded by a newer run
           setLive(!!j.live); setRaw(j);
           const prods = (j.products ?? []) as Product[];
           setTrace({ endpoint: "/api/voice", live: !!j.live, elapsedMs: Math.round(performance.now() - t0), count: prods.length, stages: (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS["/api/voice-listing"] ?? []) as TraceInfo["stages"] });
           if (j.transcript) { setDesc(j.transcript); setResults(prods); recordRun(performance.now() - t0, prods.length); if (prods.length) toast.success(ar ? "اتحول صوتك لإعلان كامل بالاسم والصور" : "Your voice became a full listing with name & images"); if (j.live && imgMode !== "real" && prods[0]) enrichMedia(prods[0]); }
           else { setResults([]); toast.info(j.note ?? (ar ? "اكتب وصف المنتج وهنولد الإعلان" : "Type the description to generate")); }
           if (typeof j.note === "string" && j.note && j.transcript) toast.info(j.note);
-        } catch (e) { setError(String(e)); } finally { setLoading(false); setRunStartedAt(null); }
+        } catch (e) { if (myReq === reqIdRef.current) setError(String(e)); } finally { if (myReq === reqIdRef.current) { setLoading(false); setRunStartedAt(null); } }
       };
       mr.start(); setRecording(true);
     } catch { toast.error(ar ? "تعذر فتح المايك — اسمح بالوصول أو اكتب الوصف" : "Mic blocked — allow access or type"); }
@@ -724,7 +732,14 @@ export default function Page() {
               </div>
             ) : null}
 
-            {!loading && !error && !results.length && !comparison ? <EmptyState lang={lang} compact /> : null}
+            {!loading && !error && !results.length && !comparison ? (
+              trace ? (
+                <NoResultDiagnosis
+                  lang={lang} samCount={detections.length} elapsedMs={trace.elapsedMs} live={trace.live}
+                  onRetry={() => { if (tab === "analyze") runAnalyze(); else if (tab === "generate") runGenerate(); else if (tab === "compare") runCompare(); else if (tab === "import") runImport(); }}
+                />
+              ) : <EmptyState lang={lang} compact />
+            ) : null}
 
             {verdict ? <Card className="border-accent/40 bg-accent/10 p-5 animate-souk-in"><h3 className="font-extrabold text-accent">{ar ? "الحكم النهائي" : "Verdict"}</h3><p className="mt-1 leading-8">{verdict}</p></Card> : null}
             {comparison ? <Card className="p-5 animate-souk-in"><h3 className="mb-2 font-extrabold">{ar ? "المقارنة التفصيلية" : "Detailed comparison"}</h3><p className="whitespace-pre-wrap leading-8 text-muted-foreground">{comparison}</p></Card> : null}
