@@ -438,7 +438,7 @@ export default function Page() {
                   </label>
                   <div className="space-y-1.5"><Label>{ar ? "أو جرّب بسطة حقيقية" : "Or try a real stall photo"}</Label>
                     <div className="grid grid-cols-2 gap-2">
-                      {[{ src: "/stall-veg.jpg", arL: "بسطة خضار", enL: "Veg stall", prompt: "mixed vegetables" }, { src: "/stall-fruit.jpg", arL: "بسطة فاكهة وخضار", enL: "Fruit & veg stall", prompt: "mixed fruit and vegetables" }].map((s) => (
+                      {[{ src: "/stall-veg.jpg", arL: "بسطة خضار", enL: "Veg stall" }, { src: "/stall-fruit.jpg", arL: "بسطة فاكهة وخضار", enL: "Fruit & veg stall" }].map((s) => (
                         <button key={s.src} type="button" onClick={() => { setImageUrl(s.src); setImageLabel(""); setScope("all"); setFocusNames(""); setTab("analyze"); }} className="group overflow-hidden rounded-xl border text-start transition hover:border-primary/60">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={s.src} alt={ar ? s.arL : s.enL} className="h-20 w-full object-cover transition group-hover:scale-[1.03]" loading="lazy" />
