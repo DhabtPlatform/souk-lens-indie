@@ -77,6 +77,7 @@ export default function Page() {
   });
   const [showImgCfg, setShowImgCfg] = useState(false);
   const [defaultUrlDraft, setDefaultUrlDraft] = useState("");
+  const [testingUrl, setTestingUrl] = useState(false);
   const [scope, setScope] = useState<"all" | "specific">("all");
   const [focusNames, setFocusNames] = useState("");
   const [focusEcho, setFocusEcho] = useState("");
@@ -208,6 +209,61 @@ export default function Page() {
       if (src) localStorage.setItem("souk-lens-default-img", src);
       else localStorage.removeItem("souk-lens-default-img");
     } catch { toast.error(ar ? "الصورة كبيرة على التخزين المحلي — استخدم رابطًا بدل الرفع" : "Photo too large for local storage — use a link instead"); }
+  }
+
+  // Share-page links (Drive/Dropbox) are NOT fetchable by Meta — convert them
+  // to direct file links before saving, so the saved default actually works.
+  function normalizeDirectImageUrl(u: string): string {
+    const s = u.trim();
+    try {
+      const url = new URL(s);
+      if (url.hostname.includes("drive.google.com")) {
+        const m = url.pathname.match(/\/file\/d\/([^/]+)/);
+        const id = m?.[1] ?? url.searchParams.get("id");
+        if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1280`;
+        return s;
+      }
+      if (url.hostname.includes("dropbox.com")) {
+        url.searchParams.set("raw", "1");
+        url.searchParams.delete("dl");
+        return url.toString();
+      }
+    } catch { /* not a URL — let the load test reject it */ }
+    return s;
+  }
+  // The browser must actually open it as an image before we save it — a link
+  // Meta can't fetch (login pages, share pages, dead links) is rejected HERE
+  // with a clear message instead of failing later inside the analysis run.
+  function testImageLoads(src: string, timeoutMs = 15000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement("img");
+      const to = setTimeout(() => { img.src = ""; reject(new Error("timeout")); }, timeoutMs);
+      img.onload = () => { clearTimeout(to); resolve(); };
+      img.onerror = () => { clearTimeout(to); reject(new Error("load-failed")); };
+      img.src = src;
+    });
+  }
+  // Uploads are downscaled to ≤1280px JPEG so they REALLY fit localStorage
+  // (a raw phone photo is ~5MB and silently fails the quota).
+  function fileToDefaultDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const objUrl = URL.createObjectURL(file);
+      const img = document.createElement("img");
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
+          const c = document.createElement("canvas");
+          c.width = w; c.height = h;
+          c.getContext("2d")?.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(objUrl);
+          resolve(c.toDataURL("image/jpeg", 0.82));
+        } catch (e) { URL.revokeObjectURL(objUrl); reject(e); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("bad-file")); };
+      img.src = objUrl;
+    });
   }
 
   const filteredMine = useMemo(() => {
@@ -795,29 +851,40 @@ export default function Page() {
           {/* Inconspicuous seller control: sets the photo the auto-run analyzes. */}
           <button type="button" onClick={() => setShowImgCfg((v) => !v)}
             title={ar ? "صورة التشغيل التلقائي" : "Auto-run photo"} aria-label={ar ? "صورة التشغيل التلقائي" : "Auto-run photo"}
-            className="opacity-30 transition hover:opacity-80" style={{ fontSize: 10, lineHeight: 1 }}>·</button>
+            className="rounded px-1.5 py-0.5 text-base leading-none opacity-60 transition hover:opacity-100" style={{ lineHeight: 1 }}>·</button>
           {showImgCfg ? (
-            <div className="flex w-full items-center gap-1.5 rounded-xl border p-2">
-              <Input value={defaultUrlDraft} onChange={(e) => setDefaultUrlDraft(e.target.value)}
-                placeholder={ar ? "رابط صورة افتراضية للتشغيل التلقائي…" : "Default auto-run image URL…"} dir="ltr" className="h-8 text-xs" />
-              <Button size="sm" variant="outline" onClick={() => {
-                if (!defaultUrlDraft.trim()) return;
-                persistDefault(defaultUrlDraft.trim()); setDefaultUrlDraft("");
-                toast.success(ar ? "اتحفظت الصورة الافتراضية" : "Default image saved");
-              }}>{ar ? "حفظ" : "Save"}</Button>
-              <label className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-dashed px-2.5 text-[11px] font-bold transition hover:border-primary/60 hover:bg-primary/5">
-                {ar ? "رفع" : "Upload"}
-                <input type="file" accept="image/*" hidden onChange={(e) => {
-                  const f = e.target.files?.[0]; if (!f) return;
-                  const rd = new FileReader();
-                  rd.onload = () => { persistDefault(String(rd.result)); toast.success(ar ? "اتحفظت الصورة الافتراضية" : "Default image saved"); };
-                  rd.readAsDataURL(f);
-                  e.target.value = "";
-                }} />
-              </label>
-              {customDefault ? (
-                <Button size="sm" variant="ghost" onClick={() => { persistDefault(""); setDefaultUrlDraft(""); toast.success(ar ? "رجعت الصورة الأصلية" : "Back to the built-in photo"); }}>{ar ? "مسح" : "Clear"}</Button>
-              ) : null}
+            <div className="w-full space-y-1.5 rounded-xl border p-2">
+              <div className="flex items-center gap-1.5">
+                <Input value={defaultUrlDraft} onChange={(e) => setDefaultUrlDraft(e.target.value)}
+                  placeholder={ar ? "رابط صورة افتراضية للتشغيل التلقائي…" : "Default auto-run image URL…"} dir="ltr" className="h-8 text-xs" />
+                <Button size="sm" variant="outline" disabled={testingUrl} onClick={async () => {
+                  const fixed = normalizeDirectImageUrl(defaultUrlDraft);
+                  if (!fixed) return;
+                  setTestingUrl(true);
+                  try {
+                    await testImageLoads(fixed);
+                    persistDefault(fixed); setDefaultUrlDraft("");
+                    toast.success(ar ? "اتحفظت الصورة الافتراضية واتفحصت بنجاح" : "Default image verified & saved");
+                  } catch {
+                    toast.error(ar ? "الرابط لا يفتح كصورة عامة — الصق رابط صورة مباشر (jpg/png) أو ارفع من جهازك" : "That link doesn't open as a public image — paste a direct (jpg/png) link or upload from your device");
+                  } finally { setTestingUrl(false); }
+                }}>{testingUrl ? (ar ? "يفحص…" : "Checking…") : (ar ? "حفظ" : "Save")}</Button>
+                <label className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-dashed px-2.5 text-[11px] font-bold transition hover:border-primary/60 hover:bg-primary/5">
+                  {ar ? "رفع" : "Upload"}
+                  <input type="file" accept="image/*" hidden onChange={(e) => {
+                    const f = e.target.files?.[0]; if (!f) return;
+                    e.target.value = "";
+                    fileToDefaultDataUrl(f).then((data) => {
+                      persistDefault(data);
+                      toast.success(ar ? "اتحفظت الصورة الافتراضية (مصغّرة)" : "Default image saved (downscaled)");
+                    }).catch(() => toast.error(ar ? "تعذّرت قراءة الملف" : "Could not read the file"));
+                  }} />
+                </label>
+                {customDefault ? (
+                  <Button size="sm" variant="ghost" onClick={() => { persistDefault(""); setDefaultUrlDraft(""); toast.success(ar ? "رجعت الصورة الأصلية" : "Back to the built-in photo"); }}>{ar ? "مسح" : "Clear"}</Button>
+                ) : null}
+              </div>
+              <p className="text-[11px] leading-5 opacity-80">{ar ? "لازم رابط صورة مباشر عام (ينتهي بـ jpg/png) — روابط Drive/Dropbox تتحوّل تلقائيًا. الرابط يتفحص قبل الحفظ حتى لا يفشل التشغيل لاحقًا. الرفع يُصغَّر ويُحفظ على جهازك فقط." : "Must be a direct public image link (ends in jpg/png) — Drive/Dropbox links auto-convert. Links are verified before saving so runs never fail later. Uploads are downscaled and stay on your device."}</p>
             </div>
           ) : null}
           <span className="ms-auto hidden sm:inline">Next.js · shadcn/ui · Tailwind · Meta Model API</span>
