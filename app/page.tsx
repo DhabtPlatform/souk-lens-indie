@@ -36,7 +36,7 @@ import { COUNTRIES, t, type Lang } from "@/lib/brand";
 import type { Product } from "@/lib/product";
 import {
   ArrowLeftRight, Bot, Camera, CheckCheck, Download, FileJson, Gavel, ImagePlus, Link2, Loader2, Megaphone, Mic, Package,
-  Radio, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Square, Store, Trash2, TriangleAlert, Trophy, Type, Wand2,
+  Radio, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Square, Store, Timer, Trash2, TriangleAlert, Trophy, Type, Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -260,6 +260,15 @@ export default function Page() {
   }, [loading, runStartedAt]);
 
   const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  // Human-in-the-loop correction: a cropped region re-enters the pipeline as a
+  // new photo under the seller's authoritative name (specific scope).
+  function inspectRegion(crop: string, name: string) {
+    const n = (name || "").trim();
+    setTab("analyze"); setImageUrl(crop);
+    if (n) { setScope("specific"); setFocusNames(n); setImageLabel(n); }
+    else { setScope("all"); setFocusNames(""); setImageLabel(""); }
+    postJson("/api/lens", { imageUrl: crop, prompt: n || "market goods", focus: n, lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  }
   const runDemo = () => { setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado"); postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency }); };
   function handleJudgeAction(a: JudgeAction) {
     if (a === "demo") runDemo();
@@ -601,16 +610,38 @@ export default function Page() {
 
             {loading ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2 text-xs font-bold">
-                  {["SAM 3.1", "Muse Spark", "Muse Image"].map((s, i) => <Badge key={s} variant={i === 0 ? "default" : "secondary"}>{s}</Badge>)}
-                  <span className="text-muted-foreground">{ar ? "بيبني إعلانات كاملة…" : "Building full listings…"}</span>
-                </div>
+                <Card className="animate-souk-in overflow-hidden border-accent/40 bg-accent/[0.06] p-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Loader2 className="h-7 w-7 animate-spin text-accent" />
+                    <div className="flex-1">
+                      <h3 className="text-lg font-black">{ar ? "يبني إعلاناتك الآن…" : "Building your listings now…"}</h3>
+                      <p className="text-xs text-muted-foreground">{ar ? "SAM يعزل ← Spark يكتب ويُسعّر ← Muse Image ينظّف الصورة" : "SAM isolates → Spark writes & prices → Muse Image cleans the shot"}</p>
+                    </div>
+                    <span className="rounded-full bg-accent px-3 py-1 text-sm font-black text-black" dir="ltr">{runElapsed}s</span>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    {[
+                      { m: "sam-3.1", r: ar ? "عزل كل قطعة" : "Isolating every item" },
+                      { m: "muse-spark-1.3", r: ar ? "كتابة الإعلانات والتسعير" : "Writing listings & pricing" },
+                      { m: "muse-image-1.0", r: ar ? "تنظيف صورة الاستوديو" : "Cleaning the studio shot" },
+                    ].map((s) => (
+                      <div key={s.m} className="flex items-center gap-2 rounded-xl border bg-card p-3">
+                        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accent" />
+                        <div><p className="text-[13px] font-black" dir="ltr">{s.m}</p><p className="text-[11px] text-muted-foreground">{s.r}</p></div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 flex items-center gap-1.5 text-[11px] leading-5 text-muted-foreground">
+                    <Timer className="h-3.5 w-3.5 shrink-0" />
+                    {ar ? "الزمن يطول مع عدد الأصناف في الصورة — القياس الحقيقي لكل موديل يظهر في شريط الإثبات فور الاكتمال." : "Time grows with the number of items in the photo — each model's measured time appears in the proof bar on completion."}
+                  </p>
+                </Card>
                 <ProductSkeletonGrid />
               </div>
             ) : null}
 
             {!loading && !error && results.length && detections.length ? (
-              <SamOverlay image={sourceImg || imageUrl} detections={detections} products={results} lang={lang} onDetails={openDetails} />
+              <SamOverlay image={sourceImg || imageUrl} detections={detections} products={results} lang={lang} onDetails={openDetails} onInspectBox={inspectRegion} />
             ) : null}
 
             {(() => {

@@ -1,22 +1,59 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { Detection } from "@/lib/extract";
 import type { Product } from "@/lib/product";
 import { formatPrice } from "@/lib/utils";
-import { ScanEye } from "lucide-react";
+import { PencilLine, ScanEye, ScanSearch } from "lucide-react";
+import { toast } from "sonner";
 
 const COLORS = ["#7c5cff", "#00d4a4", "#ffd166", "#ff7ab6", "#38bdf8", "#fb923c"];
 
-export function SamOverlay({ image, detections, products, lang, onDetails }: {
+// Crop a normalized box from the displayed photo into a data URL for
+// re-analysis. Null when the pixels are unreadable (tainted remote image).
+function cropBox(img: HTMLImageElement | null, box: Detection["box"]): string | null {
+  try {
+    if (!img || !img.naturalWidth) return null;
+    const [x1, y1, x2, y2] = box;
+    const sx = Math.max(0, Math.floor(Math.min(x1, x2) * img.naturalWidth));
+    const sy = Math.max(0, Math.floor(Math.min(y1, y2) * img.naturalHeight));
+    const sw = Math.min(img.naturalWidth - sx, Math.ceil((Math.abs(x2 - x1)) * img.naturalWidth));
+    const sh = Math.min(img.naturalHeight - sy, Math.ceil((Math.abs(y2 - y1)) * img.naturalHeight));
+    if (sw < 8 || sh < 8) return null;
+    const c = document.createElement("canvas");
+    c.width = Math.min(sw, 900); c.height = Math.min(sh, 900);
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return null;
+  }
+}
+
+export function SamOverlay({ image, detections, products, lang, onDetails, onInspectBox }: {
   image: string; detections: Detection[]; products: Product[]; lang: "ar" | "en"; onDetails: (p: Product) => void;
+  onInspectBox: (crop: string, name: string) => void;
 }) {
   const ar = lang === "ar";
   const [active, setActive] = useState(0);
+  const [correctName, setCorrectName] = useState("");
+  const imgRef = useRef<HTMLImageElement | null>(null);
   if (!detections.length || !image) return null;
   const isSam = detections[0]?.source === "sam";
   const productFor = (i: number) => products[i] ?? products.find((p) => p.name_en.toLowerCase().includes(detections[i].label.toLowerCase().split(" ")[0])) ?? null;
+  const d = detections[Math.min(active, detections.length - 1)];
+  const p = productFor(Math.min(active, detections.length - 1));
+
+  function inspect(name: string) {
+    const crop = cropBox(imgRef.current, d.box);
+    if (!crop) { toast.error(ar ? "تعذّر قصّ المنطقة من هذه الصورة — جرّب رفعها من جهازك" : "Could not crop this photo — try uploading it from your device"); return; }
+    onInspectBox(crop, name.trim());
+    setCorrectName("");
+  }
 
   return (
     <Card className="animate-souk-in overflow-hidden border-primary/40">
@@ -31,7 +68,7 @@ export function SamOverlay({ image, detections, products, lang, onDetails }: {
       <CardContent className="space-y-3">
         <div className="relative overflow-hidden rounded-2xl border bg-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt="SAM segmentation" className="max-h-[420px] w-full object-cover" />
+          <img ref={imgRef} src={image} alt="SAM segmentation" crossOrigin="anonymous" className="max-h-[420px] w-full object-cover" />
           {detections.map((d, i) => {
             const [x1, y1, x2, y2] = d.box;
             const c = COLORS[i % COLORS.length];
@@ -58,6 +95,25 @@ export function SamOverlay({ image, detections, products, lang, onDetails }: {
               </button>
             );
           })}
+        </div>
+        {/* Human-in-the-loop: inspect or correct the active box */}
+        <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/[0.04] p-3">
+          <p className="text-xs font-extrabold" dir="auto">
+            {ar ? `المربع ${Math.min(active, detections.length - 1) + 1}: ${d.label}` : `Box ${Math.min(active, detections.length - 1) + 1}: ${d.label}`}
+            {p ? ` · ${formatPrice(p.price, p.currency)}` : ""}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button size="sm" variant="outline" onClick={() => inspect(d.label)}>
+              <ScanSearch className="me-1 h-3.5 w-3.5" />{ar ? "حلّل هذه المنطقة وحدها" : "Analyze this region alone"}
+            </Button>
+            <div className="flex flex-1 gap-2">
+              <Input value={correctName} onChange={(e) => setCorrectName(e.target.value)} placeholder={ar ? "ليس صحيحًا؟ اكتب الاسم الصحيح…" : "Wrong? Type the right name…"} className="h-9" />
+              <Button size="sm" disabled={!correctName.trim()} onClick={() => inspect(correctName)}>
+                <PencilLine className="me-1 h-3.5 w-3.5" />{ar ? "صحّح وحلّل" : "Correct & analyze"}
+              </Button>
+            </div>
+          </div>
+          <p className="text-[11px] leading-5 text-muted-foreground">{ar ? "المنطقة تُقص من صورتك وتُحلل كصورة جديدة بالاسم الذي تكتبه — أنت تصحح الذكاء." : "The region is cropped from your photo and analyzed as a new image under the name you type — you correct the AI."}</p>
         </div>
       </CardContent>
     </Card>
