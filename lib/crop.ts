@@ -19,7 +19,7 @@ export async function cropRegions(imageBytes: Buffer, boxes: CropBox[], maxSide 
   const h = meta.height ?? 0;
   if (!w || !h) return boxes.map(() => "");
   const out: string[] = [];
-  for (const b of boxes.slice(0, 8)) {
+  for (const b of boxes.slice(0, 14)) {
     try {
       const r = boxToPixels(b, w, h);
       const buf = await sharp(imageBytes)

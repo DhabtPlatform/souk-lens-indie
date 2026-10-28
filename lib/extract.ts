@@ -41,6 +41,26 @@ export function extractItems(resp: unknown, text?: string): Record<string, unkno
 
 export type Detection = { label: string; box: [number, number, number, number]; source: "sam" | "estimate" };
 
+export function iou(a: Detection["box"], b: Detection["box"]): number {
+  const x1 = Math.max(a[0], b[0]);
+  const y1 = Math.max(a[1], b[1]);
+  const x2 = Math.min(a[2], b[2]);
+  const y2 = Math.min(a[3], b[3]);
+  const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  const ua = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter;
+  return ua > 0 ? inter / ua : 0;
+}
+
+// Merge a second segmentation pass: keep every box that does not heavily
+// overlap one we already have. Raises coverage without double-counting.
+export function mergeDetections(base: Detection[], extra: Detection[], thr = 0.5): Detection[] {
+  const out = [...base];
+  for (const d of extra) {
+    if (out.every((o) => iou(o.box, d.box) < thr)) out.push(d);
+  }
+  return out.slice(0, 14);
+}
+
 // Seller focus: "all items" (default) or a comma-separated list of visible item
 // names to generate listings for ONLY. Appended to the Spark grounding so the
 // instruction travels with the model prompt, honestly labeled end to end.
@@ -75,7 +95,7 @@ export function extractDetections(seg: unknown, fallbackLabels: string[] = []): 
         source: "sam",
       });
     }
-    if (found.length >= 8) return found;
+    if (found.length >= 14) return found;
   }
   if (found.length) return found;
 
@@ -96,9 +116,9 @@ export function extractDetections(seg: unknown, fallbackLabels: string[] = []): 
     for (const val of Object.values(o)) walk(val, depth + 1);
   }
   walk(seg, 0);
-  if (found.length) return found.slice(0, 8);
+  if (found.length) return found.slice(0, 14);
   // Honest fallback: evenly placed estimate boxes matched to the listings Spark returned.
-  const labels = fallbackLabels.filter(Boolean).slice(0, 6);
+  const labels = fallbackLabels.filter(Boolean).slice(0, 8);
   return labels.map((label, i) => {
     const cols = labels.length <= 2 ? labels.length : 3;
     const col = i % cols; const row = Math.floor(i / cols);

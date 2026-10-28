@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGrounding, extractDetections } from "@/lib/extract";
+import { buildGrounding, extractDetections, mergeDetections } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -36,6 +36,16 @@ describe("seller focus grounding", () => {
   });
   it("returns empty (not fake boxes) for garbage", () => {
     expect(extractDetections({ nothing: true }, [])).toEqual([]);
+  });
+  it("merges a second pass without double-counting", () => {
+    const a = [{ label: "x", box: [0, 0, 0.5, 0.5] as [number, number, number, number], source: "sam" as const }];
+    const b = [
+      { label: "y", box: [0.05, 0.05, 0.45, 0.45] as [number, number, number, number], source: "sam" as const },
+      { label: "z", box: [0.6, 0.6, 0.9, 0.9] as [number, number, number, number], source: "sam" as const },
+    ];
+    const m = mergeDetections(a, b);
+    expect(m.length).toBe(2);
+    expect(m[1].label).toBe("z");
   });
 });
 

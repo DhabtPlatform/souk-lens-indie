@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
-import { buildGrounding, extractDetections, extractItems, extractStudioImage, extractText } from "@/lib/extract";
+import { buildGrounding, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 import { cropRegions, sourceBytes } from "@/lib/crop";
 
@@ -30,7 +30,17 @@ export async function POST(req: NextRequest) {
     const samPrompt = focusStr || prompt;
     const segR = await timed(() => segmentImage(imageUrl, samPrompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
     const seg = segR.v;
-    const samDetections = extractDetections(seg, []);
+    let samDetections = extractDetections(seg, []);
+    let samMs = segR.ms;
+    // Thin coverage? One cheap second pass with a different focus, merged by
+    // IoU so nothing double-counts. Only runs when the first pass is sparse.
+    if (samDetections.length > 0 && samDetections.length < 4) {
+      try {
+        const segR2 = await timed(() => segmentImage(imageUrl, "small piles groups at edges"));
+        samMs += segR2.ms;
+        samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
+      } catch { /* single pass stands */ }
+    }
     const detectionPart = samDetections.length
       ? samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")
       : extractText(seg).slice(0, 400);
@@ -74,7 +84,7 @@ export async function POST(req: NextRequest) {
       }
     } catch { /* crops are enhancement-only */ }
     const trace = [
-      { model: "sam-3.1", role: "Segmentation — عزل كل قطعة في الصورة", ms: segR.ms, live, status: detections.length ? "ok" : "empty" },
+      { model: "sam-3.1", role: "Segmentation — عزل كل قطعة في الصورة", ms: samMs, live, status: detections.length ? "ok" : "empty" },
       { model: "muse-spark-1.3", role: "تعرّف + تسعير محلي + إعلان كامل", ms: sparkR.ms, live, status: products.length ? "ok" : "empty" },
       { model: "muse-image-1.0", role: "صورة ستوديو نظيفة للمنتج الأول", ms: studioR.ms, live, status: studioImage ? "ok" : "skipped" },
     ];
