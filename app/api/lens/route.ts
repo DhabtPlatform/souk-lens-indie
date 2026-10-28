@@ -14,6 +14,14 @@ export async function POST(req: NextRequest) {
     if (!rawUrl || typeof rawUrl !== "string") return NextResponse.json({ error: "imageUrl required" }, { status: 400 });
     // Local brand assets only resolve for Meta when the deployment origin is public.
     const imageUrl = rawUrl.startsWith("/") ? `${req.nextUrl.origin}${rawUrl}` : rawUrl;
+    const host = (() => { try { return new URL(imageUrl).hostname; } catch { return ""; } })();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+      return NextResponse.json({
+        ok: false,
+        code: "LOCAL_URL",
+        error: "هذه الصورة على جهازك المحلي (localhost) — نموذج Meta لا يستطيع الوصول إليها. ارفع الصورة من جهازك (زر الرفع يرسلها مباشرة) أو الصق رابطًا عامًا https. / This photo lives on localhost, which Meta's model cannot reach. Upload it from your device (the upload button sends it directly) or paste a public https link.",
+      }, { status: 400 });
+    }
     const live = Boolean(process.env.MODEL_API_KEY);
     const timed = async <T,>(fn: () => Promise<T>) => { const t0 = Date.now(); const v = await fn(); return { v, ms: Date.now() - t0 }; };
     // Sequential on purpose: SAM findings ground Spark, so a photo of hazelnuts
@@ -65,6 +73,14 @@ export async function POST(req: NextRequest) {
       raw: { segmentation: seg, analysis, studio: studioR.v },
     });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    const msg = String(e);
+    if (msg.includes("media_url_not_fetchable") || msg.includes("robots")) {
+      return NextResponse.json({
+        ok: false,
+        code: "UNFETCHABLE",
+        error: "تعذّر على نموذج Meta جلب هذه الصورة (رابط محمي أو غير عام). جرّب رفع الصورة من جهازك — زر الرفع يرسلها مباشرة — أو استخدم رابطًا عامًا آخر. / Meta could not fetch this image (protected or non-public URL). Try uploading the photo from your device instead, or use another public link.",
+      }, { status: 400 });
+    }
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
