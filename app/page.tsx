@@ -276,7 +276,7 @@ export default function Page() {
   function onImageFile(f: File | undefined) {
     if (!f) return;
     const rd = new FileReader();
-    rd.onload = () => { setImageUrl(String(rd.result)); toast.success(ar ? "اتحملت الصورة" : "Image loaded"); };
+    rd.onload = () => { setImageUrl(String(rd.result)); setImageLabel(""); setScope("all"); setFocusNames(""); toast.success(ar ? "اتحملت الصورة" : "Image loaded"); };
     rd.readAsDataURL(f);
   }
   function onPhotoFile(f: File | undefined) {
@@ -420,7 +420,7 @@ export default function Page() {
             <InputCard title={ar ? "تحليل صورة سوق" : "Analyze a market photo"} desc={ar ? "ارفع صورة أو الصق رابط — SAM يعزل، Spark يكتب الإعلان كامل، وMuse Image ينضف صورة المنتج." : "Upload or paste a link — SAM segments, Spark writes the full listing, Muse Image cleans the shot."} icon={<Camera className="text-primary" />} steps={HOW.analyze[lang]} lang={lang}>
               <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
                 <div className="space-y-3">
-                  <div className="space-y-1.5"><Label>{ar ? "رابط الصورة" : "Image URL"}</Label><Input dir="ltr" value={imageUrl.startsWith("data:") ? "" : imageUrl} placeholder="https://…" onChange={(e) => setImageUrl(e.target.value)} /><Hint>{ar ? "رابط مباشر لصورة (https) — أو ارفع من جهازك في المربع تحت." : "Direct image link (https) — or upload from your device below."}</Hint></div>
+                  <div className="space-y-1.5"><Label>{ar ? "رابط الصورة" : "Image URL"}</Label><Input dir="ltr" value={imageUrl.startsWith("data:") ? "" : imageUrl} placeholder="https://…" onChange={(e) => { setImageUrl(e.target.value); setImageLabel(""); setScope("all"); setFocusNames(""); }} /><Hint>{ar ? "رابط مباشر لصورة (https) — أو ارفع من جهازك في المربع تحت." : "Direct image link (https) — or upload from your device below."}</Hint></div>
                   <div className="space-y-1.5"><Label>{ar ? "نطاق التوليد" : "Generation scope"}</Label>
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant={scope === "all" ? "default" : "outline"} onClick={() => { setScope("all"); setFocusNames(""); setImageLabel(""); }}>{ar ? "كل أصناف الفرشة" : "All stall items"}</Button>
