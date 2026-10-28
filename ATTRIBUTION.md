@@ -10,6 +10,9 @@ are open (OFL) via Google Fonts.
 الشكر موصول لمصوري Unsplash. في الإنتاج تُستبدل هذه الصور بصور البائعين الحقيقية
 التي يرفعونها أو يولدها لهم التطبيق.
 
+## صور البسطة الحقيقية (stall-veg.jpg وstall-fruit.jpg وstall-stand.jpg)
+صور حقيقية من البائع (مقدمة من صاحب المشروع للاختبار) — ليست من Unsplash، وتُستخدم كعيّنات تجريبية داخل التطبيق. في الإنتاج تُستبدل بصور البائعين.
+
 ## صور الهوية والخلفيات
 مولّدة خصيصًا للمشروع عبر **Muse Image 1.0** (`scripts/gen-brand-images.mjs`):
 `public/brand/hero-souq.jpg`، `public/brand/app-icon-art.jpg`، `public/brand/empty-stall.jpg`.
