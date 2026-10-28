@@ -69,6 +69,9 @@ export default function Page() {
   const [country, setCountry] = useState<Country>(COUNTRIES[0]);
   const [imageUrl, setImageUrl] = useState(SAMPLE);
   const [imageLabel, setImageLabel] = useState("");
+  const [scope, setScope] = useState<"all" | "specific">("all");
+  const [focusNames, setFocusNames] = useState("");
+  const [focusEcho, setFocusEcho] = useState("");
   const [desc, setDesc] = useState("");
   const [extUrl, setExtUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -218,13 +221,14 @@ export default function Page() {
   }
 
   async function postJson(path: string, body: Record<string, unknown>) {
-    setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
+    setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setFocusEcho(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
     const t0 = performance.now();
     try {
       const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
       setLive(!!j.live); setRaw(j.raw ?? j);
+      if (typeof j.focus === "string" && j.focus) setFocusEcho(j.focus);
       setDetections((j.detections ?? []) as Detection[]);
       if (typeof body.imageUrl === "string") setSourceImg(body.imageUrl);
       const stages = (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS[path] ?? []) as TraceInfo["stages"];
@@ -255,7 +259,7 @@ export default function Page() {
     return () => clearInterval(id);
   }, [loading, runStartedAt]);
 
-  const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   const runDemo = () => { setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado"); postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency }); };
   function handleJudgeAction(a: JudgeAction) {
     if (a === "demo") runDemo();
@@ -417,7 +421,15 @@ export default function Page() {
               <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
                 <div className="space-y-3">
                   <div className="space-y-1.5"><Label>{ar ? "رابط الصورة" : "Image URL"}</Label><Input dir="ltr" value={imageUrl.startsWith("data:") ? "" : imageUrl} placeholder="https://…" onChange={(e) => setImageUrl(e.target.value)} /><Hint>{ar ? "رابط مباشر لصورة (https) — أو ارفع من جهازك في المربع تحت." : "Direct image link (https) — or upload from your device below."}</Hint></div>
-                  <div className="space-y-1.5"><Label>{ar ? "بتدور على ايه؟ (اختياري)" : "Looking for? (optional)"}</Label><Input value={imageLabel} onChange={(e) => setImageLabel(e.target.value)} placeholder={ar ? "مثال: lamp, clothes, fruit" : "e.g. lamp, clothes"} /><Hint>{ar ? "اكتب اسم الصنف لو ملتبس (برتقال أخضر أم ليمون؟) — كلمة واحدة تمنع الخطأ وتجعل العزل أدق." : "Name the item if it is ambiguous (green orange or lime?) — one word prevents mistakes and sharpens detection."}</Hint></div>
+                  <div className="space-y-1.5"><Label>{ar ? "نطاق التوليد" : "Generation scope"}</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant={scope === "all" ? "default" : "outline"} onClick={() => { setScope("all"); setFocusNames(""); setImageLabel(""); }}>{ar ? "كل أصناف الفرشة" : "All stall items"}</Button>
+                      <Button size="sm" variant={scope === "specific" ? "default" : "outline"} onClick={() => setScope("specific")}>{ar ? "صنف معين / عدة أصناف" : "Specific item(s)"}</Button>
+                    </div>
+                  <Hint>{ar ? "«كل الأصناف» يولّد إعلانًا لكل ما يعزله SAM في الصورة. «صنف معين» يركز على ما تكتبه فقط." : "“All items” generates a listing for everything SAM isolates. “Specific” focuses only on what you name."}</Hint></div>
+                  {scope === "specific" ? (
+                  <div className="space-y-1.5"><Label>{ar ? "اكتب الصنف أو الأصناف" : "Name the item(s)"}</Label><Input value={focusNames} onChange={(e) => { setFocusNames(e.target.value); setImageLabel(e.target.value); }} placeholder={ar ? "مثال: طماطم، خيار — أو صنف واحد" : "e.g. tomato, cucumber — or a single item"} /><Hint>{ar ? "افصل بين الأصناف بفاصلة — كل صنف يتحول لإعلان كامل بسعره." : "Separate items with commas — each becomes a full listing with its price."}</Hint></div>
+                  ) : null}
                   <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-card/50 p-5 text-center transition hover:border-primary/60 hover:bg-primary/5">
                     <ImagePlus className="h-6 w-6 text-accent" />
                     <span className="text-sm font-bold">{ar ? "ارفع صورة من جهازك" : "Upload from your device"}</span>
@@ -554,6 +566,7 @@ export default function Page() {
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-black">{ar ? "النتيجة" : "Result"}</h2>
               <Badge variant={live ? "success" : "secondary"}>{live ? t("live", lang) : t("mock", lang)}</Badge>
+              {focusEcho ? <Badge variant="accent" dir="auto">{ar ? "التركيز: " : "Focus: "}{focusEcho.slice(0, 60)}</Badge> : null}
               <span className="text-xs text-muted-foreground">sam-3.1 + muse-spark-1.3 + muse-image-1.0 + muse-voice</span>
               {results.length ? <Button className="ms-auto" variant="accent" onClick={() => addAll(results)}><CheckCheck />{ar ? `حفظ الكل (${results.length})` : `Save all (${results.length})`}</Button> : null}
             </div>

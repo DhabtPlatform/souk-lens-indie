@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractDetections } from "@/lib/extract";
+import { buildGrounding, extractDetections } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -14,7 +14,21 @@ describe("SAM native box parsing", () => {
     expect(x2).toBeCloseTo(1173 / 1280, 4);
     expect(y2).toBeCloseTo(643 / 853, 4);
   });
+});
+describe("seller focus grounding", () => {
+  it("stays neutral without focus (all items)", () => {
+    const g = buildGrounding("market goods", "#1 at [0.1,0.2]", "");
+    expect(g).not.toContain("SELLER FOCUS");
+    expect(g).toContain("#1 at [0.1,0.2]");
+  });
+  it("instructs ONLY the named items with focus", () => {
+    const g = buildGrounding("market goods", "#1 at [0.1,0.2]", "tomato, cucumber");
+    expect(g).toContain("SELLER FOCUS");
+    expect(g).toContain("tomato, cucumber");
+    expect(g).toContain("ONLY");
+  });
   it("returns empty (not fake boxes) for garbage", () => {
     expect(extractDetections({ nothing: true }, [])).toEqual([]);
   });
 });
+

@@ -41,6 +41,15 @@ export function extractItems(resp: unknown, text?: string): Record<string, unkno
 
 export type Detection = { label: string; box: [number, number, number, number]; source: "sam" | "estimate" };
 
+// Seller focus: "all items" (default) or a comma-separated list of visible item
+// names to generate listings for ONLY. Appended to the Spark grounding so the
+// instruction travels with the model prompt, honestly labeled end to end.
+export function buildGrounding(prompt: string, detectionPart: string, focus = ""): string {
+  const base = detectionPart || `${prompt} · `;
+  const f = focus.trim().replace(/\s+/g, " ");
+  if (!f) return `${prompt}: ${base}`;
+  return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Ignore every other object in the photo.`;
+}
 // Find SAM-style detections anywhere in the response; boxes normalized to 0..1 (x1,y1,x2,y2).
 // SAM 3.1 actually returns text like:
 //   <|box;x1=662;y1=228;x2=1173;y2=643;w=1280;h=853|><|mask;...|>

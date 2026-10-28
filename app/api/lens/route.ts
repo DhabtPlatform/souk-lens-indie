@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
-import { extractDetections, extractItems, extractStudioImage, extractText } from "@/lib/extract";
+import { buildGrounding, extractDetections, extractItems, extractStudioImage, extractText } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawUrl = body.imageUrl as string;
-    const { prompt = "market goods", lang = "ar-EG", country = "EG", currency = "EGP" } = body;
+    const { prompt = "market goods", lang = "ar-EG", country = "EG", currency = "EGP", focus = "" } = body;
+    const focusStr = typeof focus === "string" ? focus : "";
     if (!rawUrl || typeof rawUrl !== "string") return NextResponse.json({ error: "imageUrl required" }, { status: 400 });
     // Local brand assets only resolve for Meta when the deployment origin is public.
     const imageUrl = rawUrl.startsWith("/") ? `${req.nextUrl.origin}${rawUrl}` : rawUrl;
@@ -17,12 +18,14 @@ export async function POST(req: NextRequest) {
     const timed = async <T,>(fn: () => Promise<T>) => { const t0 = Date.now(); const v = await fn(); return { v, ms: Date.now() - t0 }; };
     // Sequential on purpose: SAM findings ground Spark, so a photo of hazelnuts
     // can never be described as a vase. SAM first, then Spark on its labels.
-    const segR = await timed(() => segmentImage(imageUrl, prompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
+    const samPrompt = focusStr || prompt;
+    const segR = await timed(() => segmentImage(imageUrl, samPrompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
     const seg = segR.v;
     const samDetections = extractDetections(seg, []);
-    const grounding = samDetections.length
-      ? `${prompt}: ${samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")}`
-      : `${prompt} · ${extractText(seg).slice(0, 400)}`;
+    const detectionPart = samDetections.length
+      ? samDetections.map((d, i) => `#${i + 1} at [${d.box.map((n) => n.toFixed(2)).join(",")}]`).join("; ")
+      : extractText(seg).slice(0, 400);
+    const grounding = buildGrounding(prompt, detectionPart, focusStr);
     const sparkR = await timed(() => analyzeWithSpark(imageUrl, lang, country, currency, grounding));
     const analysis = sparkR.v;
     const analysisText = extractText(analysis);
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       live,
+      focus: focusStr || null,
       models: { sam: "sam-3.1", spark: "muse-spark-1.3", image: "muse-image-1.0" },
       trace,
       detections,
