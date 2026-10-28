@@ -165,8 +165,13 @@ export default function Page() {
       } catch { /* first visit */ }
       setLang(l); setCountry(c);
       autoScroll.current = true;
-      setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado");
-      postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
+      // Public origins analyze the real multi-item stall (Meta fetches it);
+      // localhost falls back to the avocado sample (Meta cannot reach localhost).
+      const pub = (() => { try { const h = window.location.hostname; return h !== "localhost" && h !== "127.0.0.1" && h !== "::1"; } catch { return false; } })();
+      const autoImg = pub ? "/stall-veg.jpg" : SAMPLE;
+      const autoPrompt = pub ? "mixed vegetables market stall" : "avocado";
+      setTab("analyze"); setImageUrl(autoImg); setImageLabel(pub ? "" : "avocado");
+      postJson("/api/lens", { imageUrl: autoImg, prompt: autoPrompt, lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -313,7 +318,16 @@ export default function Page() {
     else { setScope("all"); setFocusNames(""); setImageLabel(""); }
     postJson("/api/lens", { imageUrl: crop, prompt: n || "market goods", focus: n, lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   }
-  const runDemo = () => { setTab("analyze"); setImageUrl(SAMPLE); setImageLabel("avocado"); postJson("/api/lens", { imageUrl: SAMPLE, prompt: "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency }); };
+  const runDemo = () => {
+    const pub = (() => { try { const h = window.location.hostname; return h !== "localhost" && h !== "127.0.0.1" && h !== "::1"; } catch { return false; } })();
+    const img = pub ? "/stall-veg.jpg" : SAMPLE;
+    setTab("analyze"); setImageUrl(img); setImageLabel(pub ? "" : "avocado");
+    postJson("/api/lens", { imageUrl: img, prompt: pub ? "mixed vegetables market stall" : "avocado", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  };
+  function runStall(src: string) {
+    setTab("analyze"); setImageUrl(src); setImageLabel(""); setScope("all"); setFocusNames("");
+    postJson("/api/lens", { imageUrl: src, prompt: "mixed vegetables market stall", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  }
   function handleJudgeAction(a: JudgeAction) {
     if (a === "demo") runDemo();
     else if (a === "smart") setTab("smart");
@@ -493,7 +507,7 @@ export default function Page() {
                   <div className="space-y-1.5"><Label>{ar ? "أو جرّب بسطة حقيقية" : "Or try a real stall photo"}</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {[{ src: "/stall-veg.jpg", arL: "بسطة خضار", enL: "Veg stall" }, { src: "/stall-fruit.jpg", arL: "بسطة فاكهة وخضار", enL: "Fruit & veg stall" }].map((s) => (
-                        <button key={s.src} type="button" onClick={() => { setImageUrl(s.src); setImageLabel(""); setScope("all"); setFocusNames(""); setTab("analyze"); }} className="group overflow-hidden rounded-xl border text-start transition hover:border-primary/60">
+                        <button key={s.src} type="button" onClick={() => runStall(s.src)} className="group overflow-hidden rounded-xl border text-start transition hover:border-primary/60">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={s.src} alt={ar ? s.arL : s.enL} className="h-20 w-full object-cover transition group-hover:scale-[1.03]" loading="lazy" />
                           <span className="block px-2 py-1.5 text-[11px] font-bold">{ar ? s.arL : s.enL}</span>

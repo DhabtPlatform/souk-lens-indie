@@ -14,7 +14,7 @@ import { photoToGlbCard } from "@/lib/glb";
 import { buildAdText, type Product } from "@/lib/product";
 import { productEconomics } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
-import { Copy, Download, Gavel, Globe2, Images, Link2, Loader2, Megaphone, MessageCircle, Radio, Rotate3D, RotateCcw, Save, Share2, Box, Tag, Truck, Undo2, X } from "lucide-react";
+import { Copy, Download, Gavel, Globe2, Images, Link2, Loader2, Megaphone, MessageCircle, Radio, Rotate3D, RotateCcw, Save, Share2, Box, Star, Tag, Truck, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export function ProductDetailsSheet({
@@ -130,10 +130,20 @@ export function ProductDetailsSheet({
           {product.images.length > 1 ? (
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {product.images.map((src, i) => (
-                <button key={src + i} type="button" onClick={() => setImgIdx(i)} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 min-h-11 min-w-11" style={{ borderColor: i === imgIdx ? "#00d4a4" : "transparent" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
-                </button>
+                <div key={src + i} className="relative h-16 w-16 shrink-0">
+                  <button type="button" onClick={() => setImgIdx(i)} className="h-16 w-16 overflow-hidden rounded-xl border-2 min-h-11 min-w-11" style={{ borderColor: i === imgIdx ? "#00d4a4" : "transparent" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                  {i > 0 ? (
+                    <button
+                      type="button" title={ar ? "اجعلها الصورة الرئيسية" : "Set as main image"}
+                      aria-label={ar ? "اجعلها الصورة الرئيسية" : "Set as main image"}
+                      onClick={() => { const next = [src, ...product.images.filter((_, j) => j !== i)]; onSave?.(product.id, { images: next }); setImgIdx(0); toast.success(ar ? "بقت الصورة الرئيسية" : "Set as main image"); }}
+                      className="absolute -bottom-1 -end-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-[#ffd166] backdrop-blur transition hover:bg-black"
+                    ><Star className="h-3.5 w-3.5" /></button>
+                  ) : null}
+                </div>
               ))}
             </div>
           ) : null}
