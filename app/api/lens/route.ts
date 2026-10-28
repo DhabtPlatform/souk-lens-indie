@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { buildGrounding, extractDetections, extractItems, extractStudioImage, extractText } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
+import { cropRegions, sourceBytes } from "@/lib/crop";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
 // POST { imageUrl, prompt, lang, country, currency }
@@ -50,6 +51,28 @@ export async function POST(req: NextRequest) {
     });
     if (studioImage && products[0] && !products[0].images.includes(studioImage)) products[0].images = [studioImage, ...products[0].images];
     const detections = extractDetections(seg, products.map((p) => p.name_en));
+    // Real per-item crops: each SAM-boxed product leads with its own actual
+    // region from the seller's photo (enhancement-only, never blocks results).
+    try {
+      const realBoxes = detections.filter((d) => d.source === "sam");
+      if (realBoxes.length) {
+        const srcBytes = await sourceBytes(imageUrl);
+        if (srcBytes) {
+          const crops = await cropRegions(srcBytes, realBoxes.map((d) => ({ x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] })));
+          realBoxes.forEach((d, i) => {
+            const crop = crops[i];
+            if (!crop) return;
+            const pi = products.findIndex((p) => p.name_en.toLowerCase() === d.label.toLowerCase());
+            const p = pi >= 0 ? products[pi] : products[i];
+            if (!p || p.images.includes(crop)) return;
+            // The shared studio shot depicts the hero item only — it must not
+            // lead other products' galleries (that was the uniform-image bug).
+            const rest = p.images.filter((img) => img !== studioImage && img !== crop);
+            p.images = p === products[0] && studioImage ? [studioImage, crop, ...rest] : [crop, ...rest];
+          });
+        }
+      }
+    } catch { /* crops are enhancement-only */ }
     const trace = [
       { model: "sam-3.1", role: "Segmentation — عزل كل قطعة في الصورة", ms: segR.ms, live, status: detections.length ? "ok" : "empty" },
       { model: "muse-spark-1.3", role: "تعرّف + تسعير محلي + إعلان كامل", ms: sparkR.ms, live, status: products.length ? "ok" : "empty" },
