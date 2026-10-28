@@ -108,6 +108,16 @@ export default function Page() {
   const mine = useMineProducts();
   const cart = useCart();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  // Stall presets are relative URLs: Meta can fetch them only from a public
+  // origin (Vercel). On localhost they would fail, so hide them there instead
+  // of showing dead buttons — uploads remain the local path.
+  const [isLocalHost, setIsLocalHost] = useState(false);
+  useEffect(() => {
+    try {
+      const h = window.location.hostname;
+      setIsLocalHost(h === "localhost" || h === "127.0.0.1" || h === "::1");
+    } catch { /* ignore */ }
+  }, []);
   const ar = lang === "ar";
 
   // Presenter coach (private): opens only via ?coach=1 or Ctrl+Shift+J — never visible to visitors/judges.
@@ -445,6 +455,7 @@ export default function Page() {
                     <span className="text-xs text-muted-foreground">{ar ? "تتبعت مباشرة بدون رابط خارجي" : "Sent directly, no external link needed"}</span>
                     <input type="file" accept="image/*" hidden onChange={(e) => onImageFile(e.target.files?.[0])} />
                   </label>
+                  {isLocalHost ? null : (
                   <div className="space-y-1.5"><Label>{ar ? "أو جرّب بسطة حقيقية" : "Or try a real stall photo"}</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {[{ src: "/stall-veg.jpg", arL: "بسطة خضار", enL: "Veg stall" }, { src: "/stall-fruit.jpg", arL: "بسطة فاكهة وخضار", enL: "Fruit & veg stall" }].map((s) => (
@@ -456,6 +467,7 @@ export default function Page() {
                       ))}
                     </div>
                   <Hint>{ar ? "صور بسطات حقيقية بعدة أصناف — اختر «كل الأصناف» لتوليد جماعي، أو سمِّ أصنافًا بعينها." : "Real multi-item stall photos — pick “All items” for batch generation, or name specific ones."}</Hint></div>
+                  )}
                   <div className="space-y-1.5"><Button size="lg" className="w-full sm:w-auto" onClick={runAnalyze} disabled={loading || !imageUrl}><Wand2 />{loading ? t("analyzing", lang) : (ar ? "حلّل وابني الإعلانات" : "Analyze & build listings")}</Button><Hint>{ar ? "يشغّل SAM ثم Spark ثم Muse Image بالترتيب على نفس الصورة." : "Runs SAM, then Spark, then Muse Image in order on the same photo."}</Hint></div>
                 </div>
                 <div className="overflow-hidden rounded-2xl border bg-muted">
