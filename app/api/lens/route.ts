@@ -112,7 +112,37 @@ export async function POST(req: NextRequest) {
       const b = boxIdOf(raws[i] ?? {});
       if (Number.isFinite(b)) p.boxId = b;
     });
-    const detections = extractDetections(seg, products.map((p) => p.name_en));
+    // Final detections MUST reuse the SAME (possibly subdivided) regions that
+    // grounded Spark. Re-parsing seg here desyncs: 1 huge SAM box vs 6
+    // listings → only product #1 gets a real crop and the rest share one
+    // whole-photo image (the uniform-image bug). Relabel regions by boxId.
+    let detections: { label: string; box: [number, number, number, number]; source: "sam" | "estimate" }[];
+    if (samDetections.length > 0) {
+      // Single-object verdict on a subdivided grid (Spark decided the cells
+      // show ONE thing, e.g. one pumpkin): collapse to the union box so one
+      // item doesn't show six boxes.
+      if (subdivided && products.length === 1 && samDetections.length > 1) {
+        const u: [number, number, number, number] = [
+          Math.min(...samDetections.map((d) => d.box[0])),
+          Math.min(...samDetections.map((d) => d.box[1])),
+          Math.max(...samDetections.map((d) => d.box[2])),
+          Math.max(...samDetections.map((d) => d.box[3])),
+        ];
+        detections = [{ label: products[0].name_en, box: u, source: "sam" }];
+      } else {
+        detections = samDetections.map((d, i) => {
+          const pid = i + 1;
+          const match =
+            products.find((p, idx) => {
+              const b = boxIdOf(raws[idx] ?? {});
+              return Number.isFinite(b) ? b === pid : idx === i;
+            }) ?? products[i];
+          return { label: match?.name_en ?? d.label, box: d.box, source: d.source };
+        });
+      }
+    } else {
+      detections = extractDetections(seg, products.map((p) => p.name_en));
+    }
     // Real per-item crops: each SAM-boxed product leads with its own actual
     // region from the seller's photo (enhancement-only, never blocks results).
     try {
