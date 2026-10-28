@@ -31,6 +31,10 @@ export async function GET() {
     keyConfigured: hasKey,
     apiReachable: reachable,
     apiLatencyMs: latencyMs,
+    // Build fingerprint: which commit serves this URL (Vercel injects the
+    // SHA automatically; local builds report "local-dev"). Set
+    // NEXT_PUBLIC_GIT_SHA at build time to override.
+    build: process.env.NEXT_PUBLIC_GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local-dev",
     note: hasKey
       ? "Key is configured. apiReachable reports a live check against the Meta Model API."
       : "No key configured — the app runs an honest labeled demo mode. Set MODEL_API_KEY for live runs.",
