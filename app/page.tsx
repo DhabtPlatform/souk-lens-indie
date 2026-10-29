@@ -115,6 +115,7 @@ export default function Page() {
   // flight): only the LATEST request may apply results, so a slow earlier
   // run can never clobber what the user actually asked for last.
   const reqIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
   const [runElapsed, setRunElapsed] = useState(0);
   const resultsRef = useRef<HTMLElement>(null);
@@ -245,13 +246,13 @@ export default function Page() {
   }
   // Uploads are downscaled to ≤1280px JPEG so they REALLY fit localStorage
   // (a raw phone photo is ~5MB and silently fails the quota).
-  function fileToDefaultDataUrl(file: File): Promise<string> {
+  function fileToDefaultDataUrl(file: File, maxSide = 1280): Promise<string> {
     return new Promise((resolve, reject) => {
       const objUrl = URL.createObjectURL(file);
       const img = document.createElement("img");
       img.onload = () => {
         try {
-          const scale = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+          const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
           const w = Math.max(1, Math.round(img.naturalWidth * scale));
           const h = Math.max(1, Math.round(img.naturalHeight * scale));
           const c = document.createElement("canvas");
@@ -351,13 +352,26 @@ export default function Page() {
 
   async function postJson(path: string, body: Record<string, unknown>) {
     const myReq = ++reqIdRef.current;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setLoading(true); setRunStartedAt(Date.now()); setRunElapsed(0); setError(""); setResults([]); setAlternatives([]); setComparison(""); setVerdict(""); setFocusEcho(""); setStudio(null); setRaw(null); setDetections([]); setTrace(null); setSourceImg("");
     const t0 = performance.now();
     try {
-      const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const j = await r.json();
+      const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
+      // Never trust the status page: proxies/CDN answer 413/500 as PLAIN TEXT
+      // ("Request Entity Too Large"), and a blind .json() turns that into a
+      // scary SyntaxError. Parse defensively and map to a human message.
+      const text = await r.text();
+      let j: Record<string, unknown>;
+      try {
+        j = JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        if (r.status === 413 || /too large|entity/i.test(text)) throw new Error("PAYLOAD_TOO_LARGE");
+        throw new Error(text.slice(0, 160).trim() || `HTTP ${r.status}`);
+      }
       if (myReq !== reqIdRef.current) return; // superseded by a newer run
-      if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
+      if (!r.ok || j.ok === false) throw new Error(String((j as { error?: unknown }).error ?? `HTTP ${r.status}`));
       setLive(!!j.live); setRaw(j.raw ?? j);
       if (typeof j.focus === "string" && j.focus) setFocusEcho(j.focus);
       setDetections((j.detections ?? []) as Detection[]);
@@ -380,7 +394,23 @@ export default function Page() {
       }
       recordRun(performance.now() - t0, count);
       if (j.live && (body.imageMode ?? "both") !== "real" && list[0]) enrichMedia(list[0]);
-    } catch (e) { if (myReq === reqIdRef.current) setError(String(e)); } finally { if (myReq === reqIdRef.current) { setLoading(false); setRunStartedAt(null); } }
+    } catch (e) {
+      if (myReq !== reqIdRef.current) return;
+      if (e instanceof DOMException && e.name === "AbortError") { setLoading(false); setRunStartedAt(null); return; }
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg === "PAYLOAD_TOO_LARGE"
+        ? (ar ? "الصورة كبيرة جدًا على الخادم (تجاوزت حد الرفع). ارفعها من جديد — تُصغَّر تلقائيًا قبل الإرسال — أو استخدم رابطًا مباشرًا. / Image too large for the server (upload limit). Re-upload it — it is auto-shrunk before sending — or use a direct link." : "Image too large for the server (upload limit). Re-upload it — it is auto-shrunk before sending — or use a direct link. / الصورة كبيرة جدًا على الخادم. ارفعها من جديد أو استخدم رابطًا مباشرًا.")
+        : msg.startsWith("Failed to fetch")
+          ? (ar ? "انقطع الاتصال بالخادم — تحقق من الإنترنت وحاول مجددًا." : "Lost connection to the server — check the internet and retry.")
+          : msg);
+    } finally { if (myReq === reqIdRef.current) { setLoading(false); setRunStartedAt(null); } }
+  }
+
+  function cancelRun() {
+    abortRef.current?.abort();
+    reqIdRef.current++;
+    setLoading(false); setRunStartedAt(null);
+    toast.info(ar ? "اتلغى التحليل" : "Analysis cancelled");
   }
 
   // Live run timer for the floating analysis pill (real elapsed seconds only).
@@ -426,9 +456,16 @@ export default function Page() {
 
   function onImageFile(f: File | undefined) {
     if (!f) return;
-    const rd = new FileReader();
-    rd.onload = () => { setImageUrl(String(rd.result)); setImageLabel(""); setScope("all"); setFocusNames(""); toast.success(ar ? "اتحملت الصورة" : "Image loaded"); };
-    rd.readAsDataURL(f);
+    // Shrink phone photos (often 5MB+) to ≤1600px BEFORE the run — the #1
+    // cause of the old "Request Entity Too Large → SyntaxError" crash was a
+    // raw multi-MB data: URL blowing past the server's body limit.
+    fileToDefaultDataUrl(f, 1600)
+      .then((data) => { setImageUrl(data); setImageLabel(""); setScope("all"); setFocusNames(""); toast.success(ar ? "اتحملت الصورة (مصغّرة تلقائيًا)" : "Image loaded (auto-shrunk)"); })
+      .catch(() => {
+        const rd = new FileReader();
+        rd.onload = () => { setImageUrl(String(rd.result)); setImageLabel(""); setScope("all"); setFocusNames(""); toast.success(ar ? "اتحملت الصورة" : "Image loaded"); };
+        rd.readAsDataURL(f);
+      });
   }
   function onPhotoFile(f: File | undefined) {
     if (!f) return;
@@ -583,12 +620,20 @@ export default function Page() {
                   {scope === "specific" ? (
                   <div className="space-y-1.5"><Label>{ar ? "اكتب الصنف أو الأصناف" : "Name the item(s)"}</Label><Input value={focusNames} onChange={(e) => { setFocusNames(e.target.value); setImageLabel(e.target.value); }} placeholder={ar ? "مثال: طماطم، خيار — أو صنف واحد" : "e.g. tomato, cucumber — or a single item"} /><Hint>{ar ? "افصل بين الأصناف بفاصلة — كل صنف يتحول لإعلان كامل بسعره." : "Separate items with commas — each becomes a full listing with its price."}</Hint></div>
                   ) : null}
-                  <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-card/50 p-5 text-center transition hover:border-primary/60 hover:bg-primary/5">
-                    <ImagePlus className="h-6 w-6 text-accent" />
-                    <span className="text-sm font-bold">{ar ? "ارفع صورة من جهازك" : "Upload from your device"}</span>
-                    <span className="text-xs text-muted-foreground">{ar ? "تتبعت مباشرة بدون رابط خارجي" : "Sent directly, no external link needed"}</span>
-                    <input type="file" accept="image/*" hidden onChange={(e) => onImageFile(e.target.files?.[0])} />
-                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-card/50 p-5 text-center transition hover:border-primary/60 hover:bg-primary/5">
+                      <ImagePlus className="h-6 w-6 text-accent" />
+                      <span className="text-sm font-bold">{ar ? "ارفع صورة من جهازك" : "Upload from your device"}</span>
+                      <span className="text-xs text-muted-foreground">{ar ? "تتبعت مباشرة بدون رابط خارجي" : "Sent directly, no external link needed"}</span>
+                      <input type="file" accept="image/*" hidden onChange={(e) => { onImageFile(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                    <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-card/50 p-5 text-center transition hover:border-primary/60 hover:bg-primary/5">
+                      <Camera className="h-6 w-6 text-accent" />
+                      <span className="text-sm font-bold">{ar ? "التقط صورة بالكاميرا" : "Snap with camera"}</span>
+                      <span className="text-xs text-muted-foreground">{ar ? "تتحلل فورًا بعد الالتقاط" : "Analyzed right after the shot"}</span>
+                      <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => { onImageFile(e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                  </div>
                   {isLocalHost ? null : (
                   <div className="space-y-1.5"><Label>{ar ? "أو جرّب بسطة حقيقية" : "Or try a real stall photo"}</Label>
                     <div className="grid grid-cols-2 gap-2">
@@ -764,6 +809,7 @@ export default function Page() {
                       <p className="text-xs text-muted-foreground">{ar ? "SAM يعزل ← Spark يكتب ويُسعّر ← Muse Image ينظّف الصورة" : "SAM isolates → Spark writes & prices → Muse Image cleans the shot"}</p>
                     </div>
                     <span className="rounded-full bg-accent px-3 py-1 text-sm font-black text-black" dir="ltr">{runElapsed}s</span>
+                    <Button size="sm" variant="outline" onClick={cancelRun}>{ar ? "إلغاء التحليل" : "Cancel"}</Button>
                   </div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-3">
                     {[
@@ -907,20 +953,27 @@ export default function Page() {
       {/* Floating live-analysis pill: impossible to miss while the demo runs,
           one tap scrolls to the results being built. Timer is real elapsed time. */}
       {loading ? (
-        <button
-          type="button"
-          onClick={() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-full border border-accent/50 bg-[#101016]/95 py-2.5 pe-5 ps-3 shadow-2xl shadow-accent/25 backdrop-blur-xl transition active:scale-95 md:bottom-6"
-          aria-live="polite"
-        >
-          <Loader2 className="h-5 w-5 animate-spin text-accent" />
-          <span className="text-sm font-black" dir="ltr">
-            {ar ? "يحلّل الآن بـ Meta AI" : "Analyzing with Meta AI"} · {runElapsed}s
-          </span>
-          <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-black text-black">
-            {ar ? "شاهد ↓" : "Watch ↓"}
-          </span>
-        </button>
+        <div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 md:bottom-6" aria-live="polite">
+          <button
+            type="button"
+            onClick={() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="flex items-center gap-3 rounded-full border border-accent/50 bg-[#101016]/95 py-3.5 pe-6 ps-4 shadow-2xl shadow-accent/25 backdrop-blur-xl transition active:scale-95"
+          >
+            <Loader2 className="h-6 w-6 animate-spin text-accent" />
+            <span className="text-base font-black" dir="ltr">
+              {ar ? "يحلّل الآن بـ Meta AI" : "Analyzing with Meta AI"} · {runElapsed}s
+            </span>
+            <span className="rounded-full bg-accent px-3 py-1 text-xs font-black text-black">
+              {ar ? "شاهد ↓" : "Watch ↓"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={cancelRun}
+            title={ar ? "إلغاء التحليل" : "Cancel analysis"} aria-label={ar ? "إلغاء التحليل" : "Cancel analysis"}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-destructive/60 bg-[#101016]/95 text-xl font-black text-destructive shadow-2xl backdrop-blur-xl transition hover:bg-destructive hover:text-white active:scale-95"
+          >×</button>
+        </div>
       ) : null}
       <JudgesMode open={judgesOpen} onOpenChange={setJudgesOpen} lang={lang} onAction={handleJudgeAction} hasResults={results.length > 0} />
     </div>
