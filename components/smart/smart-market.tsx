@@ -88,19 +88,24 @@ export function SmartMarket({
 
   function moveItem(fromId: string, toId: string, productId: string) {
     if (fromId === toId) return;
-    setBundles((prev) => {
-      const from = prev.find((b) => b.id === fromId); const to = prev.find((b) => b.id === toId);
-      const item = from?.items.find((i) => i.id === productId);
-      if (!from || !to || !item) return prev;
-      if (to.items.some((i) => i.id === productId)) { toast.info(ar ? "المنتج موجود في القايمة دي" : "Already in that list"); return prev; }
-      const next = prev.map((b) => {
-        if (b.id === fromId) return withTotals({ ...b, items: b.items.filter((i) => i.id !== productId) });
-        if (b.id === toId) return withTotals({ ...b, items: [...b.items, item] });
-        return b;
-      });
-      return next;
-    });
-    toast.success(ar ? "اتنقل المنتج بين القوائم" : "Moved between lists");
+    // The same product can sit in several lists at once (each list is ranked
+    // independently) — the old code then refused the move entirely ("already
+    // there") and the item visibly stayed put. A move ALWAYS removes from the
+    // source; it adds to the target only when absent there.
+    const from = bundles.find((b) => b.id === fromId);
+    const item = from?.items.find((i) => i.id === productId);
+    if (!from || !item) return;
+    const to = bundles.find((b) => b.id === toId);
+    if (!to) return;
+    const merged = to.items.some((i) => i.id === productId);
+    setBundles((prev) => prev.map((b) => {
+      if (b.id === fromId) return withTotals({ ...b, items: b.items.filter((i) => i.id !== productId) });
+      if (b.id === toId && !merged) return withTotals({ ...b, items: [...b.items, item] });
+      return b;
+    }));
+    toast.success(merged
+      ? (ar ? "كانت موجودة في القايمة التانية — اتشالت من هنا" : "Already in the other list — removed from here")
+      : (ar ? "اتنقل المنتج بين القوائم" : "Moved between lists"));
   }
 
   function removeItem(bundleId: string, productId: string) {
@@ -302,6 +307,10 @@ function BundleCard({ bundle: b, allBundles, ar, savedIds, onMove, onRemove, onR
   onDetails: (p: Product) => void; onApprove: () => void; approved: boolean; avgRating: string;
 }) {
   const others = allBundles.filter((x) => x.id !== b.id);
+  // Controlled per-row target so the menu resets after every move and the
+  // same destination can be picked again (uncontrolled kept the old value
+  // and a repeat pick fired nothing).
+  const [moveSel, setMoveSel] = useState<Record<string, string>>({});
   return (
     <Card className={`animate-souk-in overflow-hidden transition hover:shadow-xl hover:shadow-primary/10 ${approved ? "border-accent ring-1 ring-accent" : ""}`}>
       <CardHeader className="space-y-3 pb-3">
@@ -338,7 +347,7 @@ function BundleCard({ bundle: b, allBundles, ar, savedIds, onMove, onRemove, onR
               <Button size="sm" variant="ghost" onClick={() => onReplace(b.id, i)} aria-label="replace"><RefreshCw /></Button>
               <Button size="sm" variant="ghost" onClick={() => onRemove(b.id, i.id)} aria-label="remove"><X className="text-destructive" /></Button>
               <div className="w-[118px]">
-                <Select onValueChange={(to) => onMove(b.id, to, i.id)}>
+                <Select value={moveSel[i.id] ?? ""} onValueChange={(to) => { setMoveSel((m) => ({ ...m, [i.id]: "" })); onMove(b.id, to, i.id); }}>
                   <SelectTrigger className="h-9 min-h-9 text-xs"><SelectValue placeholder={ar ? "نقل لقايمة…" : "Move to…"} /></SelectTrigger>
                   <SelectContent>{others.map((o) => <SelectItem key={o.id} value={o.id}>{ar ? o.title_ar : o.title_en}</SelectItem>)}</SelectContent>
                 </Select>

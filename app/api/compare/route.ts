@@ -79,6 +79,19 @@ Every listing must fill ALL fields. ${FULL_PRODUCT_JSON_HINT}`,
       const link = (altRaws[i] as Record<string, unknown>)?.url ?? (altRaws[i] as Record<string, unknown>)?.link ?? (altRaws[i] as Record<string, unknown>)?.storeUrl;
       if (typeof link === "string" && link) p.source = { ...p.source, url: link };
     });
+    // Real shop photos, not placeholders: fetch each alternative's own page
+    // and lead its gallery with that page's og:image shots (parallel, each
+    // fails independently). Whatever can't be fetched keeps the existing
+    // image — a photo is never invented.
+    await Promise.all(alternatives.map(async (p) => {
+      const link = (p.source as { url?: string })?.url;
+      if (!link || !/^https?:\/\//.test(link)) return;
+      try {
+        const m = await fetchPageMeta(link);
+        const shots = [m.image, ...(m.images ?? [])].filter((u): u is string => typeof u === "string" && !!u && !p.images.includes(u)).slice(0, 3);
+        if (shots.length) p.images = [...shots, ...p.images];
+      } catch { /* keep existing image */ }
+    }));
     return NextResponse.json({
       ok: true, live: true, meta, products, items: products, alternatives,
       comparison: parsed.comparison_ar ?? text, verdict: parsed.verdict_ar ?? "", analysisText: text, raw: resp,

@@ -721,7 +721,7 @@ export default function Page() {
               <div className="space-y-1.5"><div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runCompare} disabled={loading || !extUrl.trim()}><Search />{loading ? t("analyzing", lang) : (ar ? "قارن دلوقتي" : "Compare now")}</Button>
-              </div><Hint>{ar ? "أي رابط منتج من أي متجر — صورة المنتج هنا حقيقية من الرابط نفسه، أما البدائل المقترحة فقد تستخدم صورًا مولدة." : "Any product link from any store — the photo here is real, taken from the link itself; suggested alternatives may use generated shots."}</Hint></div>
+              </div><Hint>{ar ? "أي رابط منتج من أي متجر — صورة المنتج هنا حقيقية من الرابط نفسه، وصور البدائل تُجلب حقيقية من صفحات متاجرها عند توفرها." : "Any product link from any store — the main photo is real, taken from the link itself, and each alternative's photo is fetched real from its own shop page when available."}</Hint></div>
             </InputCard>
             <div className="mt-3"><TabModelMap tab="compare" lang={lang} /></div>
           </TabsContent>
