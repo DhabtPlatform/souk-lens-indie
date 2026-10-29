@@ -69,6 +69,9 @@ export default function Page() {
   const [country, setCountry] = useState<Country>(COUNTRIES[0]);
   const [imageUrl, setImageUrl] = useState(SAMPLE);
   const [imageLabel, setImageLabel] = useState("");
+  // Shared unsaved-preview key (also read by /product/[id]): localStorage so
+  // a buyer page opened in a NEW tab still renders the product for review.
+  const PREVIEW_KEY = "souk-lens-preview";
   // Seller-overridable auto-run photo (tiny footer dot opens it; saved prefs win).
   // Lets the seller point the automatic run at their own stall photo instead of
   // the built-in sample — stored locally, never uploaded anywhere by itself.
@@ -288,7 +291,17 @@ export default function Page() {
     setDetections((prev) => prev.map((d, j) => (j === i ? { ...d, box } : d)));
   }
   function openBuyerPage(p: Product) {
-    try { sessionStorage.setItem("souk-lens-preview", JSON.stringify(p)); } catch { /* ignore */ }
+    // Preview must survive the new tab: sessionStorage is per-tab and the
+    // buyer page would open empty. localStorage is shared, so the unsaved
+    // product renders for review (mine products still win when saved).
+    try {
+      localStorage.setItem(PREVIEW_KEY, JSON.stringify(p));
+    } catch {
+      try {
+        localStorage.setItem(PREVIEW_KEY, JSON.stringify({ ...p, images: p.images.slice(0, 4) }));
+      } catch { /* buyer page will show its not-found card */ }
+    }
+    try { sessionStorage.setItem(PREVIEW_KEY, JSON.stringify(p)); } catch { /* same-tab fallback */ }
     window.open(`/product/${p.id}`, "_blank", "noopener");
   }
 

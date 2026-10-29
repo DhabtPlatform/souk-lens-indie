@@ -46,8 +46,18 @@ export default function BuyerProductPage({ params }: { params: Promise<{ id: str
       const saved = JSON.parse(localStorage.getItem("souk-lens-products-v2") ?? "[]") as Product[];
       const found = saved.find((p) => p.id === id);
       if (found) { setProduct(found); setReady(true); return; }
-      const preview = JSON.parse(sessionStorage.getItem(PREVIEW_KEY) ?? "null") as Product | null;
-      if (preview && preview.id === id) { setProduct(preview); setReady(true); return; }
+      // Unsaved preview: localStorage (shared across tabs, survives refresh)
+      // first, same-tab sessionStorage as fallback.
+      const preview = (() => {
+        try {
+          const b = JSON.parse(localStorage.getItem(PREVIEW_KEY) ?? "null") as Product | null;
+          if (b && b.id === id) return b;
+          const a = JSON.parse(sessionStorage.getItem(PREVIEW_KEY) ?? "null") as Product | null;
+          if (a && a.id === id) return a;
+        } catch { /* ignore */ }
+        return null;
+      })();
+      if (preview) { setProduct(preview); setReady(true); return; }
       const shared = parseShareLink(window.location.hash || "");
       if (shared) { setProduct({ ...shared, id }); setReady(true); return; }
     } catch { /* ignore */ }
