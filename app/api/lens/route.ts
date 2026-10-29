@@ -103,11 +103,13 @@ export async function POST(req: NextRequest) {
     const firstName = String(raws[0]?.name_en ?? prompt);
     const studioR = await timed(() => cleanProductShot(firstName)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
     const studioImage = extractStudioImage(studioR.v);
+    // Studio image is the HERO product's shot only. It must never seed other
+    // products' galleries — that was the uniform-image bug in the screenshot:
+    // one studio bodysuit leading every card when some products missed crops.
     const products = normalizeProducts(raws, {
       source: { type: "image", label: prompt },
       country, currency,
       fallbackImage: imageUrl.startsWith("http") ? imageUrl : undefined,
-      studioImage: studioImage ?? undefined,
     });
     if (studioImage && products[0] && !products[0].images.includes(studioImage)) products[0].images = [studioImage, ...products[0].images];
     // Carry each listing's box number onto its product (map chips, crops, delete).
@@ -146,32 +148,44 @@ export async function POST(req: NextRequest) {
     } else {
       detections = extractDetections(seg, products.map((p) => p.name_en));
     }
-    // Real per-item crops: each SAM-boxed product leads with its own actual
-    // region from the seller's photo (enhancement-only, never blocks results).
+    // Real per-item crops: EVERY detection (SAM box or labeled estimate cell)
+    // is a distinct pixel region of the seller's own photo, so every product
+    // leads with its own real region — never one shared picture for all.
+    // Assignment prefers exact name match, falls back to positional order,
+    // each product claimed once (duplicate names can't steal each other's).
+    let cropsOk = 0; let cropMs = 0;
     try {
-      const realBoxes = detections.filter((d) => d.source === "sam");
-      if (realBoxes.length) {
+      const boxes = detections.filter((d) => d.box[2] > d.box[0] && d.box[3] > d.box[1]);
+      if (boxes.length && products.length) {
+        const t0 = Date.now();
         const srcBytes = await sourceBytes(imageUrl);
         if (srcBytes) {
-          const crops = await cropRegions(srcBytes, realBoxes.map((d) => ({ x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] })));
-          realBoxes.forEach((d, i) => {
+          const crops = await cropRegions(srcBytes, boxes.slice(0, 14).map((d) => ({ x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] })));
+          const used = new Set<number>();
+          boxes.forEach((d, i) => {
             const crop = crops[i];
             if (!crop) return;
-            const pi = products.findIndex((p) => p.name_en.toLowerCase() === d.label.toLowerCase());
-            const p = pi >= 0 ? products[pi] : products[i];
+            let pi = products.findIndex((p, idx) => !used.has(idx) && p.name_en.toLowerCase() === d.label.toLowerCase());
+            if (pi < 0) pi = products.findIndex((_, idx) => !used.has(idx));
+            if (pi < 0) return;
+            used.add(pi);
+            const p = products[pi];
             if (!p || p.images.includes(crop)) return;
             // The shared studio shot depicts the hero item only — it must not
             // lead other products' galleries (that was the uniform-image bug).
             const rest = p.images.filter((img) => img !== studioImage && img !== crop);
             p.images = p === products[0] && studioImage ? [studioImage, crop, ...rest] : [crop, ...rest];
+            cropsOk++;
           });
         }
+        cropMs = Date.now() - t0;
       }
     } catch { /* crops are enhancement-only */ }
     const trace = [
       { model: "sam-3.1", role: "Segmentation — عزل كل قطعة في الصورة", ms: samMs, live, status: detections.length ? "ok" : "empty" },
       { model: "muse-spark-1.3", role: "تعرّف + تسعير محلي + إعلان كامل", ms: sparkMs, live, status: products.length ? "ok" : "empty" },
       { model: "muse-image-1.0", role: "صورة ستوديو نظيفة للمنتج الأول", ms: studioR.ms, live, status: studioImage ? "ok" : "skipped" },
+      { model: "crop", role: "قصّات حقيقية لكل منتج", ms: cropMs, live, status: cropsOk > 0 ? `ok · ${cropsOk}/${products.length}` : "skipped" },
     ];
 
     return NextResponse.json({

@@ -14,6 +14,7 @@ const ROLE_EN: Record<string, string> = {
   "تسعير محلي + إعلان كامل": "Local pricing + full listing",
   "صورة ستوديو نظيفة": "Clean studio shot",
   "صورة ستوديو نظيفة للمنتج الأول": "Clean studio shot for the first product",
+  "قصّات حقيقية لكل منتج": "Real crop per product",
   "إعلان كامل من الوصف": "Full listing from the description",
   "صورة ستوديو": "Studio shot",
   "صوت → نص": "Speech → text",
@@ -51,7 +52,7 @@ export function ModelTrace({ trace, lang }: { trace: TraceInfo | null; lang: "ar
           <div key={s.model + i} className="relative rounded-xl border bg-card p-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[13px] font-black" dir="ltr">{s.model}</span>
-              {s.status === "ok" || !s.status ? <CheckCheck className="h-4 w-4 text-accent" /> : <CircleDashed className="h-4 w-4 text-muted-foreground" />}
+              {s.status === "ok" || s.status?.startsWith("ok ") || !s.status ? <CheckCheck className="h-4 w-4 text-accent" /> : <CircleDashed className="h-4 w-4 text-muted-foreground" />}
             </div>
             <p className="mt-1 text-[11px] leading-5 text-muted-foreground" dir="auto">{roleIn(lang, s.role)}</p>
             <p className="mt-1 text-[11px] font-bold text-accent" dir="ltr">{typeof s.ms === "number" ? `${s.ms} ms` : s.status ?? "done"}</p>
