@@ -91,12 +91,24 @@ describe("seller focus grounding", () => {
     expect(r2.subdivided).toBe(false);
     expect(r2.regions).toHaveLength(1);
   });
-  it("sortReadingOrder numbers left-to-right, top-to-bottom", () => {
-    const right = { label: "r", box: [0.55, 0.26, 0.92, 0.75] as [number, number, number, number], source: "sam" as const };
+  it("sortReadingOrder numbers left-to-right, top-to-bottom", () => {    const right = { label: "r", box: [0.55, 0.26, 0.92, 0.75] as [number, number, number, number], source: "sam" as const };
     const left = { label: "l", box: [0.07, 0.26, 0.5, 0.74] as [number, number, number, number], source: "sam" as const };
     const bottom = { label: "b", box: [0.1, 0.8, 0.4, 0.95] as [number, number, number, number], source: "sam" as const };
     const out = sortReadingOrder([right, bottom, left]);
     expect(out.map((d) => d.label)).toEqual(["l", "r", "b"]);
+  });
+  it("zero-SAM fallback grid stays honest estimate with 6 cells in-frame", () => {
+    const cells = subdivideRegion(
+      { label: "whole scene", box: [0.02, 0.02, 0.98, 0.98], source: "estimate" as const }, 3, 2
+    );
+    expect(cells).toHaveLength(6);
+    for (const c of cells) {
+      expect(c.source).toBe("estimate");
+      expect(c.box[0]).toBeGreaterThanOrEqual(0.02);
+      expect(c.box[1]).toBeGreaterThanOrEqual(0.02);
+      expect(c.box[2]).toBeLessThanOrEqual(0.98);
+      expect(c.box[3]).toBeLessThanOrEqual(0.98);
+    }
   });
 });
 

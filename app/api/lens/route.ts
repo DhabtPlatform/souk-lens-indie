@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
-import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, sortReadingOrder } from "@/lib/extract";
+import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -41,13 +41,35 @@ export async function POST(req: NextRequest) {
         samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
       } catch { /* single pass stands */ }
     }
+    // Zero SAM regions (dense racks, overlapping garments)? One retry with an
+    // item-separating focus, then an honest estimated 3×2 grid over the frame
+    // so every garment still gets its own numbered region — never one
+    // "collection" listing for a multi-item photo. Grid cells stay labeled
+    // estimate; the single-object guard collapses them when Spark says the
+    // cells show one thing.
+    let gridFallback = false;
+    if (samDetections.length === 0) {
+      try {
+        const segR0 = await timed(() => segmentImage(imageUrl, "each individual item separately"));
+        samMs += segR0.ms;
+        samDetections = mergeDetections(samDetections, extractDetections(segR0.v, []));
+      } catch { /* grid fallback below */ }
+      if (samDetections.length === 0) {
+        samDetections = subdivideRegion(
+          { label: "whole scene", box: [0.02, 0.02, 0.98, 0.98], source: "estimate" as const }, 3, 2
+        );
+        samDetections.forEach((d, i) => { d.label = `Detected item ${i + 1}`; });
+        gridFallback = samDetections.length > 1;
+      }
+    }
     // Whole-scene box? When SAM returns one region covering most of the frame,
     // the count cap would force a single "assortment" listing. ensureCoverage()
     // subdivides huge regions into a grid so every pile keeps its own numbered
     // box. Tight boxes (single close-up items) pass through untouched.
+    // Estimate-grid cells from the zero path pass through as-is.
     const cov = ensureCoverage(samDetections);
     samDetections = cov.regions;
-    const subdivided = cov.subdivided;
+    const subdivided = cov.subdivided || gridFallback;
     // Visual numbering: left-to-right, top-to-bottom — before the set-of-marks
     // copy is drawn and before Spark sees the numbers, so boxIds stay bound.
     samDetections = sortReadingOrder(samDetections);
