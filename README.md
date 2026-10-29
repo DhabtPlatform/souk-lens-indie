@@ -1,12 +1,17 @@
 # Souk Lens — عدسة السوق (Indie submission)
 
+## Try it now (live)
+- **Live demo:** https://souk-lens-indie.vercel.app — opens on a real stall analysis automatically (no setup, no account). Press **"One-click demo"** to re-run the full pipeline.
+- **Demo video (≤3:00, real app footage, AI voiceover disclosed):** `video/SOUK-LENS-FINAL.mp4` in this repo · YouTube (unlisted) link added here after upload.
+- **Judge in 2 minutes** below.
+
 ## Judge in 2 minutes (English-first)
 1. Open the app — the demo **runs automatically** (one stall photo → full pipeline, no setup).
 2. Watch the **proof bar**: per-model time for SAM 3.1 → Muse Spark 1.3 → Muse Image 1.0, each run labeled **LIVE** or **DEMO**.
 3. Tap the **SAM map** boxes (real `box;x1=..;w=..` coordinates when live), drag the **before/after slider**.
 4. Press **"Product tour — 90 seconds"** (or open `?coach=1`) for the guided walkthrough: analysis → save & profit report → auction → Smart Market → invoice → cart checkout.
 5. Verify integration: `GET /api/health` (live/demo mode, models, key configured — never the key itself), `lib/meta.ts`, `app/api/lens/route.ts`.
-6. Demo video (≤3:00, real app footage, AI voiceover disclosed): `video-output/souk-lens-demo.mp4`.
+6. Demo video (≤3:00, real app footage, AI voiceover disclosed): `video/SOUK-LENS-FINAL.mp4` (+ YouTube unlisted link above).
 7. Honesty rules enforced: sample catalog is labeled, no invented reviews/sales, seller reports use real in-app orders only.
 
 > **Souk Lens is NOT an image analyzer — it is a complete informal-market commerce platform.**
