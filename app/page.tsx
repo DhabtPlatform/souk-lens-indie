@@ -451,7 +451,20 @@ export default function Page() {
   }
   const runGenerate = () => postJson("/api/generate", { description: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined, imageMode: imgMode });
   const runVoiceListing = () => postJson("/api/voice-listing", { transcript: desc, country: country.code, currency: country.currency, imageUrl: photoUrl || undefined, imageMode: imgMode });
-  const runCompare = () => postJson("/api/compare", { productUrl: extUrl, country: country.code, currency: country.currency });
+  const runCompare = () => {
+    // The current store (saved + on-screen results) travels with the request
+    // so Meta checks it FIRST; brief only, http images only — no multi-MB payloads.
+    const seen = new Set<string>();
+    const brief = [...mine.products, ...results]
+      .filter((p) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
+      .slice(0, 24)
+      .map((p) => ({
+        id: p.id, name_en: p.name_en, name_ar: p.name_ar, price: p.price,
+        currency: p.currency, category: p.category,
+        image: p.images[0]?.startsWith("http") ? p.images[0] : "",
+      }));
+    return postJson("/api/compare", { productUrl: extUrl, country: country.code, currency: country.currency, store: brief });
+  };
   const runImport = () => postJson("/api/import", { storeUrl: extUrl, country: country.code, currency: country.currency });
 
   function onImageFile(f: File | undefined) {
@@ -704,7 +717,7 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="compare">
-            <InputCard title={ar ? "قارن منتج خارجي" : "Compare an external product"} desc={ar ? "الصق رابط أي منتج — هنجيب بياناته الحقيقية، نبني إعلانه، ونقترح بدائل أفضل وأرخص لبلدك مع الحكم النهائي." : "Paste any product link — we fetch its real data, build its listing, and suggest better/cheaper alternatives for your country."} icon={<ArrowLeftRight className="text-primary" />} steps={HOW.compare[lang]} lang={lang}>
+            <InputCard title={ar ? "قارن منتج خارجي" : "Compare an external product"} desc={ar ? "الصق رابط أي منتج — هنجيب بياناته الحقيقية ونبني إعلانه، وميتا يدور أولًا في متجرك الحالي: مثيل عندك يعرض كبديل من متجرك، وإلا يجلب مقارنات كثيرة من متاجر الإنترنت لبلدك مع الحكم النهائي." : "Paste any product link — we fetch its real data and build its listing, and Meta checks your current store first: a match becomes your alternative, otherwise it pulls many real web-store comparisons for your country with a final verdict."} icon={<ArrowLeftRight className="text-primary" />} steps={HOW.compare[lang]} lang={lang}>
               <div className="space-y-1.5"><div className="flex flex-col gap-2 sm:flex-row">
                 <Input dir="ltr" value={extUrl} onChange={(e) => setExtUrl(e.target.value)} placeholder={t("urlPlaceholder", lang)} className="flex-1" />
                 <Button size="lg" onClick={runCompare} disabled={loading || !extUrl.trim()}><Search />{loading ? t("analyzing", lang) : (ar ? "قارن دلوقتي" : "Compare now")}</Button>
@@ -1058,8 +1071,8 @@ const HOW: Record<TabKey, { ar: string[]; en: string[] }> = {
     en: ["Tap the mic, describe the product, tap to stop — the recording auto-converts to the WAV format Meta's model accepts.", "After stopping, the transcript appears; you can replay your original audio and edit the text before publishing.", "Press Build: Spark builds a listing with a real name, prices and variants, and Muse Image generates the shot.", "The transcript is saved as the product's source and shown in its details."],
   },
   compare: {
-    ar: ["الصق رابط أي منتج خارجي — بنجيب بياناته الحقيقية (العنوان والصورة والسعر) ونبني إعلانه.", "Spark مع بحث الويب بيقترح بدائل أفضل وأرخص لبلدك مع مقارنة وحكم نهائي.", "احفظ المنتج الأصلي أو أي بديل في منتجاتي أو ضيفه للسلة."],
-    en: ["Paste any external product link — we fetch its real data (title, image, price) and build its listing.", "Spark with web search suggests better, cheaper alternatives for your country, with a comparison and final verdict.", "Save the original or any alternative to My products or the cart."],
+    ar: ["الصق رابط أي منتج خارجي — بنجيب بياناته الحقيقية (العنوان والصورة والسعر) ونبني إعلانه.", "ميتا يدور أولًا في متجرك الحالي: لو لقى مثيلًا يعرضه كبديل من متجرك، وإلا يجلب حتى 8 مقارنات حقيقية من متاجر الإنترنت بأسمائها وروابطها وأسعارها لبلدك مع مقارنة وحكم نهائي.", "احفظ المنتج الأصلي أو أي بديل في منتجاتي أو ضيفه للسلة."],
+    en: ["Paste any external product link — we fetch its real data (title, image, price) and build its listing.", "Meta checks your current store first: a match there becomes your alternative, otherwise it pulls up to 8 real web-store comparisons with names, links and prices for your country, plus verdict.", "Save the original or any alternative to My products or the cart."],
   },
   import: {
     ar: ["الصق رابط متجرك القديم — بنسحب منتجاته الحقيقية (JSON-LD) ونكمّل الناقص بالذكاء: وصف وأسعار ومتغيرات ومواصفات.", "راجع المنتجات المستوردة واحفظها كلها في منتجاتي جاهزة للنشر.", "من هناك تقدر تحوّل أي منتج لمزاد أو بث أو حملة خارجية."],
