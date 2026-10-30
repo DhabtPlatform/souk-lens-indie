@@ -65,26 +65,53 @@ export function SmartMarket({
     setLoading(true); setError(""); setApprovedId(null);
     const t0 = performance.now();
     try {
+      // Slim the payload: full product photos (data: URLs, often MBs) would
+      // blow past the server's body limit and Vercel answers 413 as PLAIN
+      // TEXT — the old blind .json() turned that into a scary SyntaxError.
+      // Server ranks on text fields; heavy media is re-attached below by id.
+      const fullById = new Map(savedProducts.map((p) => [p.id, p]));
+      const slimSaved = scope === "web" ? [] : savedProducts.slice(0, 100).map((p) => ({ ...p, images: [], angleImages: [], variants: (p.variants ?? []).map((v) => ({ ...v, image: undefined })) }));
       const r = await fetch("/api/smart-market", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim() || PRESETS.find((p) => p.id === pid)?.title_ar, presetId: pid || undefined, country, currency, budget: budget ? Number(budget) : undefined, priority, savedProducts, scope }),
+        body: JSON.stringify({ query: query.trim() || PRESETS.find((p) => p.id === pid)?.title_ar, presetId: pid || undefined, country, currency, budget: budget ? Number(budget) : undefined, priority, savedProducts: slimSaved, scope }),
       });
-      const j = await r.json();
+      const text = await r.text();
+      let j: { ok?: boolean; error?: string; intent?: { title_ar: string; title_en: string; note: string }; bundles?: SmartBundle[]; alternativesBySlot?: AltMap; savedIds?: string[]; catalogSize?: number; savedCount?: number; demoCount?: number; sampleCount?: number; trace?: TraceInfo["stages"]; live?: boolean };
+      try {
+        j = JSON.parse(text);
+      } catch {
+        if (r.status === 413 || /too large|entity/i.test(text)) throw new Error("PAYLOAD_TOO_LARGE");
+        throw new Error(text.slice(0, 160).trim() || `HTTP ${r.status}`);
+      }
       if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
-      setIntent(j.intent); setBundles(j.bundles as SmartBundle[]); setAlts(j.alternativesBySlot as AltMap);
+      // Re-attach the real media the server never needed to see.
+      const rehydrate = <T extends { id: string }>(items: T[]): T[] => items.map((it) => {
+        const f = fullById.get(it.id);
+        if (!f) return it;
+        return { ...it, images: f.images?.length ? f.images : (it as { images?: string[] }).images, angleImages: f.angleImages ?? (it as { angleImages?: string[] }).angleImages, variants: f.variants?.length ? f.variants : (it as { variants?: Product["variants"] }).variants };
+      });
+      const bundles = ((j.bundles ?? []) as SmartBundle[]).map((b) => ({ ...b, items: rehydrate(b.items ?? []) }));
+      const alts: AltMap = {};
+      for (const [slot, list] of Object.entries((j.alternativesBySlot ?? {}) as AltMap)) alts[slot] = rehydrate(list ?? []) as AltMap[string];
+      setIntent(j.intent ?? null); setBundles(bundles); setAlts(alts);
       setSavedIds(new Set((j.savedIds ?? []) as string[]));
       setCounts({ total: j.catalogSize ?? 0, saved: j.savedCount ?? 0, demo: j.sampleCount ?? j.demoCount ?? 0 });
       setActiveBundle((j.bundles as SmartBundle[])[0]?.id ?? "value");
       setTrace({
         endpoint: "/api/smart-market", live: !!j.live,
         elapsedMs: Math.round(performance.now() - t0),
-        count: ((j.bundles as SmartBundle[]) ?? []).reduce((n, b) => n + (b.items?.length ?? 0), 0),
+        count: (bundles ?? []).reduce((n, b) => n + (b.items?.length ?? 0), 0),
         stages: (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS["/api/smart-market"] ?? []) as TraceInfo["stages"],
       });
       toast.success(scope === "web"
         ? (ar ? `قائمة ويب حقيقية: ${j.catalogSize} منتج من متاجر أونلاين` : `Real web list: ${j.catalogSize} online products`)
         : (ar ? `اتجمعت 3 قوائم من ${j.catalogSize} منتج في المتجر` : `3 lists built from ${j.catalogSize} store products`));
-    } catch (e) { setError(String(e)); } finally { setLoading(false); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg === "PAYLOAD_TOO_LARGE"
+        ? (ar ? "القائمة كبيرة جدًا على الخادم (صور كثيرة). احذف صورًا زائدة من منتجاتك أو قلل عددها وحاول مجددًا." : "List too large for the server (too many photos). Remove extra images from your products and retry.")
+        : msg);
+    } finally { setLoading(false); }
   }
 
   function patchBundles(next: SmartBundle[]) { setBundles(next.map(withTotals)); }
