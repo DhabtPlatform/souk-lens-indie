@@ -1,0 +1,283 @@
+1
+00:00:00,000 --> 00:00:02,280
+Every store. Every product.
+
+2
+00:00:02,630 --> 00:00:03,530
+Every merchant.
+
+3
+00:00:03,770 --> 00:00:05,420
+This is a real market stall.
+
+4
+00:00:05,770 --> 00:00:07,500
+No studio. No photographer.
+
+5
+00:00:07,970 --> 00:00:09,900
+A full stall, zero listings.
+
+6
+00:00:10,410 --> 00:00:12,200
+The internet can recommend products
+
+7
+00:00:12,240 --> 00:00:14,440
+in milliseconds — but it still cannot
+
+8
+00:00:14,480 --> 00:00:16,480
+understand what is sitting on this table.
+
+9
+00:00:16,730 --> 00:00:18,540
+Generating text is easy.
+
+10
+00:00:18,910 --> 00:00:19,900
+Grounding it is hard.
+
+11
+00:00:20,110 --> 00:00:21,540
+See it. Sell it.
+
+12
+00:00:21,590 --> 00:00:22,820
+That should be one move.
+
+13
+00:00:23,550 --> 00:00:24,450
+One photo.
+
+14
+00:00:24,610 --> 00:00:26,360
+A phone camera, not a studio.
+
+15
+00:00:26,610 --> 00:00:29,540
+No catalog. No barcode. No setup.
+
+16
+00:00:29,580 --> 00:00:31,580
+Just what the seller already has.
+
+17
+00:00:34,110 --> 00:00:37,200
+Meta SAM 3.1 segments every item.
+
+18
+00:00:37,490 --> 00:00:40,040
+Seven products. Four point one seconds.
+
+19
+00:00:40,330 --> 00:00:41,560
+Zero typed fields.
+
+20
+00:00:41,930 --> 00:00:43,420
+Each mask becomes a crop.
+
+21
+00:00:43,670 --> 00:00:45,300
+Each crop becomes a listing.
+
+22
+00:00:45,650 --> 00:00:50,400
+Seven complete listings: name, stock, variants, local price.
+
+23
+00:00:50,890 --> 00:00:53,240
+Forty-seven point four seconds end to end.
+
+24
+00:00:53,470 --> 00:00:55,820
+Every generated field is traceable
+
+25
+00:00:55,860 --> 00:00:57,440
+back to the original image.
+
+26
+00:00:59,370 --> 00:01:01,020
+Four Meta AI models.
+
+27
+00:01:01,530 --> 00:01:03,640
+One schema. One source of truth.
+
+28
+00:01:03,770 --> 00:01:06,480
+No handoffs. No manual data entry.
+
+29
+00:01:06,790 --> 00:01:08,680
+SAM sees. Spark understands.
+
+30
+00:01:09,050 --> 00:01:11,920
+Muse Image transforms. Meta Voice listens.
+
+31
+00:01:12,290 --> 00:01:13,900
+Every model has one job,
+
+32
+00:01:13,940 --> 00:01:15,660
+and every job is measured.
+
+33
+00:01:16,550 --> 00:01:18,100
+The interface is whatever
+
+34
+00:01:18,140 --> 00:01:19,620
+the merchant already has.
+
+35
+00:01:19,930 --> 00:01:22,020
+Speak: Meta Voice transcribes,
+
+36
+00:01:22,210 --> 00:01:23,860
+and Spark builds the listing
+
+37
+00:01:23,900 --> 00:01:25,680
+in twenty-one point four seconds.
+
+38
+00:01:25,720 --> 00:01:27,100
+Type one sentence:
+
+39
+00:01:27,410 --> 00:01:28,340
+a complete product,
+
+40
+00:01:28,380 --> 00:01:31,160
+with variants and a studio image.
+
+41
+00:01:32,670 --> 00:01:34,740
+The same contract accepts a link.
+
+42
+00:01:35,030 --> 00:01:36,320
+Paste a product URL:
+
+43
+00:01:36,550 --> 00:01:38,900
+a real listing in the local currency,
+
+44
+00:01:39,270 --> 00:01:41,040
+validated against source data
+
+45
+00:01:41,080 --> 00:01:42,080
+before publication.
+
+46
+00:01:42,630 --> 00:01:44,020
+Paste a whole store:
+
+47
+00:01:44,350 --> 00:01:45,600
+seventeen seconds,
+
+48
+00:01:46,110 --> 00:01:47,560
+sixty-two times faster,
+
+49
+00:01:48,130 --> 00:01:49,540
+a hundred and ninety-one listings.
+
+50
+00:01:51,070 --> 00:01:52,580
+Commerce runs both ways.
+
+51
+00:01:52,620 --> 00:01:54,740
+Smart Market turns a sentence
+
+52
+00:01:54,780 --> 00:01:56,480
+into three ranked baskets:
+
+53
+00:01:56,990 --> 00:02:00,000
+best value, best match, fastest delivery.
+
+54
+00:02:00,330 --> 00:02:03,080
+Fifteen products. One point nine seconds.
+
+55
+00:02:03,470 --> 00:02:05,640
+One thousand five hundred eleven total,
+
+56
+00:02:05,680 --> 00:02:07,180
+four hundred four saved.
+
+57
+00:02:08,670 --> 00:02:10,720
+Country, currency, and language
+
+58
+00:02:10,760 --> 00:02:12,100
+are detected automatically.
+
+59
+00:02:12,710 --> 00:02:14,520
+One listing, every market.
+
+60
+00:02:16,570 --> 00:02:18,000
+Every metric on screen
+
+61
+00:02:18,040 --> 00:02:19,380
+comes from a measured run.
+
+62
+00:02:19,630 --> 00:02:21,400
+Every field is editable.
+
+63
+00:02:21,440 --> 00:02:23,720
+Every output remains traceable.
+
+64
+00:02:23,930 --> 00:02:25,820
+One API. One schema.
+
+65
+00:02:26,110 --> 00:02:27,580
+Every result verifiable.
+
+66
+00:02:29,430 --> 00:02:30,780
+The next billion listings
+
+67
+00:02:30,820 --> 00:02:31,740
+will not be typed.
+
+68
+00:02:32,110 --> 00:02:33,020
+They will be photographed.
+
+69
+00:02:33,450 --> 00:02:34,380
+They will be grounded.
+
+70
+00:02:34,810 --> 00:02:35,800
+They will be verified.
+
+71
+00:02:36,230 --> 00:02:38,720
+Souk Lens. See it. Sell it.

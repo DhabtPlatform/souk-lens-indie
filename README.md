@@ -2,7 +2,7 @@
 
 ## Try it now (live)
 - **Live demo:** https://souk-lens-indie.vercel.app — opens on a real stall analysis automatically (no setup, no account). Press **"One-click demo"** to re-run the full pipeline.
-- **Demo video (≤3:00, real app footage, AI voiceover disclosed):** `video/SOUK-LENS-FINAL.mp4` in this repo · YouTube (unlisted) link added here after upload.
+- **Demo video (≤3:00, real app footage, AI voiceover disclosed):** `video/SOUK-LENS-FINAL.mp4` in this repo · package + subtitles: `video/README.md` · YouTube (unlisted) link added here after upload.
 - **Judge in 2 minutes** below.
 
 ## Judge in 2 minutes (English-first)
