@@ -158,7 +158,10 @@ export function mergeSameName(
         grew = false;
         for (let k = remaining.length - 1; k >= 0; k--) {
           const bb = boxOf(remaining[k]);
-          const positioned = comp.some((ci) => { const cb = boxOf(ci); return !!cb && !!bb && touches(cb, bb); });
+          // Generous pile tolerance: same-name neighbours a few percent apart
+          // still belong to one pile (lime rows, carrot bunches). Truly
+          // distant same-name piles stay split; different names never merge.
+          const positioned = comp.some((ci) => { const cb = boxOf(ci); return !!cb && !!bb && touches(cb, bb, 0.12); });
           const unpositioned = !bb && comp.every((ci) => !boxOf(ci));
           if (positioned || unpositioned) { comp.push(remaining.splice(k, 1)[0]); grew = true; }
         }

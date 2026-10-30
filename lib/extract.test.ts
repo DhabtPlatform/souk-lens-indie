@@ -58,6 +58,15 @@ describe("seller focus grounding", () => {
     const raws = [1, 2, 3, 4, 5, 6].map((n) => ({ name_en: "Fresh Vegetables", boxId: n }));
     expect(mergeSameName(raws, boxes)).toHaveLength(6);
   });
+  it("merges same-name neighbours across small wood gaps (lime rows)", () => {
+    const mk = (name: string, boxId: number) => ({ name_en: name, boxId });
+    const boxes: [number, number, number, number][] = [
+      [0.4, 0.1, 0.52, 0.3], [0.58, 0.1, 0.7, 0.3],
+    ];
+    const m = mergeSameName([mk("Limes", 1), mk("limes ", 2)], boxes);
+    expect(m).toHaveLength(1);
+    expect(m[0].boxIds).toEqual([1, 2]);
+  });
   it("touches detects overlap and near-touch, not far boxes", () => {
     expect(touches([0, 0, 0.3, 0.3], [0.28, 0, 0.5, 0.3])).toBe(true);
     expect(touches([0, 0, 0.3, 0.3], [0.7, 0.7, 0.9, 0.9])).toBe(false);

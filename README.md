@@ -2,7 +2,7 @@
 
 ## Try it now (live)
 - **Live demo:** https://souk-lens-indie.vercel.app — opens on a real stall analysis automatically (no setup, no account). Press **"One-click demo"** to re-run the full pipeline.
-- **Demo video (2:47.6, real app footage, male English AI voiceover disclosed, no music):** `video/SOUK-LENS-FINAL.mp4` in this repo · package + subtitles + checksums: `video/README.md` · YouTube (unlisted) mirror link: _added here right after upload_.
+- **Demo video (2:47.6, real app footage, male English AI voiceover disclosed, no music):** `video/SOUK-LENS-FINAL.mp4` in this repo · package + subtitles + checksums: `video/README.md` · YouTube (unlisted) mirror: https://youtu.be/J2DEuiJ1cDU
 - **Judge in 2 minutes** below.
 
 ## What Meta tooling does here that others can't
@@ -17,7 +17,7 @@ Beyond the built-in samples: two real field photos (one landscape, one portrait 
 3. Tap the **SAM map** boxes (real `box;x1=..;w=..` coordinates when live), drag the **before/after slider**.
 4. Press **"Product tour — 90 seconds"** (or open `?coach=1`) for the guided walkthrough: analysis → save & profit report → auction → Smart Market → invoice → cart checkout.
 5. Verify integration: `GET /api/health` (live/demo mode, models, key configured — never the key itself), `lib/meta.ts`, `app/api/lens/route.ts`.
-6. Demo video (2:47.6, real app footage, AI voiceover disclosed, no music): `video/SOUK-LENS-FINAL.mp4` (+ YouTube unlisted mirror above).
+6. Demo video (2:47.6, real app footage, AI voiceover disclosed, no music): `video/SOUK-LENS-FINAL.mp4` (+ YouTube unlisted mirror https://youtu.be/J2DEuiJ1cDU).
 7. Honesty rules enforced: sample catalog is labeled, no invented reviews/sales, seller reports use real in-app orders only.
 
 > **Souk Lens is NOT an image analyzer — it is a complete informal-market commerce platform.**

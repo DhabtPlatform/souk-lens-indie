@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     // those boxes would blind it to everything else).
     if (samDetections.length > 0 && (samDetections.length < 4 || coverageRatio(samDetections) < 0.35)) {
       try {
-        const segR2 = await timed(() => segmentImage(metaImage, "other items piles groups elsewhere in the photo"));
+        const segR2 = await timed(() => segmentImage(metaImage, "scan the ENTIRE photo edge to edge for ANY sellable piles missed so far, especially matte textured ones: leafy greens, dark vegetables, roots"));
         samMs += segR2.ms;
         samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
       } catch { /* single pass stands */ }
