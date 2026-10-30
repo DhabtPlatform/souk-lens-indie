@@ -50,10 +50,10 @@ describe("seller focus grounding", () => {
     expect(m[0].boxIds).toEqual([1, 2]);
     expect(m[1].boxIds).toEqual([3]);
   });
-  it("never collapses a whole diverse photo on one generic name", () => {
+  it("never collapses one generic name sprawled across the whole frame", () => {
     const boxes: [number, number, number, number][] = [
-      [0.0, 0.0, 0.2, 0.2], [0.2, 0.0, 0.4, 0.2], [0.4, 0.0, 0.6, 0.2],
-      [0.6, 0.0, 0.8, 0.2], [0.8, 0.0, 1.0, 0.2], [0.0, 0.5, 0.2, 0.7],
+      [0.0, 0.0, 0.2, 0.35], [0.4, 0.1, 0.6, 0.4], [0.8, 0.0, 1.0, 0.3],
+      [0.0, 0.6, 0.2, 0.9], [0.4, 0.6, 0.6, 0.9], [0.8, 0.6, 1.0, 0.9],
     ];
     const raws = [1, 2, 3, 4, 5, 6].map((n) => ({ name_en: "Fresh Vegetables", boxId: n }));
     expect(mergeSameName(raws, boxes)).toHaveLength(6);
@@ -64,6 +64,18 @@ describe("seller focus grounding", () => {
       [0.4, 0.1, 0.52, 0.3], [0.58, 0.1, 0.7, 0.3],
     ];
     const m = mergeSameName([mk("Limes", 1), mk("limes ", 2)], boxes);
+    expect(m).toHaveLength(1);
+    expect(m[0].boxIds).toEqual([1, 2]);
+  });
+  it("merges when only the Arabic name matches (Spark varies the English)", () => {
+    const boxes: [number, number, number, number][] = [
+      [0.4, 0.1, 0.52, 0.3], [0.58, 0.1, 0.7, 0.3],
+    ];
+    const raws = [
+      { name_en: "Fresh Green Lime", name_ar: "ليمون أخضر بلدي طازج", boxId: 1 },
+      { name_en: "Green Lime Fruit", name_ar: "ليمون أخضر بلدي طازج", boxId: 2 },
+    ];
+    const m = mergeSameName(raws, boxes);
     expect(m).toHaveLength(1);
     expect(m[0].boxIds).toEqual([1, 2]);
   });

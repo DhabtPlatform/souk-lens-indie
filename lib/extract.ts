@@ -124,52 +124,65 @@ export function touches(a: Detection["box"], b: Detection["box"], pad = 0.05): b
 }
 
 // Deterministic pile merge (server-side, never model whim): raws sharing the
-// exact same name whose regions touch form ONE product (connected pile);
-// separated same-name regions stay split; different names never merge; and one
-// generic name covering everything never collapses the whole photo.
+// exact same name (English OR Arabic — Spark often varies one language while
+// repeating the other) AND whose regions touch form ONE product via union-find.
+// Different names never merge; unpositioned same-name raws merge; and one
+// generic name covering a whole diverse photo never collapses it.
 export function mergeSameName(
   raws: Record<string, unknown>[],
   boxes: Detection["box"][]
 ): { raw: Record<string, unknown>; boxIds: number[] }[] {
-  const keyOf = (r: Record<string, unknown>) =>
-    String(r.name_en ?? r.title ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-  const groups = new Map<string, number[]>();
-  raws.forEach((r, i) => {
-    const k = keyOf(r) || `__blank${i}`;
-    const g = groups.get(k);
-    if (g) g.push(i);
-    else groups.set(k, [i]);
-  });
-  const solo = (raw: Record<string, unknown>) => ({ raw, boxIds: [boxIdOf(raw)] });
-  // One generic name ("fresh vegetables") covering a whole diverse photo must
-  // never collapse it — but small same-name sets (two carrot regions) merge.
-  if (groups.size <= 1 && raws.length > 4) return raws.map(solo);
+  const norm = (v: unknown) =>
+    String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  const enK = raws.map((r) => norm(r.name_en ?? r.title));
+  const arK = raws.map((r) => norm(r.name_ar));
+  const parent = raws.map((_, i) => i);
+  const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
   const boxOf = (i: number): Detection["box"] | null => {
     const b = boxIdOf(raws[i]);
     return Number.isFinite(b) && (b as number) >= 1 && (b as number) <= boxes.length ? boxes[(b as number) - 1] : null;
   };
-  const out: { raw: Record<string, unknown>; boxIds: number[] }[] = [];
-  for (const [, members] of groups) {
-    const remaining = [...members];
-    while (remaining.length) {
-      const comp = [remaining.shift() as number];
-      let grew = true;
-      while (grew) {
-        grew = false;
-        for (let k = remaining.length - 1; k >= 0; k--) {
-          const bb = boxOf(remaining[k]);
-          // Generous pile tolerance: same-name neighbours a few percent apart
-          // still belong to one pile (lime rows, carrot bunches). Truly
-          // distant same-name piles stay split; different names never merge.
-          const positioned = comp.some((ci) => { const cb = boxOf(ci); return !!cb && !!bb && touches(cb, bb, 0.12); });
-          const unpositioned = !bb && comp.every((ci) => !boxOf(ci));
-          if (positioned || unpositioned) { comp.push(remaining.splice(k, 1)[0]); grew = true; }
-        }
-      }
-      comp.sort((a, b) => a - b);
-      out.push({ raw: raws[comp[0]], boxIds: comp.map((i) => boxIdOf(raws[i])) });
+  for (let i = 0; i < raws.length; i++) {
+    for (let j = i + 1; j < raws.length; j++) {
+      const sameName =
+        (enK[i] !== "" && enK[i] === enK[j]) || (arK[i] !== "" && arK[i] === arK[j]);
+      if (!sameName) continue;
+      const bi = boxOf(i), bj = boxOf(j);
+      if (!bi && !bj) { parent[find(i)] = find(j); continue; }
+      if (!bi || !bj) continue;
+      // Generous pile tolerance: same-name neighbours a few percent apart
+      // still belong to one pile (lime rows, carrot bunches).
+      if (touches(bi, bj, 0.12)) parent[find(i)] = find(j);
     }
   }
+  const compOf = new Map<number, number[]>();
+  raws.forEach((_, i) => {
+    const r = find(i);
+    const g = compOf.get(r);
+    if (g) g.push(i);
+    else compOf.set(r, [i]);
+  });
+  const solo = (raw: Record<string, unknown>) => ({ raw, boxIds: [boxIdOf(raw)] });
+  // One generic name ("fresh vegetables") sprawled across the WHOLE frame is a
+  // lazy label, not a pile — never collapse it. Measured by union area, not by
+  // count: a small same-name cluster (two carrot regions) still merges.
+  // Unpositioned same-name raws (no boxes at all) merge — nothing to sprawl.
+  {
+    const positioned = raws.map((_, i) => {
+      const b = boxIdOf(raws[i]);
+      return Number.isFinite(b) && (b as number) >= 1 && (b as number) <= boxes.length ? boxes[(b as number) - 1] : null;
+    }).filter((b): b is Detection["box"] => !!b);
+    if (raws.length > 4 && positioned.length > 0) {
+      const ux1 = Math.min(...positioned.map((b) => b[0])), uy1 = Math.min(...positioned.map((b) => b[1]));
+      const ux2 = Math.max(...positioned.map((b) => b[2])), uy2 = Math.max(...positioned.map((b) => b[3]));
+      const distinct = new Set(raws.map((r, i) => enK[i] !== "" ? enK[i] : arK[i] !== "" ? arK[i] : `__blank${i}`));
+      if (distinct.size <= 1 && (ux2 - ux1) * (uy2 - uy1) > 0.6) return raws.map(solo);
+    }
+  }
+  const out = [...compOf.values()].map((members) => {
+    const s = [...members].sort((a, b) => a - b);
+    return { raw: raws[s[0]], boxIds: s.map((i) => boxIdOf(raws[i])) };
+  });
   const rank = (m: { boxIds: number[] }) => Math.min(...m.boxIds.map((x) => (Number.isFinite(x) ? x : 1e9)));
   return out.sort((a, b) => rank(a) - rank(b));
 }

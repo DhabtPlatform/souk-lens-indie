@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
-import { annotateBoxes, cropRegions, orientedSize, sourceBytes } from "@/lib/crop";
+import { annotateBoxes, cropRegions, cropToDataUrl, sourceBytes } from "@/lib/crop";
 import { boxIdOf, buildGrounding, coverageRatio, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, remapBox, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
@@ -100,23 +100,70 @@ export async function POST(req: NextRequest) {
         if (ua > 0.05 && ua < 0.7) {
           const sBytes = await sourceBytes(metaImage);
           if (sBytes) {
-            const { w, h } = await orientedSize(sBytes);
-            if (w > 0 && h > 0) {
-              const left = Math.floor(ux1 * w), top = Math.floor(uy1 * h);
-              const cw = Math.min(w - left, Math.ceil((ux2 - ux1) * w));
-              const ch = Math.min(h - top, Math.ceil((uy2 - uy1) * h));
-              if (cw > 32 && ch > 32) {
-                const cropBuf = await sharp(sBytes).rotate().extract({ left, top, width: cw, height: ch }).jpeg({ quality: 85 }).toBuffer();
-                const segRz = await timed(() => segmentImage(`data:image/jpeg;base64,${cropBuf.toString("base64")}`, samPrompt));
-                samMs += segRz.ms;
-                const region = { x1: ux1, y1: uy1, x2: ux2, y2: uy2 };
-                const zoomed = extractDetections(segRz.v, []).map((d) => ({ ...d, box: remapBox(d.box, region) }));
-                samDetections = mergeDetections(samDetections, zoomed);
-              }
+            const region = { x1: ux1, y1: uy1, x2: ux2, y2: uy2 };
+            const cropUrl = await cropToDataUrl(sBytes, region);
+            if (cropUrl) {
+              const segRz = await timed(() => segmentImage(cropUrl, samPrompt));
+              samMs += segRz.ms;
+              const zoomed = extractDetections(segRz.v, []).map((d) => ({ ...d, box: remapBox(d.box, region) }));
+              samDetections = mergeDetections(samDetections, zoomed);
             }
           }
         }
       } catch { /* wider view stands */ }
+    }
+    // Still thin after the zoom? Explore the LARGEST uncovered areas: grid
+    // the frame, group connected cells no box touches, and segment up to two
+    // of those crops (herb piles SAM never saw the first time). Last resort
+    // before Spark — each crop costs one SAM call, capped at two.
+    if (samDetections.length > 0 && coverageRatio(samDetections) < 0.35) {
+      try {
+        const touched = (cx: number, cy: number) =>
+          samDetections.some((d) => cx > d.box[0] - 0.03 && cx < d.box[2] + 0.03 && cy > d.box[1] - 0.03 && cy < d.box[3] + 0.03);
+        const N = 3, open: boolean[] = [];
+        for (let r = 0; r < N; r++)
+          for (let c = 0; c < N; c++)
+            open.push(!touched((c + 0.5) / N, (r + 0.5) / N));
+        const seen = new Set<number>();
+        const comps: { cells: number[] }[] = [];
+        for (let i = 0; i < N * N; i++) {
+          if (!open[i] || seen.has(i)) continue;
+          const comp: number[] = [];
+          const stack = [i];
+          seen.add(i);
+          while (stack.length) {
+            const cur = stack.pop() as number;
+            comp.push(cur);
+            const r = Math.floor(cur / N), c = cur % N;
+            for (const [nr, nc] of [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]]) {
+              if (nr < 0 || nr >= N || nc < 0 || nc >= N) continue;
+              const ni = nr * N + nc;
+              if (open[ni] && !seen.has(ni)) { seen.add(ni); stack.push(ni); }
+            }
+          }
+          comps.push({ cells: comp });
+        }
+        comps.sort((a, b) => b.cells.length - a.cells.length);
+        const sBytes = await sourceBytes(metaImage);
+        if (sBytes) {
+          for (const comp of comps.slice(0, 2)) {
+            if (comp.cells.length / (N * N) < 0.06) continue;
+            const rs = comp.cells.map((k) => Math.floor(k / N)), cs = comp.cells.map((k) => k % N);
+            const pad = 0.04;
+            const region = {
+              x1: Math.max(0, Math.min(...cs) / N - pad), y1: Math.max(0, Math.min(...rs) / N - pad),
+              x2: Math.min(1, (Math.max(...cs) + 1) / N + pad), y2: Math.min(1, (Math.max(...rs) + 1) / N + pad),
+            };
+            const cropUrl = await cropToDataUrl(sBytes, region);
+            if (!cropUrl) continue;
+            const segRe = await timed(() => segmentImage(cropUrl, "every distinct pile of items in this crop"));
+            samMs += segRe.ms;
+            const found = extractDetections(segRe.v, []).map((d) => ({ ...d, box: remapBox(d.box, region) }));
+            samDetections = mergeDetections(samDetections, found);
+            if (coverageRatio(samDetections) >= 0.35) break;
+          }
+        }
+      } catch { /* found boxes stand */ }
     }
     // Whole-scene box? When SAM returns one region covering most of the frame,
     // the count cap would force a single "assortment" listing. ensureCoverage()

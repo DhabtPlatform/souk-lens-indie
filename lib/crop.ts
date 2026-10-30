@@ -26,6 +26,24 @@ export async function orientedSize(imageBytes: Buffer): Promise<{ w: number; h: 
   };
 }
 
+// Crop one normalized region to a data URL (oriented pixels, JPEG). Used for
+// zoomed re-segmentation passes: the crop re-enters the pipeline as a photo.
+export async function cropToDataUrl(imageBytes: Buffer, rect: { x1: number; y1: number; x2: number; y2: number }): Promise<string | null> {
+  try {
+    const { w, h } = await orientedSize(imageBytes);
+    if (!w || !h) return null;
+    const left = Math.max(0, Math.floor(rect.x1 * w));
+    const top = Math.max(0, Math.floor(rect.y1 * h));
+    const cw = Math.min(w - left, Math.ceil((rect.x2 - rect.x1) * w));
+    const ch = Math.min(h - top, Math.ceil((rect.y2 - rect.y1) * h));
+    if (cw < 32 || ch < 32) return null;
+    const buf = await sharp(imageBytes).rotate().extract({ left, top, width: cw, height: ch }).jpeg({ quality: 85 }).toBuffer();
+    return `data:image/jpeg;base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function cropRegions(imageBytes: Buffer, boxes: CropBox[], maxSide = 640): Promise<string[]> {
   // .rotate() first: phone portrait photos are stored landscape + EXIF flag.
   // Without it, crops/annotations land on the wrong regions (and Spark sees
