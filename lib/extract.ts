@@ -171,6 +171,14 @@ export function mergeSameName(
   return out.sort((a, b) => rank(a) - rank(b));
 }
 
+// Map a box from crop-local (0..1 of the crop) back to photo-global (0..1),
+// so a zoomed re-segmentation lands on the original frame.
+export function remapBox(box: Detection["box"], region: { x1: number; y1: number; x2: number; y2: number }): Detection["box"] {
+  const w = Math.max(1e-6, region.x2 - region.x1), h = Math.max(1e-6, region.y2 - region.y1);
+  const cl = (n: number) => Math.min(1, Math.max(0, n));
+  return [cl(region.x1 + box[0] * w), cl(region.y1 + box[1] * h), cl(region.x1 + box[2] * w), cl(region.y1 + box[3] * h)];
+}
+
 // Fraction of the frame covered by SAM regions (overlaps double-count — it is
 // a cheap density signal, not an exact area). Thin coverage (a few boxes on a
 // big empty table) means SAM likely missed whole piles, so the route fires

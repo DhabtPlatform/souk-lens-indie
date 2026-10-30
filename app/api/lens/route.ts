@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
-import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
-import { boxIdOf, buildGrounding, coverageRatio, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion } from "@/lib/extract";
+import { annotateBoxes, cropRegions, orientedSize, sourceBytes } from "@/lib/crop";
+import { boxIdOf, buildGrounding, coverageRatio, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, remapBox, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -83,6 +83,40 @@ export async function POST(req: NextRequest) {
         samDetections.forEach((d, i) => { d.label = `Detected item ${i + 1}`; });
         gridFallback = samDetections.length > 1;
       }
+    }
+    // User discovery, now automated: big empty margins around the items starve
+    // SAM (cropping them away manually fixed a real field photo). When regions
+    // cluster in a small part of the frame, zoom to their union (+padding)
+    // and re-segment the crop, mapping boxes back to photo space. Costs one
+    // extra SAM call only when coverage is thin.
+    if (samDetections.length > 0 && coverageRatio(samDetections) < 0.25) {
+      try {
+        const pad = 0.07;
+        const ux1 = Math.max(0, Math.min(...samDetections.map((d) => d.box[0])) - pad);
+        const uy1 = Math.max(0, Math.min(...samDetections.map((d) => d.box[1])) - pad);
+        const ux2 = Math.min(1, Math.max(...samDetections.map((d) => d.box[2])) + pad);
+        const uy2 = Math.min(1, Math.max(...samDetections.map((d) => d.box[3])) + pad);
+        const ua = (ux2 - ux1) * (uy2 - uy1);
+        if (ua > 0.05 && ua < 0.7) {
+          const sBytes = await sourceBytes(metaImage);
+          if (sBytes) {
+            const { w, h } = await orientedSize(sBytes);
+            if (w > 0 && h > 0) {
+              const left = Math.floor(ux1 * w), top = Math.floor(uy1 * h);
+              const cw = Math.min(w - left, Math.ceil((ux2 - ux1) * w));
+              const ch = Math.min(h - top, Math.ceil((uy2 - uy1) * h));
+              if (cw > 32 && ch > 32) {
+                const cropBuf = await sharp(sBytes).rotate().extract({ left, top, width: cw, height: ch }).jpeg({ quality: 85 }).toBuffer();
+                const segRz = await timed(() => segmentImage(`data:image/jpeg;base64,${cropBuf.toString("base64")}`, samPrompt));
+                samMs += segRz.ms;
+                const region = { x1: ux1, y1: uy1, x2: ux2, y2: uy2 };
+                const zoomed = extractDetections(segRz.v, []).map((d) => ({ ...d, box: remapBox(d.box, region) }));
+                samDetections = mergeDetections(samDetections, zoomed);
+              }
+            }
+          }
+        }
+      } catch { /* wider view stands */ }
     }
     // Whole-scene box? When SAM returns one region covering most of the frame,
     // the count cap would force a single "assortment" listing. ensureCoverage()

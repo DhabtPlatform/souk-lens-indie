@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxArea, buildGrounding, coverageRatio, ensureCoverage, extractDetections, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion, touches } from "@/lib/extract";
+import { boxArea, buildGrounding, coverageRatio, ensureCoverage, extractDetections, mergeDetections, mergeSameName, remapBox, sortReadingOrder, subdivideRegion, touches } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -62,13 +62,21 @@ describe("seller focus grounding", () => {
     expect(touches([0, 0, 0.3, 0.3], [0.28, 0, 0.5, 0.3])).toBe(true);
     expect(touches([0, 0, 0.3, 0.3], [0.7, 0.7, 0.9, 0.9])).toBe(false);
   });
-  it("coverageRatio signals thin vs dense segmentation", () => {
-    const thin: [number, number, number, number][] = [[0.4, 0.3, 0.6, 0.5]];
+  it("coverageRatio signals thin vs dense segmentation", () => {    const thin: [number, number, number, number][] = [[0.4, 0.3, 0.6, 0.5]];
     expect(coverageRatio(thin.map((box) => ({ label: "x", box, source: "sam" as const })))).toBeLessThan(0.25);
     const dense: [number, number, number, number][] = [
       [0.0, 0.0, 0.5, 0.5], [0.5, 0.0, 1.0, 0.5], [0.0, 0.5, 0.5, 1.0], [0.5, 0.5, 1.0, 1.0],
     ];
     expect(coverageRatio(dense.map((box) => ({ label: "x", box, source: "sam" as const })))).toBeGreaterThanOrEqual(0.25);
+  });
+  it("remapBox projects crop-local boxes back to photo-global", () => {
+    // Crop covers the middle half of the photo; a box filling the crop's top
+    // half must land on the photo's second quarter vertically.
+    const out = remapBox([0, 0, 1, 0.5], { x1: 0.25, y1: 0.25, x2: 0.75, y2: 0.75 });
+    expect(out[0]).toBeCloseTo(0.25, 6);
+    expect(out[1]).toBeCloseTo(0.25, 6);
+    expect(out[2]).toBeCloseTo(0.75, 6);
+    expect(out[3]).toBeCloseTo(0.5, 6);
   });
   it("skips the grouping rule for a single region and for seller focus", () => {
     expect(buildGrounding("market goods", "#1 at [0.1,0.2]", "", 1)).not.toContain("GROUPING RULE");
