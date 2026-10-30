@@ -27,6 +27,8 @@ const ROLE_EN: Record<string, string> = {
   "إكمال إعلانات المتجر": "Complete the store listings",
   "فهم نية الشراء (عند توفر المفتاح)": "Understand buying intent (with key)",
   "فهم نية الشراء (حي مع المفتاح)": "Understand buying intent (live with key)",
+  "قائمة ويب حقيقية بروابط متاجر": "Real web list with shop links",
+  "تجميع الفاتورة": "Invoice totals",
   "ترتيب: تقييم × خصم × توصيل × ثقة بائع": "Rank: rating × discount × delivery × seller trust",
   "ترتيب: تقييم × خصم × توصيل × ثقة": "Rank: rating × discount × delivery × trust",
 };

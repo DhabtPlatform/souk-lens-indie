@@ -51,6 +51,7 @@ export function SmartMarket({
   const [bundles, setBundles] = useState<SmartBundle[]>([]);
   const [alts, setAlts] = useState<AltMap>({});
   const [activeBundle, setActiveBundle] = useState("value");
+  const [scope, setScope] = useState<"store" | "web">("store");
   const [approvedId, setApprovedId] = useState<string | null>(null);
   const [invoiceNo, setInvoiceNo] = useState("");
   const [trace, setTrace] = useState<TraceInfo | null>(null);
@@ -66,7 +67,7 @@ export function SmartMarket({
     try {
       const r = await fetch("/api/smart-market", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query.trim() || PRESETS.find((p) => p.id === pid)?.title_ar, presetId: pid || undefined, country, currency, budget: budget ? Number(budget) : undefined, priority, savedProducts }),
+        body: JSON.stringify({ query: query.trim() || PRESETS.find((p) => p.id === pid)?.title_ar, presetId: pid || undefined, country, currency, budget: budget ? Number(budget) : undefined, priority, savedProducts, scope }),
       });
       const j = await r.json();
       if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
@@ -80,7 +81,9 @@ export function SmartMarket({
         count: ((j.bundles as SmartBundle[]) ?? []).reduce((n, b) => n + (b.items?.length ?? 0), 0),
         stages: (Array.isArray(j.trace) && j.trace.length ? j.trace : STAGE_PRESETS["/api/smart-market"] ?? []) as TraceInfo["stages"],
       });
-      toast.success(ar ? `اتجمعت 3 قوائم من ${j.catalogSize} منتج في المتجر` : `3 lists built from ${j.catalogSize} store products`);
+      toast.success(scope === "web"
+        ? (ar ? `قائمة ويب حقيقية: ${j.catalogSize} منتج من متاجر أونلاين` : `Real web list: ${j.catalogSize} online products`)
+        : (ar ? `اتجمعت 3 قوائم من ${j.catalogSize} منتج في المتجر` : `3 lists built from ${j.catalogSize} store products`));
     } catch (e) { setError(String(e)); } finally { setLoading(false); }
   }
 
@@ -159,8 +162,12 @@ export function SmartMarket({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl"><Sparkles className="text-primary" />{ar ? "السوق الذكي" : "Smart Market"}</CardTitle>
           <CardDescription className="leading-7">
-            {ar ? "قوله عاوز تشتري ايه — هيبحث في مخزون العرض ومنتجاتك المحفوظة ويجمع لك 3 قوائم: أفضل قيمة، أفضل مطابقة وجودة، وأسرع توصيل. انقل منتج بين القوائم، اعتمد واحدة، واستلم فاتورة مبدئية." : "Tell it what you need — it searches the sample inventory and your saved products and builds 3 lists: best value, best match & quality, fastest delivery. Move items, approve one, get a preliminary invoice."}
+            {ar ? "الفكرة تعتمد على منتجات فعلية داخل المتجر — وحاليًا النسخة تجريبية: منتجاتك المحفوظة حقيقية 100%، والباقي كتالوج عينات مُعلَّم. أو ابحث في متاجر ومنصات أخرى بقائمة ويب حقيقية." : "The idea runs on real in-store products — the current version is experimental: your saved products are 100% real, the rest is a labeled sample catalog. Or search other stores and platforms for a real web list."}
           </CardDescription>
+          <div className="flex flex-wrap gap-2 pt-1" role="radiogroup" aria-label={ar ? "نطاق البحث" : "Search scope"}>
+            <Button size="sm" variant={scope === "store" ? "default" : "outline"} onClick={() => setScope("store")}>{ar ? "داخل متجري (حقيقي + عينات مُعلَّمة)" : "My store (real + labeled samples)"}</Button>
+            <Button size="sm" variant={scope === "web" ? "default" : "outline"} onClick={() => setScope("web")}>{ar ? "متاجر ومنصات أخرى (ويب حقيقي)" : "Other stores (real web)"}</Button>
+          </div>
           <div className="flex flex-wrap gap-1.5 pt-1">
             <Badge variant="gold">{ar ? "مخزون سوق تجريبي" : "Sample marketplace inventory"}</Badge>
             <Badge variant={savedProducts.length ? "accent" : "secondary"}>{ar ? `+ منتجاتك المحفوظة الحقيقية (${savedProducts.length})` : `+ your real saved products (${savedProducts.length})`}</Badge>
@@ -207,10 +214,12 @@ export function SmartMarket({
             <div className="space-y-1.5">
               <div className="flex items-end">
                 <Button size="lg" className="w-full" onClick={() => run()} disabled={loading}>
-                  <Sparkles />{loading ? (ar ? "بيجمع القوائم…" : "Building lists…") : (ar ? "ابني 3 قوائم ذكية" : "Build 3 smart lists")}
+                  <Sparkles />{loading ? (ar ? "بيجمع القوائم…" : "Building lists…") : scope === "web" ? (ar ? "ابحث في الويب" : "Search the web") : (ar ? "ابني 3 قوائم ذكية" : "Build 3 smart lists")}
                 </Button>
               </div>
-              <Hint>{ar ? "الوكيل يبحث في الكتالوج ومنتجاتك، يجمّع 3 قوائم مرتبة، ويحسب الفواتير تلقائيًا." : "The agent searches the catalog and your products, assembles 3 ranked lists, and invoices automatically."}</Hint>
+              <Hint>{scope === "web"
+                ? (ar ? "قائمة ويب حقيقية من متاجر أونلاين بروابطها — تُحفظ وتُفوتر وتُنزّل، ولا تُدفع من هنا." : "A real web list from online stores with links — saved, invoiced and downloaded, never checked out here.")
+                : (ar ? "الوكيل يبحث في الكتالوج ومنتجاتك، يجمّع 3 قوائم مرتبة، ويحسب الفواتير تلقائيًا." : "The agent searches the catalog and your products, assembles 3 ranked lists, and invoices automatically.")}</Hint>
             </div>
           </div>
         </CardContent>
@@ -285,9 +294,15 @@ export function SmartMarket({
             <Separator />
             <div className="flex items-center justify-between text-lg font-black"><span>{ar ? "الإجمالي المستحق" : "Grand total"}</span><span className="text-accent">{formatPrice(approved.total, currency)}</span></div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button size="lg" className="flex-1" onClick={() => { onAddToCart(approved.items); toast.success(ar ? "اتضافت للسلة — افتح السلة من فوق للدفع" : "Added to cart"); }}>
-                <ShoppingCart />{ar ? "أضف للسلة للدفع" : "Add to cart & pay"}
-              </Button>
+              {!(approved.items.length && approved.items.some((i) => (i.source as { label?: string } | undefined)?.label === "external")) ? (
+                <Button size="lg" className="flex-1" onClick={() => { onAddToCart(approved.items); toast.success(ar ? "اتضافت للسلة — افتح السلة من فوق للدفع" : "Added to cart"); }}>
+                  <ShoppingCart />{ar ? "أضف للسلة للدفع" : "Add to cart & pay"}
+                </Button>
+              ) : (
+                <div className="flex-1 rounded-xl border border-dashed p-3 text-center text-xs leading-6 text-muted-foreground">
+                  {ar ? "منتجات خارجية من متاجر أخرى — لا دفع من هنا. احفظ القائمة في منتجاتك ونزّل الفاتورة." : "External products from other stores — no checkout here. Save the list to My products and download the invoice."}
+                </div>
+              )}
               <Button size="lg" variant="accent" onClick={() => onSaveProducts(approved.items)}><PackagePlus />{ar ? "حفظ في منتجاتي" : "Save products"}</Button>
               <Button size="lg" variant="outline" onClick={copyInvoice}><Copy />{ar ? "نسخ" : "Copy"}</Button>
               <Button size="lg" variant="outline" onClick={downloadInvoice}><Download />JSON</Button>
