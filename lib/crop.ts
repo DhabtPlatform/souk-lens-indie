@@ -13,13 +13,24 @@ export function boxToPixels(box: CropBox, w: number, h: number, pad = 0.04) {
   return { left: px, top: py, width: Math.max(8, x2 - px), height: Math.max(8, y2 - py) };
 }
 
+// Oriented dimensions: sharp's metadata() reports RAW buffer dims while the
+// .rotate() pipeline processes the DISPLAYED orientation — so for EXIF 5..8
+// (portrait phones) width/height must be swapped by hand. Without this,
+// boxes land on the wrong regions of portrait photos.
+export async function orientedSize(imageBytes: Buffer): Promise<{ w: number; h: number }> {
+  const m = await sharp(imageBytes).metadata();
+  const swap = [5, 6, 7, 8].includes(m.orientation ?? 1);
+  return {
+    w: swap ? m.height ?? 0 : m.width ?? 0,
+    h: swap ? m.width ?? 0 : m.height ?? 0,
+  };
+}
+
 export async function cropRegions(imageBytes: Buffer, boxes: CropBox[], maxSide = 640): Promise<string[]> {
   // .rotate() first: phone portrait photos are stored landscape + EXIF flag.
   // Without it, crops/annotations land on the wrong regions (and Spark sees
   // the photo sideways). After rotate() the pixels match what the seller sees.
-  const meta = await sharp(imageBytes).rotate().metadata();
-  const w = meta.width ?? 0;
-  const h = meta.height ?? 0;
+  const { w, h } = await orientedSize(imageBytes);
   if (!w || !h) return boxes.map(() => "");
   const out: string[] = [];
   for (const b of boxes.slice(0, 14)) {
@@ -56,9 +67,9 @@ export function sourceBytes(imageUrl: string): Promise<Buffer | null> {
 // Numbered markers over each SAM box (set-of-marks): Spark names every
 // numbered region, so names bind to boxes by construction, not by guessing.
 export async function annotateBoxes(imageBytes: Buffer, boxes: CropBox[]): Promise<Buffer> {
-  const meta = await sharp(imageBytes).rotate().metadata();
-  const w = meta.width ?? 1000;
-  const h = meta.height ?? 1000;
+  const { w: ww, h: hh } = await orientedSize(imageBytes);
+  const w = ww ?? 1000;
+  const h = hh ?? 1000;
   const s = Math.max(w, h) / 1000;
   const dots = boxes.slice(0, 14).map((b, i) => {
     const cx = ((Math.min(b.x1, b.x2) + Math.max(b.x1, b.x2)) / 2) * w;

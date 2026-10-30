@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
 import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion } from "@/lib/extract";
@@ -25,10 +26,28 @@ export async function POST(req: NextRequest) {
     }
     const live = Boolean(process.env.MODEL_API_KEY);
     const timed = async <T,>(fn: () => Promise<T>) => { const t0 = Date.now(); const v = await fn(); return { v, ms: Date.now() - t0 }; };
+    // Orientation lock BEFORE Meta ever sees the photo: uploads/data URLs are
+    // already canvas-normalized client-side, but a remote http(s) image can
+    // carry an EXIF rotation flag — SAM would then segment raw-buffer space
+    // while the seller sees it rotated (the portrait-photo failures). If the
+    // flag is set, send pre-rotated pixels instead of the URL. Galleries keep
+    // the original URL (browsers display it correctly).
+    let metaImage = imageUrl;
+    if (/^https?:\/\//.test(imageUrl)) {
+      try {
+        const b = await sourceBytes(imageUrl);
+        if (b) {
+          const md = await sharp(b).metadata();
+          if ((md.orientation ?? 1) > 1) {
+            metaImage = `data:image/jpeg;base64,${(await sharp(b).rotate().jpeg({ quality: 88 }).toBuffer()).toString("base64")}`;
+          }
+        }
+      } catch { /* original URL stands */ }
+    }
     // Sequential on purpose: SAM findings ground Spark, so a photo of hazelnuts
     // can never be described as a vase. SAM first, then Spark on its labels.
     const samPrompt = focusStr || prompt;
-    const segR = await timed(() => segmentImage(imageUrl, samPrompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
+    const segR = await timed(() => segmentImage(metaImage, samPrompt)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
     const seg = segR.v;
     let samDetections = extractDetections(seg, []);
     let samMs = segR.ms;
@@ -36,7 +55,7 @@ export async function POST(req: NextRequest) {
     // IoU so nothing double-counts. Only runs when the first pass is sparse.
     if (samDetections.length > 0 && samDetections.length < 4) {
       try {
-        const segR2 = await timed(() => segmentImage(imageUrl, "small piles groups at edges"));
+        const segR2 = await timed(() => segmentImage(metaImage, "small piles groups at edges"));
         samMs += segR2.ms;
         samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
       } catch { /* single pass stands */ }
@@ -50,7 +69,7 @@ export async function POST(req: NextRequest) {
     let gridFallback = false;
     if (samDetections.length === 0) {
       try {
-        const segR0 = await timed(() => segmentImage(imageUrl, "each individual item separately"));
+        const segR0 = await timed(() => segmentImage(metaImage, "each individual item separately"));
         samMs += segR0.ms;
         samDetections = mergeDetections(samDetections, extractDetections(segR0.v, []));
       } catch { /* grid fallback below */ }
@@ -84,7 +103,7 @@ export async function POST(req: NextRequest) {
     const numbered = samDetections.length > 1;
     if (numbered) {
       try {
-        const srcBytes = await sourceBytes(imageUrl);
+        const srcBytes = await sourceBytes(metaImage);
         if (srcBytes) {
           const ann = await annotateBoxes(
             srcBytes,
