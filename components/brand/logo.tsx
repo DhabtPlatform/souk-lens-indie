@@ -62,12 +62,12 @@ export function Wordmark({ className }: { className?: string }) {
   );
 }
 
-export function LogoLockup({ lang, className }: { lang: "ar" | "en"; className?: string }) {
+export function LogoLockup({ lang, className, compact }: { lang: "ar" | "en"; className?: string; compact?: boolean }) {
   const ar = lang === "ar";
   return (
     <span className={cn("flex min-w-0 items-center gap-3", className)}>
       <LogoMark />
-      <span className="min-w-0">
+      <span className={cn("min-w-0", compact && "hidden min-[420px]:block")}>
         <Wordmark className="h-6 sm:h-7" />
         <span className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
           {ar ? "عدسة السوق — صوّر، اتكلم، ابحث" : "See it. Sell it. Anywhere."}

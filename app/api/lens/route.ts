@@ -26,24 +26,23 @@ export async function POST(req: NextRequest) {
     }
     const live = Boolean(process.env.MODEL_API_KEY);
     const timed = async <T,>(fn: () => Promise<T>) => { const t0 = Date.now(); const v = await fn(); return { v, ms: Date.now() - t0 }; };
-    // Orientation lock BEFORE Meta ever sees the photo: uploads/data URLs are
-    // already canvas-normalized client-side, but a remote http(s) image can
-    // carry an EXIF rotation flag — SAM would then segment raw-buffer space
-    // while the seller sees it rotated (the portrait-photo failures). If the
-    // flag is set, send pre-rotated pixels instead of the URL. Galleries keep
-    // the original URL (browsers display it correctly).
+    // Orientation lock BEFORE Meta ever sees the photo: uploads are usually
+    // canvas-normalized client-side, but ANY path that still carries an EXIF
+    // rotation flag (http(s) links, pasted originals, un-normalized uploads)
+    // would otherwise make SAM segment raw-buffer space while the seller sees
+    // it rotated — the root cause of the portrait-vs-landscape gap. If the flag
+    // is set, send pre-rotated pixels instead of the URL. Galleries keep the
+    // original URL (browsers display it correctly).
     let metaImage = imageUrl;
-    if (/^https?:\/\//.test(imageUrl)) {
-      try {
-        const b = await sourceBytes(imageUrl);
-        if (b) {
-          const md = await sharp(b).metadata();
-          if ((md.orientation ?? 1) > 1) {
-            metaImage = `data:image/jpeg;base64,${(await sharp(b).rotate().jpeg({ quality: 88 }).toBuffer()).toString("base64")}`;
-          }
+    try {
+      const b = await sourceBytes(imageUrl);
+      if (b) {
+        const md = await sharp(b).metadata();
+        if ((md.orientation ?? 1) > 1) {
+          metaImage = `data:image/jpeg;base64,${(await sharp(b).rotate().jpeg({ quality: 88 }).toBuffer()).toString("base64")}`;
         }
-      } catch { /* original URL stands */ }
-    }
+      }
+    } catch { /* original stands */ }
     // Sequential on purpose: SAM findings ground Spark, so a photo of hazelnuts
     // can never be described as a vase. SAM first, then Spark on its labels.
     const samPrompt = focusStr || prompt;

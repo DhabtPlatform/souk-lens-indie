@@ -425,7 +425,10 @@ export default function Page() {
       if (typeof j.studioImage === "string") setStudio(j.studioImage);
       const count = list.length;
       if (count) toast.success(ar ? `تم إنشاء ${count} إعلان كامل` : `${count} full listings created`);
-      if (autoScroll.current && count) {
+      // On phones the result sits far below the fold behind long sections —
+      // always bring it into view when a run completes. Desktop keeps the
+      // one-time first-visit behavior.
+      if (count && (autoScroll.current || isMobile)) {
         autoScroll.current = false;
         setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
       }
@@ -457,9 +460,34 @@ export default function Page() {
     return () => clearInterval(id);
   }, [loading, runStartedAt]);
 
+  // Keep the phone awake while a run is in flight: locking the screen can
+  // suspend the page and silently kill the analysis mid-run. Released the
+  // moment the run ends; unsupported browsers simply ignore it.
+  useEffect(() => {
+    type WL = { release: () => void };
+    let wl: WL | null = null;
+    let cancelled = false;
+    const acquire = async () => {
+      try {
+        const nav = navigator as Navigator & { wakeLock?: { request: (t: "screen") => Promise<WL> } };
+        if (!nav.wakeLock) return;
+        const lock = await nav.wakeLock.request("screen");
+        if (cancelled) lock.release();
+        else wl = lock;
+      } catch { /* denied/unsupported — run continues normally */ }
+    };
+    const onVis = () => { if (document.visibilityState === "visible" && loading && !wl) acquire(); };
+    if (loading) {
+      acquire();
+      document.addEventListener("visibilitychange", onVis);
+    }
+    return () => { cancelled = true; document.removeEventListener("visibilitychange", onVis); wl?.release(); wl = null; };
+  }, [loading]);
+
   const runAnalyze = async () => {
     const shrunk = await downscaleDataUrl(imageUrl);
-    if (shrunk !== imageUrl) setImageUrl(shrunk);    return postJson("/api/lens", { imageUrl: shrunk, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+    if (shrunk !== imageUrl) setImageUrl(shrunk);
+    return postJson("/api/lens", { imageUrl: shrunk, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   };
   // Human-in-the-loop correction: a cropped region re-enters the pipeline as a
   // new photo under the seller's authoritative name (specific scope).
