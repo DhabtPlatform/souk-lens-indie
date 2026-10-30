@@ -270,16 +270,18 @@ export default function Page() {
     });
   }
   // Shrink an already-loaded data: URL (pasted or attached full-res phone
-  // photos) before sending: huge payloads get rejected by the server AND
-  // oversized images make SAM miss small items. Small images pass through.
+  // photos) before sending: huge payloads get rejected by the server,
+  // oversized images make SAM miss small items, and embedded EXIF rotation
+  // flags make portrait photos process sideways. The canvas round-trip both
+  // bounds the size and bakes the upright orientation into the pixels, so
+  // what SAM sees always matches what the seller sees.
   function downscaleDataUrl(dataUrl: string, maxSide = 1600): Promise<string> {
-    if (!dataUrl.startsWith("data:") || dataUrl.length < 2_000_000) return Promise.resolve(dataUrl);
+    if (!dataUrl.startsWith("data:")) return Promise.resolve(dataUrl);
     return new Promise((resolve) => {
       const img = document.createElement("img");
       img.onload = () => {
         try {
           const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-          if (scale >= 1) { resolve(dataUrl); return; }
           const c = document.createElement("canvas");
           c.width = Math.max(1, Math.round(img.naturalWidth * scale));
           c.height = Math.max(1, Math.round(img.naturalHeight * scale));
@@ -457,8 +459,7 @@ export default function Page() {
 
   const runAnalyze = async () => {
     const shrunk = await downscaleDataUrl(imageUrl);
-    if (shrunk !== imageUrl) setImageUrl(shrunk);
-    return postJson("/api/lens", { imageUrl: shrunk, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+    if (shrunk !== imageUrl) setImageUrl(shrunk);    return postJson("/api/lens", { imageUrl: shrunk, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
   };
   // Human-in-the-loop correction: a cropped region re-enters the pipeline as a
   // new photo under the seller's authoritative name (specific scope).

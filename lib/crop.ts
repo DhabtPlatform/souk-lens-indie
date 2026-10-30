@@ -14,7 +14,10 @@ export function boxToPixels(box: CropBox, w: number, h: number, pad = 0.04) {
 }
 
 export async function cropRegions(imageBytes: Buffer, boxes: CropBox[], maxSide = 640): Promise<string[]> {
-  const meta = await sharp(imageBytes).metadata();
+  // .rotate() first: phone portrait photos are stored landscape + EXIF flag.
+  // Without it, crops/annotations land on the wrong regions (and Spark sees
+  // the photo sideways). After rotate() the pixels match what the seller sees.
+  const meta = await sharp(imageBytes).rotate().metadata();
   const w = meta.width ?? 0;
   const h = meta.height ?? 0;
   if (!w || !h) return boxes.map(() => "");
@@ -23,6 +26,7 @@ export async function cropRegions(imageBytes: Buffer, boxes: CropBox[], maxSide 
     try {
       const r = boxToPixels(b, w, h);
       const buf = await sharp(imageBytes)
+        .rotate()
         .extract({ left: Math.min(r.left, w - 1), top: Math.min(r.top, h - 1), width: Math.min(r.width, w - r.left), height: Math.min(r.height, h - r.top) })
         .resize({ width: maxSide, height: maxSide, fit: "inside", withoutEnlargement: true })
         .jpeg({ quality: 72 })
@@ -52,7 +56,7 @@ export function sourceBytes(imageUrl: string): Promise<Buffer | null> {
 // Numbered markers over each SAM box (set-of-marks): Spark names every
 // numbered region, so names bind to boxes by construction, not by guessing.
 export async function annotateBoxes(imageBytes: Buffer, boxes: CropBox[]): Promise<Buffer> {
-  const meta = await sharp(imageBytes).metadata();
+  const meta = await sharp(imageBytes).rotate().metadata();
   const w = meta.width ?? 1000;
   const h = meta.height ?? 1000;
   const s = Math.max(w, h) / 1000;
@@ -63,5 +67,5 @@ export async function annotateBoxes(imageBytes: Buffer, boxes: CropBox[]): Promi
     return `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${r.toFixed(0)}" fill="#00d4a4" stroke="white" stroke-width="${(3 * s).toFixed(0)}"/><text x="${cx.toFixed(0)}" y="${(cy + 9 * s).toFixed(0)}" font-size="${(30 * s).toFixed(0)}" font-weight="900" text-anchor="middle" fill="black" font-family="Arial,sans-serif">${i + 1}</text>`;
   }).join("");
   const svg = `<svg width="${w}" height="${h}">${dots}</svg>`;
-  return sharp(imageBytes).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).jpeg({ quality: 80 }).toBuffer();
+  return sharp(imageBytes).rotate().composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).jpeg({ quality: 80 }).toBuffer();
 }
