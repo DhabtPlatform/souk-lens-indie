@@ -171,7 +171,13 @@ export function mergeSameName(
   return out.sort((a, b) => rank(a) - rank(b));
 }
 
-// Seller focus: "all items" (default) or a comma-separated list of visible item
+// Fraction of the frame covered by SAM regions (overlaps double-count — it is
+// a cheap density signal, not an exact area). Thin coverage (a few boxes on a
+// big empty table) means SAM likely missed whole piles, so the route fires
+// another pass instead of locking Spark to the few boxes it did see.
+export function coverageRatio(ds: Detection[]): number {
+  return ds.reduce((s, d) => s + boxArea(d.box), 0);
+}
 // names to generate listings for ONLY. Appended to the Spark grounding so the
 // instruction travels with the model prompt, honestly labeled end to end.
 export function buildGrounding(prompt: string, detectionPart: string, focus = "", maxItems = 0): string {
@@ -188,8 +194,10 @@ export function buildGrounding(prompt: string, detectionPart: string, focus = ""
   const cover = !f && maxItems > 1
     ? `\nCOVERAGE RULE: give EVERY numbered region above its own separate listing — never merge multiple regions into one combined listing. Name identical-looking neighbours EXACTLY the same (same spelling, same pile = same name) so touching piles form one product; different kinds, colours, or clearly separated positions get different names. If a region holds no sellable item, skip just that region.`
     : "";
-  if (!f) return `${prompt}: ${base}${cap}${cover}`;
-  return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Use the seller's exact names — never rename them to something else. Ignore every other object in the photo.${cap}`;
+  // Name honesty, always on: a name must survive a look at the actual pixels.
+  const verify = `\nNAME CHECK: verify every name against its region's real color and shape before listing (green round citrus is lime, never apple; orange roots are carrots). When unsure between two names for identical neighbours, use one name for all of them.`;
+  if (!f) return `${prompt}: ${base}${cap}${cover}${verify}`;
+  return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Use the seller's exact names — never rename them to something else. Ignore every other object in the photo.${cap}${verify}`;
 }
 // Find SAM-style detections anywhere in the response; boxes normalized to 0..1 (x1,y1,x2,y2).
 // SAM 3.1 actually returns text like:

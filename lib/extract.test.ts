@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxArea, buildGrounding, ensureCoverage, extractDetections, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion, touches } from "@/lib/extract";
+import { boxArea, buildGrounding, coverageRatio, ensureCoverage, extractDetections, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion, touches } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -61,6 +61,14 @@ describe("seller focus grounding", () => {
   it("touches detects overlap and near-touch, not far boxes", () => {
     expect(touches([0, 0, 0.3, 0.3], [0.28, 0, 0.5, 0.3])).toBe(true);
     expect(touches([0, 0, 0.3, 0.3], [0.7, 0.7, 0.9, 0.9])).toBe(false);
+  });
+  it("coverageRatio signals thin vs dense segmentation", () => {
+    const thin: [number, number, number, number][] = [[0.4, 0.3, 0.6, 0.5]];
+    expect(coverageRatio(thin.map((box) => ({ label: "x", box, source: "sam" as const })))).toBeLessThan(0.25);
+    const dense: [number, number, number, number][] = [
+      [0.0, 0.0, 0.5, 0.5], [0.5, 0.0, 1.0, 0.5], [0.0, 0.5, 0.5, 1.0], [0.5, 0.5, 1.0, 1.0],
+    ];
+    expect(coverageRatio(dense.map((box) => ({ label: "x", box, source: "sam" as const })))).toBeGreaterThanOrEqual(0.25);
   });
   it("skips the grouping rule for a single region and for seller focus", () => {
     expect(buildGrounding("market goods", "#1 at [0.1,0.2]", "", 1)).not.toContain("GROUPING RULE");

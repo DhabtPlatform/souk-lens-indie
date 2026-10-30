@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
-import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion } from "@/lib/extract";
+import { boxIdOf, buildGrounding, coverageRatio, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -52,10 +52,13 @@ export async function POST(req: NextRequest) {
     let samDetections = extractDetections(seg, []);
     let samMs = segR.ms;
     // Thin coverage? One cheap second pass with a different focus, merged by
-    // IoU so nothing double-counts. Only runs when the first pass is sparse.
-    if (samDetections.length > 0 && samDetections.length < 4) {
+    // IoU so nothing double-counts. Runs when the first pass is sparse OR when
+    // its boxes cover only a small fraction of the frame (a few salient items
+    // on a big table means whole piles were likely missed — locking Spark to
+    // those boxes would blind it to everything else).
+    if (samDetections.length > 0 && (samDetections.length < 4 || coverageRatio(samDetections) < 0.25)) {
       try {
-        const segR2 = await timed(() => segmentImage(metaImage, "small piles groups at edges"));
+        const segR2 = await timed(() => segmentImage(metaImage, "other items piles groups elsewhere in the photo"));
         samMs += segR2.ms;
         samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
       } catch { /* single pass stands */ }
