@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +45,11 @@ export function SamOverlay({ image, detections, products, lang, onDetails, onIns
   const [correctName, setCorrectName] = useState("");
   const [adjust, setAdjust] = useState(false);
   const [dragBox, setDragBox] = useState<Detection["box"] | null>(null);
+  // True aspect from the loaded pixels: the wrapper takes the photo's exact
+  // shape (portrait stays portrait, landscape stays landscape) so NO part is
+  // ever cropped away — and % boxes align with the visible photo precisely.
+  const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => { setNat(null); }, [image]);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const dragId = useRef<number | null>(null);
@@ -79,7 +84,7 @@ export function SamOverlay({ image, detections, products, lang, onDetails, onIns
         <div
           ref={wrapRef}
           className="relative overflow-hidden rounded-2xl border bg-muted"
-          style={{ touchAction: adjust ? "none" : undefined }}
+          style={{ ...(nat ? { aspectRatio: `${nat.w} / ${nat.h}`, maxHeight: 560 } : {}), touchAction: adjust ? "none" : undefined }}
           onPointerMove={(e) => {
             if (!adjust || dragId.current === null || !wrapRef.current || !dragStart.current) return;
             const r = wrapRef.current.getBoundingClientRect();
@@ -99,7 +104,9 @@ export function SamOverlay({ image, detections, products, lang, onDetails, onIns
           onPointerCancel={() => { dragId.current = null; dragStart.current = null; setDragBox(null); }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img ref={imgRef} src={image} alt="SAM segmentation" crossOrigin="anonymous" className="max-h-[420px] w-full object-cover" />
+          <img ref={imgRef} src={image} alt="SAM segmentation" crossOrigin="anonymous"
+            onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth > 0) setNat({ w: im.naturalWidth, h: im.naturalHeight }); }}
+            className={nat ? "absolute inset-0 h-full w-full" : "max-h-[420px] w-full object-cover"} />
           {detections.map((d, i) => {
             const [x1, y1, x2, y2] = (adjust && dragId.current === i && dragBox) ? dragBox : d.box;
             const c = COLORS[i % COLORS.length];

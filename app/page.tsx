@@ -715,7 +715,7 @@ export default function Page() {
                 <div className="overflow-hidden rounded-2xl border bg-muted">
                   {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageUrl} alt="input" className="h-full max-h-[330px] w-full object-cover" />
+                    <img src={imageUrl} alt="input" className="max-h-[330px] w-full bg-black/30 object-contain" />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src="/brand/empty-stall.jpg" alt="" className="mx-auto w-44 py-10" />

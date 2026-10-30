@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
 import { annotateBoxes, cropRegions, sourceBytes } from "@/lib/crop";
-import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, sortReadingOrder, subdivideRegion } from "@/lib/extract";
+import { boxIdOf, buildGrounding, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
@@ -122,21 +122,26 @@ export async function POST(req: NextRequest) {
       } catch { /* first (empty) attempt stands */ }
     }
     // Studio image for the hero product only (cost control)
-    const firstName = String(raws[0]?.name_en ?? prompt);
+    // Deterministic pile merge BEFORE normalizing: same exact name + touching
+    // regions = ONE product with a union pile crop (server-side, never model
+    // whim). Nothing is missed (every region still grounds a listing) and no
+    // pile ever shows up as two products.
+    const merged = mergeSameName(raws, samDetections.map((d) => d.box));
+    const firstName = String(merged[0]?.raw.name_en ?? prompt);
     const studioR = await timed(() => cleanProductShot(firstName)).catch((e) => ({ v: { error: String(e) }, ms: 0 }));
     const studioImage = extractStudioImage(studioR.v);
     // Studio image is the HERO product's shot only. It must never seed other
     // products' galleries — that was the uniform-image bug in the screenshot:
     // one studio bodysuit leading every card when some products missed crops.
-    const products = normalizeProducts(raws, {
+    const products = normalizeProducts(merged.map((m) => m.raw), {
       source: { type: "image", label: prompt },
       country, currency,
       fallbackImage: imageUrl.startsWith("http") ? imageUrl : undefined,
     });
     if (studioImage && products[0] && !products[0].images.includes(studioImage)) products[0].images = [studioImage, ...products[0].images];
     // Carry each listing's box number onto its product (map chips, crops, delete).
-    products.forEach((p, i) => {
-      const b = boxIdOf(raws[i] ?? {});
+    products.forEach((p, pi) => {
+      const b = merged[pi]?.boxIds[0] ?? Infinity;
       if (Number.isFinite(b)) p.boxId = b;
     });
     // Final detections MUST reuse the SAME (possibly subdivided) regions that
@@ -157,40 +162,49 @@ export async function POST(req: NextRequest) {
         ];
         detections = [{ label: products[0].name_en, box: u, source: "sam" }];
       } else {
+        // Every region maps to its pile's product via the merge table: full
+        // detection coverage on the map, one product per pile in the cards.
+        const boxToProd = new Map<number, number>();
+        merged.forEach((m, pi) => m.boxIds.forEach((b) => { if (Number.isFinite(b) && !boxToProd.has(b)) boxToProd.set(b, pi); }));
         detections = samDetections.map((d, i) => {
           const pid = i + 1;
-          const match =
-            products.find((p, idx) => {
-              const b = boxIdOf(raws[idx] ?? {});
-              return Number.isFinite(b) ? b === pid : idx === i;
-            }) ?? products[i];
+          const pi = boxToProd.get(pid);
+          const match = pi !== undefined ? products[pi] : products[i];
           return { label: match?.name_en ?? d.label, box: d.box, source: d.source };
         });
       }
     } else {
       detections = extractDetections(seg, products.map((p) => p.name_en));
     }
-    // Real per-item crops: EVERY detection (SAM box or labeled estimate cell)
-    // is a distinct pixel region of the seller's own photo, so every product
-    // leads with its own real region — never one shared picture for all.
-    // Assignment prefers exact name match, falls back to positional order,
-    // each product claimed once (duplicate names can't steal each other's).
+    // Real per-item crops: ONE target box per product — the union of its pile
+    // regions (multi-box group), its single region, or its positional
+    // detection as fallback. Assigned positionally: exact by construction,
+    // no name guessing, no shared pictures.
     let cropsOk = 0; let cropMs = 0;
     try {
-      const boxes = detections.filter((d) => d.box[2] > d.box[0] && d.box[3] > d.box[1]);
-      if (boxes.length && products.length) {
+      const targets: { x1: number; y1: number; x2: number; y2: number }[] = products.map((p, pi) => {
+        const ids = (merged[pi]?.boxIds ?? []).filter((b) => Number.isFinite(b) && b >= 1 && b <= samDetections.length);
+        if (ids.length) {
+          const bs = ids.map((b) => samDetections[b - 1].box);
+          return {
+            x1: Math.min(...bs.map((x) => x[0])), y1: Math.min(...bs.map((x) => x[1])),
+            x2: Math.max(...bs.map((x) => x[2])), y2: Math.max(...bs.map((x) => x[3])),
+          };
+        }
+        const d = detections[pi];
+        return d && d.box[2] > d.box[0] && d.box[3] > d.box[1]
+          ? { x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] }
+          : { x1: 0, y1: 0, x2: 0, y2: 0 };
+      });
+      const validIdx = targets.map((t, i) => (t.x2 > t.x1 && t.y2 > t.y1 ? i : -1)).filter((i) => i >= 0).slice(0, 14);
+      if (validIdx.length) {
         const t0 = Date.now();
         const srcBytes = await sourceBytes(imageUrl);
         if (srcBytes) {
-          const crops = await cropRegions(srcBytes, boxes.slice(0, 14).map((d) => ({ x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] })));
-          const used = new Set<number>();
-          boxes.forEach((d, i) => {
-            const crop = crops[i];
+          const crops = await cropRegions(srcBytes, validIdx.map((i) => targets[i]));
+          validIdx.forEach((pi, k) => {
+            const crop = crops[k];
             if (!crop) return;
-            let pi = products.findIndex((p, idx) => !used.has(idx) && p.name_en.toLowerCase() === d.label.toLowerCase());
-            if (pi < 0) pi = products.findIndex((_, idx) => !used.has(idx));
-            if (pi < 0) return;
-            used.add(pi);
             const p = products[pi];
             if (!p || p.images.includes(crop)) return;
             // The shared studio shot depicts the hero item only — it must not

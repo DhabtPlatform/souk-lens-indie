@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxArea, buildGrounding, ensureCoverage, extractDetections, mergeDetections, sortReadingOrder, subdivideRegion } from "@/lib/extract";
+import { boxArea, buildGrounding, ensureCoverage, extractDetections, mergeDetections, mergeSameName, sortReadingOrder, subdivideRegion, touches } from "@/lib/extract";
 
 describe("SAM native box parsing", () => {
   it("parses real box;x1=.. coordinates", () => {
@@ -36,9 +36,31 @@ describe("seller focus grounding", () => {
   });
   it("groups touching same-kind regions into one pile listing", () => {
     const g = buildGrounding("market goods", "#1 at [0.1,0.2]; #2 at [0.5,0.5]", "", 2);
-    expect(g).toContain("GROUPING RULE");
-    expect(g).toContain("ONE pile");
-    expect(g).toContain("Identical neighbours must share one name");
+    expect(g).toContain("COVERAGE RULE");
+    expect(g).toContain("EXACTLY the same");
+  });
+  it("merges same-name touching regions, splits separated ones", () => {
+    const mk = (name: string, boxId: number) => ({ name_en: name, boxId });
+    const boxes: [number, number, number, number][] = [
+      [0.0, 0.0, 0.3, 0.4], [0.28, 0.0, 0.55, 0.4], [0.7, 0.6, 0.95, 0.95],
+    ];
+    const m = mergeSameName([mk("Carrots", 1), mk("carrots ", 2), mk("CARROTS", 3)], boxes);
+    // First two touch → one pile; third is far → split.
+    expect(m).toHaveLength(2);
+    expect(m[0].boxIds).toEqual([1, 2]);
+    expect(m[1].boxIds).toEqual([3]);
+  });
+  it("never collapses a whole diverse photo on one generic name", () => {
+    const boxes: [number, number, number, number][] = [
+      [0.0, 0.0, 0.2, 0.2], [0.2, 0.0, 0.4, 0.2], [0.4, 0.0, 0.6, 0.2],
+      [0.6, 0.0, 0.8, 0.2], [0.8, 0.0, 1.0, 0.2], [0.0, 0.5, 0.2, 0.7],
+    ];
+    const raws = [1, 2, 3, 4, 5, 6].map((n) => ({ name_en: "Fresh Vegetables", boxId: n }));
+    expect(mergeSameName(raws, boxes)).toHaveLength(6);
+  });
+  it("touches detects overlap and near-touch, not far boxes", () => {
+    expect(touches([0, 0, 0.3, 0.3], [0.28, 0, 0.5, 0.3])).toBe(true);
+    expect(touches([0, 0, 0.3, 0.3], [0.7, 0.7, 0.9, 0.9])).toBe(false);
   });
   it("skips the grouping rule for a single region and for seller focus", () => {
     expect(buildGrounding("market goods", "#1 at [0.1,0.2]", "", 1)).not.toContain("GROUPING RULE");

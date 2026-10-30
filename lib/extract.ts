@@ -117,6 +117,60 @@ export function sortReadingOrder(ds: Detection[]): Detection[] {
   return rows.flat();
 }
 
+// Do two normalized boxes touch or overlap (with a small tolerance for pile
+// neighbours)? Used to merge same-name regions into one pile product.
+export function touches(a: Detection["box"], b: Detection["box"], pad = 0.05): boolean {
+  return a[0] - pad < b[2] && b[0] - pad < a[2] && a[1] - pad < b[3] && b[1] - pad < a[3];
+}
+
+// Deterministic pile merge (server-side, never model whim): raws sharing the
+// exact same name whose regions touch form ONE product (connected pile);
+// separated same-name regions stay split; different names never merge; and one
+// generic name covering everything never collapses the whole photo.
+export function mergeSameName(
+  raws: Record<string, unknown>[],
+  boxes: Detection["box"][]
+): { raw: Record<string, unknown>; boxIds: number[] }[] {
+  const keyOf = (r: Record<string, unknown>) =>
+    String(r.name_en ?? r.title ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  const groups = new Map<string, number[]>();
+  raws.forEach((r, i) => {
+    const k = keyOf(r) || `__blank${i}`;
+    const g = groups.get(k);
+    if (g) g.push(i);
+    else groups.set(k, [i]);
+  });
+  const solo = (raw: Record<string, unknown>) => ({ raw, boxIds: [boxIdOf(raw)] });
+  // One generic name ("fresh vegetables") covering a whole diverse photo must
+  // never collapse it — but small same-name sets (two carrot regions) merge.
+  if (groups.size <= 1 && raws.length > 4) return raws.map(solo);
+  const boxOf = (i: number): Detection["box"] | null => {
+    const b = boxIdOf(raws[i]);
+    return Number.isFinite(b) && (b as number) >= 1 && (b as number) <= boxes.length ? boxes[(b as number) - 1] : null;
+  };
+  const out: { raw: Record<string, unknown>; boxIds: number[] }[] = [];
+  for (const [, members] of groups) {
+    const remaining = [...members];
+    while (remaining.length) {
+      const comp = [remaining.shift() as number];
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (let k = remaining.length - 1; k >= 0; k--) {
+          const bb = boxOf(remaining[k]);
+          const positioned = comp.some((ci) => { const cb = boxOf(ci); return !!cb && !!bb && touches(cb, bb); });
+          const unpositioned = !bb && comp.every((ci) => !boxOf(ci));
+          if (positioned || unpositioned) { comp.push(remaining.splice(k, 1)[0]); grew = true; }
+        }
+      }
+      comp.sort((a, b) => a - b);
+      out.push({ raw: raws[comp[0]], boxIds: comp.map((i) => boxIdOf(raws[i])) });
+    }
+  }
+  const rank = (m: { boxIds: number[] }) => Math.min(...m.boxIds.map((x) => (Number.isFinite(x) ? x : 1e9)));
+  return out.sort((a, b) => rank(a) - rank(b));
+}
+
 // Seller focus: "all items" (default) or a comma-separated list of visible item
 // names to generate listings for ONLY. Appended to the Spark grounding so the
 // instruction travels with the model prompt, honestly labeled end to end.
@@ -126,13 +180,13 @@ export function buildGrounding(prompt: string, detectionPart: string, focus = ""
     ? `\nCOUNT RULE: SAM found exactly ${maxItems} item region(s) above. Return AT MOST ${maxItems} listing(s), each tied to one numbered region (#1..#${maxItems}). Never list anything not visible in one of these regions.`
     : "";
   const f = focus.trim().replace(/\s+/g, " ");
-  // Grouping beats splitting: touching/overlapping regions showing the SAME
-  // kind of item (one pile of carrots, one row of limes) share ONE listing —
-  // never split a pile into several products and never give identical
-  // neighbours different names. Distinct kinds, colours, or clearly separated
-  // positions each get their own listing.
+  // Coverage with consistent naming: EVERY numbered region gets its own
+  // listing (nothing missed), but identical-looking neighbours must carry
+  // EXACTLY the same name (same spelling) so the server can deterministically
+  // merge one pile into one product. Different kinds get different names.
+  // Never merge regions into one combined "assortment" listing.
   const cover = !f && maxItems > 1
-    ? `\nGROUPING RULE: touching or overlapping regions that show the SAME kind of item are ONE pile with ONE shared listing (one pile of carrots = one listing, one row of limes = one listing). Identical neighbours must share one name — do not call some oranges and others lemons. Distinct kinds, colours, or clearly separated positions each get their own listing. If a region holds no sellable item, skip just that region.`
+    ? `\nCOVERAGE RULE: give EVERY numbered region above its own separate listing — never merge multiple regions into one combined listing. Name identical-looking neighbours EXACTLY the same (same spelling, same pile = same name) so touching piles form one product; different kinds, colours, or clearly separated positions get different names. If a region holds no sellable item, skip just that region.`
     : "";
   if (!f) return `${prompt}: ${base}${cap}${cover}`;
   return `${prompt}: ${base}\nSELLER FOCUS: build listings ONLY for these visible items: ${f}. Use the seller's exact names — never rename them to something else. Ignore every other object in the photo.${cap}`;
