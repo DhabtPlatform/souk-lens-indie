@@ -13,6 +13,7 @@ import { SpinViewer } from "@/components/products/spin-viewer";
 import { GlbViewer } from "@/components/products/glb-viewer";
 import { photoToGlbCard } from "@/lib/glb";
 import { buildAdText, type Product } from "@/lib/product";
+import { isPayloadTooLarge, parseJsonResponse } from "@/lib/utils";
 import { productEconomics } from "@/lib/analytics";
 import { formatPrice } from "@/lib/utils";
 import { Copy, Download, Gavel, Globe2, Images, Link2, Loader2, Megaphone, MessageCircle, Radio, Rotate3D, RotateCcw, Save, Share2, Box, Star, Tag, Truck, Undo2, X } from "lucide-react";
@@ -56,7 +57,7 @@ export function ProductDetailsSheet({
           angles: kind === "spin",
         }),
       });
-      const j = await r.json();
+      const j = await parseJsonResponse(r) as { ok?: boolean; error?: string; variantImages?: Record<string, string>; angleImages?: string[]; note?: string };
       if (!r.ok || j.ok === false) throw new Error(j.error ?? `HTTP ${r.status}`);
       if (kind === "variants") {
         const imgs = (j.variantImages ?? {}) as Record<string, string>;
@@ -70,7 +71,7 @@ export function ProductDetailsSheet({
         onSave(item.id, { angleImages: shots });
         toast.success(ar ? "اتولد عرض 360°" : "360° views generated");
       }
-    } catch (e) { toast.error(String(e)); } finally { setMediaBusy(null); }
+    } catch (e) { toast.error(isPayloadTooLarge(e) ? (ar ? "الطلب كبير جدًا على الخادم — حاول مجددًا" : "Request too large for the server — retry") : String(e)); } finally { setMediaBusy(null); }
   }
 
   // Image (generated / attached / from link) -> real .glb 3D photo card, built locally.

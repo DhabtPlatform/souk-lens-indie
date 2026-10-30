@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { isPayloadTooLarge, parseJsonResponse } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -170,7 +171,7 @@ export default function Page() {
         const hasSavedPrefs = (savedLang === "ar" || savedLang === "en") && !!foundSaved;
         if (!hasSavedPrefs) {
           try {
-            const g = await fetch("/api/geo").then((r) => r.json()) as { country?: string; lang?: string };
+            const g = await fetch("/api/geo").then((r) => parseJsonResponse<{ country?: string; lang?: string }>(r));
             const geoCountry = COUNTRIES.find((x) => x.code === g.country);
             if (geoCountry) c = geoCountry;
             if (!savedLang || (savedLang !== "ar" && savedLang !== "en")) {
@@ -321,7 +322,7 @@ export default function Page() {
           angles: !p.angleImages?.length,
         }),
       });
-      const j = await r.json();
+      const j = await parseJsonResponse(r) as { variantImages?: Record<string, string>; angleImages?: string[]; note?: string };
       const patch: Partial<Product> = {};
       const imgs = (j.variantImages ?? {}) as Record<string, string>;
       if (Object.keys(imgs).length) patch.variants = p.variants.map((v) => (imgs[v.id] ? { ...v, image: imgs[v.id] } : v));
@@ -346,7 +347,7 @@ export default function Page() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studioFor: { name: p.name_en } }),
       });
-      const j = await r.json();
+      const j = await parseJsonResponse(r) as { studioImage?: string; note?: string };
       if (j.studioImage) {
         patchProduct(p.id, { studioImage: j.studioImage as string, images: [j.studioImage as string, ...(mine.products.find((x) => x.id === p.id)?.images ?? p.images).filter((u) => u !== j.studioImage)] });
         toast.success(ar ? "صورة ستوديو احترافية جاهزة" : "Professional studio shot ready");
@@ -524,7 +525,7 @@ export default function Page() {
           if (photoUrl) fd.append("photo", photoUrl);
           fd.append("imageMode", imgMode);
           const r = await fetch("/api/voice", { method: "POST", body: fd });
-          const j = await r.json();
+          const j = await parseJsonResponse(r) as { live?: boolean; products?: Product[]; transcript?: string; trace?: TraceInfo["stages"]; note?: string };
           if (myReq !== reqIdRef.current) return; // superseded by a newer run
           setLive(!!j.live); setRaw(j);
           const prods = (j.products ?? []) as Product[];
@@ -532,7 +533,13 @@ export default function Page() {
           if (j.transcript) { setDesc(j.transcript); setResults(prods); recordRun(performance.now() - t0, prods.length); if (prods.length) toast.success(ar ? "اتحول صوتك لإعلان كامل بالاسم والصور" : "Your voice became a full listing with name & images"); if (j.live && imgMode !== "real" && prods[0]) enrichMedia(prods[0]); }
           else { setResults([]); toast.info(j.note ?? (ar ? "اكتب وصف المنتج وهنولد الإعلان" : "Type the description to generate")); }
           if (typeof j.note === "string" && j.note && j.transcript) toast.info(j.note);
-        } catch (e) { if (myReq === reqIdRef.current) setError(String(e)); } finally { if (myReq === reqIdRef.current) { setLoading(false); setRunStartedAt(null); } }
+        } catch (e) {
+          if (myReq !== reqIdRef.current) return;
+          if (e instanceof DOMException && e.name === "AbortError") { setLoading(false); setRunStartedAt(null); return; }
+          setError(isPayloadTooLarge(e)
+            ? (ar ? "التسجيل كبير جدًا على الخادم — سجل مقطعًا أقصر أو أرفق صورة أصغر." : "Recording too large for the server — record a shorter clip or attach a smaller photo.")
+            : String(e));
+        } finally { if (myReq === reqIdRef.current) { setLoading(false); setRunStartedAt(null); } }
       };
       mr.start(); setRecording(true);
     } catch { toast.error(ar ? "تعذر فتح المايك — اسمح بالوصول أو اكتب الوصف" : "Mic blocked — allow access or type"); }

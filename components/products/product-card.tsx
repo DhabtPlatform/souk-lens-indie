@@ -162,7 +162,7 @@ export function ProductCard({
           </Button>
           {onOpenPage ? <Button className="flex-1" variant="secondary" onClick={() => onOpenPage(product)} aria-label="buyer page" title={ar ? "صفحة المشتري الكاملة" : "Full buyer page"}><ExternalLink />{ar ? "صفحة المشتري" : "Buyer page"}</Button> : null}
           {onCart ? <Button size="lg" variant="accent" onClick={() => { onCart(product); toast.success(ar ? "اتضاف للسلة" : "Added to cart"); }} aria-label="add to cart"><ShoppingCart /></Button> : null}
-          {onStudioShot && !product.studioImage ? <Button size="lg" variant="ghost" disabled={mediaBusy} onClick={() => onStudioShot(product)} aria-label="studio shot" title={ar ? "ولّد صورة ستوديو احترافية لهذا المنتج" : "Generate a professional studio shot for this product"}><Sparkles /></Button> : null}
+          {onStudioShot && !product.studioImage ? <Button className="flex-1" variant="secondary" disabled={mediaBusy} onClick={() => onStudioShot(product)} aria-label="studio shot" title={ar ? "ولّد صورة ستوديو احترافية لهذا المنتج" : "Generate a professional studio shot for this product"}><Sparkles />{ar ? "توليد صورة للمنتج" : "Generate product image"}</Button> : null}
           <Button size="lg" variant="ghost" onClick={copyAd} aria-label="copy ad"><Copy /></Button>
         </div>
       </CardFooter>
