@@ -250,8 +250,7 @@ export default function Page() {
   }
   // Uploads are downscaled to ≤1280px JPEG so they REALLY fit localStorage
   // (a raw phone photo is ~5MB and silently fails the quota).
-  function fileToDefaultDataUrl(file: File, maxSide = 1280): Promise<string> {
-    return new Promise((resolve, reject) => {
+  function fileToDefaultDataUrl(file: File, maxSide = 1280): Promise<string> {    return new Promise((resolve, reject) => {
       const objUrl = URL.createObjectURL(file);
       const img = document.createElement("img");
       img.onload = () => {
@@ -268,6 +267,28 @@ export default function Page() {
       };
       img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("bad-file")); };
       img.src = objUrl;
+    });
+  }
+  // Shrink an already-loaded data: URL (pasted or attached full-res phone
+  // photos) before sending: huge payloads get rejected by the server AND
+  // oversized images make SAM miss small items. Small images pass through.
+  function downscaleDataUrl(dataUrl: string, maxSide = 1600): Promise<string> {
+    if (!dataUrl.startsWith("data:") || dataUrl.length < 2_000_000) return Promise.resolve(dataUrl);
+    return new Promise((resolve) => {
+      const img = document.createElement("img");
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+          if (scale >= 1) { resolve(dataUrl); return; }
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/jpeg", 0.85));
+        } catch { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
     });
   }
 
@@ -434,7 +455,11 @@ export default function Page() {
     return () => clearInterval(id);
   }, [loading, runStartedAt]);
 
-  const runAnalyze = () => postJson("/api/lens", { imageUrl, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  const runAnalyze = async () => {
+    const shrunk = await downscaleDataUrl(imageUrl);
+    if (shrunk !== imageUrl) setImageUrl(shrunk);
+    return postJson("/api/lens", { imageUrl: shrunk, prompt: imageLabel || "market goods", focus: scope === "specific" ? focusNames : "", lang: ar ? "ar-EG" : "en", country: country.code, currency: country.currency });
+  };
   // Human-in-the-loop correction: a cropped region re-enters the pipeline as a
   // new photo under the seller's authoritative name (specific scope).
   function inspectRegion(crop: string, name: string) {
@@ -496,9 +521,13 @@ export default function Page() {
   }
   function onPhotoFile(f: File | undefined) {
     if (!f) return;
-    const rd = new FileReader();
-    rd.onload = () => { setPhotoUrl(String(rd.result)); toast.success(ar ? "اترفقت الصورة الحقيقية" : "Real photo attached"); };
-    rd.readAsDataURL(f);
+    fileToDefaultDataUrl(f, 1600)
+      .then((data) => { setPhotoUrl(data); toast.success(ar ? "اترفقت الصورة الحقيقية (مصغّرة تلقائيًا)" : "Real photo attached (auto-shrunk)"); })
+      .catch(() => {
+        const rd = new FileReader();
+        rd.onload = () => { setPhotoUrl(String(rd.result)); toast.success(ar ? "اترفقت الصورة الحقيقية" : "Real photo attached"); };
+        rd.readAsDataURL(f);
+      });
   }
 
   async function toggleRecord() {
