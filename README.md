@@ -5,6 +5,12 @@
 - **Demo video (2:47.6, real app footage, male English AI voiceover disclosed, no music):** `video/SOUK-LENS-FINAL.mp4` in this repo · package + subtitles + checksums: `video/README.md` · YouTube (unlisted) mirror link: _added here right after upload_.
 - **Judge in 2 minutes** below.
 
+## What Meta tooling does here that others can't
+Most AI commerce demos wrap a chatbot around a photo: the model describes what it *thinks* it sees, and nothing ties any sentence to any pixel. Souk Lens is built the other way around — **every listing is bound by construction to a numbered SAM 3.1 box** (`box;x1=..;w=..` coordinates, drawn on the seller's own photo). Muse Spark 1.3 never names an item without its box number, so a pile of hazelnuts can never be described as a vase, and a wrong box can be tapped, renamed, or dragged by the seller in one move — the listing corrects itself because the link is structural, not textual. Web search then grounds prices and comparisons in real shops with real links instead of generated guesses, and Muse Image 1.0 cleans only the hero shot while every other product keeps its real SAM-box crop. Copy this paragraph into the submission description: it is the technical reason this project holds up live.
+
+## Field test — real stalls, real listings
+Beyond the built-in samples: real market-stall photos supplied by sellers were run through the live pipeline, and each produced **separate professional listings per item** — own name, own price, own crop, own variants — not one merged "assortment". The stall photos in the demo video are real stalls, and the map boxes, timings, and prices on screen are measured runs, not mockups.
+
 ## Judge in 2 minutes (English-first)
 1. Open the app — the demo **runs automatically** (one stall photo → full pipeline, no setup).
 2. Watch the **proof bar**: per-model time for SAM 3.1 → Muse Spark 1.3 → Muse Image 1.0, each run labeled **LIVE** or **DEMO**.
