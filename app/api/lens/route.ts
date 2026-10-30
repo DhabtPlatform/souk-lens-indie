@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     // its boxes cover only a small fraction of the frame (a few salient items
     // on a big table means whole piles were likely missed — locking Spark to
     // those boxes would blind it to everything else).
-    if (samDetections.length > 0 && (samDetections.length < 4 || coverageRatio(samDetections) < 0.25)) {
+    if (samDetections.length > 0 && (samDetections.length < 4 || coverageRatio(samDetections) < 0.35)) {
       try {
         const segR2 = await timed(() => segmentImage(metaImage, "other items piles groups elsewhere in the photo"));
         samMs += segR2.ms;
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     // cluster in a small part of the frame, zoom to their union (+padding)
     // and re-segment the crop, mapping boxes back to photo space. Costs one
     // extra SAM call only when coverage is thin.
-    if (samDetections.length > 0 && coverageRatio(samDetections) < 0.25) {
+    if (samDetections.length > 0 && coverageRatio(samDetections) < 0.35) {
       try {
         const pad = 0.07;
         const ux1 = Math.max(0, Math.min(...samDetections.map((d) => d.box[0])) - pad);
