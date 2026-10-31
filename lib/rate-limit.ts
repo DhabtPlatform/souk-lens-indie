@@ -16,3 +16,13 @@ export function isRateLimited(
   }
   return arr.length > maxRuns;
 }
+
+// Privacy-safe IP for the owner log: keeps first + last octet, masks the rest.
+export function maskIp(ip: string): string {
+  const parts = ip.split(".");
+  if (parts.length === 4 && parts.every((p) => /^\d{1,3}$/.test(p))) {
+    return `${parts[0]}.•••.•••.${parts[3]}`;
+  }
+  if (ip.includes(":")) return ip.slice(0, 4) + "•••" + ip.slice(-4);
+  return ip.slice(0, 3) + "•••";
+}

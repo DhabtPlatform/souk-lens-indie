@@ -82,6 +82,21 @@ export default function Page() {
   const [showImgCfg, setShowImgCfg] = useState(false);
   const [defaultUrlDraft, setDefaultUrlDraft] = useState("");
   const [testingUrl, setTestingUrl] = useState(false);
+  // Owner peephole: recent /api/lens callers (masked IP + country + agent +
+  // what ran + model-call counts). In-memory ring buffer, newest first.
+  type LensVisit = { t: string; ip: string; country: string; ua: string; action: string; det: number; prod: number; sam: number; spark: number; img: number; live: boolean };
+  const [showVisits, setShowVisits] = useState(false);
+  const [visits, setVisits] = useState<LensVisit[]>([]);
+  const [visitsLoading, setVisitsLoading] = useState(false);
+  async function loadVisits() {
+    setVisitsLoading(true);
+    try {
+      const r = await fetch("/api/lens");
+      const j = await r.json() as { visits?: LensVisit[] };
+      setVisits(Array.isArray(j.visits) ? j.visits : []);
+    } catch { toast.error(ar ? "تعذر جلب السجل" : "Could not load the log"); }
+    finally { setVisitsLoading(false); }
+  }
   const [scope, setScope] = useState<"all" | "specific">("all");
   const [focusNames, setFocusNames] = useState("");
   const [focusEcho, setFocusEcho] = useState("");
@@ -1029,6 +1044,40 @@ export default function Page() {
                 ) : null}
               </div>
               <p className="text-[11px] leading-5 opacity-80">{ar ? "لازم رابط صورة مباشر عام (ينتهي بـ jpg/png) — روابط Drive/Dropbox تتحوّل تلقائيًا. الرابط يتفحص قبل الحفظ حتى لا يفشل التشغيل لاحقًا. الرفع يُصغَّر ويُحفظ على جهازك فقط." : "Must be a direct public image link (ends in jpg/png) — Drive/Dropbox links auto-convert. Links are verified before saving so runs never fail later. Uploads are downscaled and stay on your device."}</p>
+            </div>
+          ) : null}
+          {/* Inconspicuous owner control: recent-visitors log (who/where/what). */}
+          <button type="button" onClick={() => { const v = !showVisits; setShowVisits(v); if (v && !visits.length) loadVisits(); }}
+            title={ar ? "سجل الزوار" : "Visitor log"} aria-label={ar ? "سجل الزوار" : "Visitor log"}
+            className="rounded px-1.5 py-0.5 text-base leading-none opacity-60 transition hover:opacity-100" style={{ lineHeight: 1 }}>·</button>
+          {showVisits ? (
+            <div className="w-full space-y-1.5 rounded-xl border p-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold">{ar ? "سجل الزوار — آخر تشغيلات التحليل" : "Visitor log — recent analysis runs"}</span>
+                <Button size="sm" variant="outline" disabled={visitsLoading} onClick={loadVisits}>{visitsLoading ? "…" : (ar ? "تحديث" : "Refresh")}</Button>
+              </div>
+              {visits.length ? (
+                <div className="custom-scroll max-h-56 overflow-auto rounded-lg border">
+                  <table className="w-full text-[11px] leading-6" dir="ltr">
+                    <thead><tr className="bg-card text-start">
+                      <th className="px-2 py-1">{ar ? "الوقت" : "Time"}</th><th className="px-2 py-1">IP</th><th className="px-2 py-1">{ar ? "البلد" : "Geo"}</th><th className="px-2 py-1">{ar ? "الإجراء" : "Action"}</th><th className="px-2 py-1">S/P/I</th><th className="px-2 py-1">UA</th>
+                    </tr></thead>
+                    <tbody>
+                      {visits.map((v, i) => (
+                        <tr key={v.t + i} className="border-t">
+                          <td className="whitespace-nowrap px-2 py-1">{v.t.slice(5, 16).replace("T", " ")}</td>
+                          <td className="whitespace-nowrap px-2 py-1" dir="ltr">{v.ip}</td>
+                          <td className="whitespace-nowrap px-2 py-1">{v.country}</td>
+                          <td className="whitespace-nowrap px-2 py-1">{v.action === "blocked" ? (ar ? "محظور (حد)" : "blocked") : `${ar ? "تحليل" : "run"} ${v.det}→${v.prod}`}</td>
+                          <td className="whitespace-nowrap px-2 py-1" dir="ltr">{v.sam}+{v.spark}+{v.img}{v.live ? "" : " (demo)"}</td>
+                          <td className="max-w-44 truncate px-2 py-1" title={v.ua}>{v.ua}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p className="text-[11px] opacity-80">{ar ? "لا تشغيلات مسجلة بعد على هذه النسخة." : "No runs logged on this instance yet."}</p>}
+              <p className="text-[11px] leading-5 opacity-80">{ar ? "IP مقنّع للخصوصية. S/P/I = عدد نداءات SAM وSpark وImage (وحدات الاستهلاك). السجل لآخر 100 تشغيل على هذه النسخة." : "IPs are masked for privacy. S/P/I = SAM, Spark and Image call counts (usage units). Last 100 runs on this instance."}</p>
             </div>
           ) : null}
           <span className="ms-auto hidden sm:inline">Next.js · shadcn/ui · Tailwind · Meta Model API</span>

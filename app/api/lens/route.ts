@@ -1,30 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
-import { isRateLimited } from "@/lib/rate-limit";
+import { isRateLimited, maskIp } from "@/lib/rate-limit";
 import { annotateBoxes, cropRegions, cropToDataUrl, sourceBytes } from "@/lib/crop";
 import { boxIdOf, buildGrounding, coverageRatio, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, remapBox, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
 // POST { imageUrl, prompt, lang, country, currency }
-// Paid-endpoint guard: generous per-IP sliding window (15 runs / 10 min).
+// Paid-endpoint guard: generous per-IP sliding window (30 runs / 10 min).
 // Bots and scanners burn credits one full pipeline per hit — this stops the
-// hammering while a human judge never notices it. Every call is logged with
-// IP + agent so the owner can see WHO spends in Vercel → Logs.
+// hammering while a human judge (a few runs, minutes apart) never notices it.
+// 429 answers carry Retry-After + X-RateLimit headers and a bilingual message.
+// Every call is logged (IP + agent + counts) so the owner can see WHO spends
+// in Vercel → Logs; the same ring buffer feeds the tiny owner-only footer dot.
 const LENS_HITS = new Map<string, number[]>();
+type LensVisit = {
+  t: string; ip: string; country: string; ua: string; action: string;
+  det: number; prod: number; sam: number; spark: number; img: number; live: boolean;
+};
+const LENS_VISITS: LensVisit[] = [];
+function rememberVisit(v: LensVisit) {
+  LENS_VISITS.unshift(v);
+  if (LENS_VISITS.length > 100) LENS_VISITS.pop();
+}
+export async function GET() {
+  return NextResponse.json({ ok: true, visits: LENS_VISITS.slice(0, 100) });
+}
 export async function POST(req: NextRequest) {
   try {
     const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown";
     const ua = req.headers.get("user-agent") ?? "";
-    const bucket = ip === "unknown" ? ua.slice(0, 60) || "unknown" : ip;
-    if (isRateLimited(LENS_HITS, bucket, Date.now(), 15, 10 * 60 * 1000)) {
+    const geo = (req.headers.get("x-vercel-ip-country") ?? "").toUpperCase() || "••";    const bucket = ip === "unknown" ? ua.slice(0, 60) || "unknown" : ip;
+    if (isRateLimited(LENS_HITS, bucket, Date.now(), 30, 10 * 60 * 1000)) {
       console.log(`[lens-blocked] ip=${ip} ua=${ua.slice(0, 90)}`);
+      rememberVisit({ t: new Date().toISOString(), ip: maskIp(ip), country: geo, ua: ua.slice(0, 80), action: "blocked", det: 0, prod: 0, sam: 0, spark: 0, img: 0, live: false });
       return NextResponse.json({
         ok: false,
         code: "RATE_LIMITED",
         error: "طلبات كثيرة جدًا من نفس المصدر — انتظر دقائق ثم أعد المحاولة. / Too many requests from this source — wait a few minutes and retry.",
-      }, { status: 429 });
+      }, { status: 429, headers: { "Retry-After": "120", "X-RateLimit-Limit": "30", "X-RateLimit-Window": "10m" } });
     }
     const body = await req.json();
     const rawUrl = body.imageUrl as string;
@@ -44,6 +59,7 @@ export async function POST(req: NextRequest) {
     }
     const live = Boolean(process.env.MODEL_API_KEY);
     const timed = async <T,>(fn: () => Promise<T>) => { const t0 = Date.now(); const v = await fn(); return { v, ms: Date.now() - t0 }; };
+    let samCalls = 1, sparkCalls = 1;
     // Orientation lock BEFORE Meta ever sees the photo: uploads are usually
     // canvas-normalized client-side, but ANY path that still carries an EXIF
     // rotation flag (http(s) links, pasted originals, un-normalized uploads)
@@ -76,7 +92,7 @@ export async function POST(req: NextRequest) {
     if (samDetections.length > 0 && (samDetections.length < 4 || coverageRatio(samDetections) < 0.35)) {
       try {
         const segR2 = await timed(() => segmentImage(metaImage, "scan the ENTIRE photo edge to edge for ANY sellable piles missed so far, especially matte textured ones: leafy greens, dark vegetables, roots"));
-        samMs += segR2.ms;
+        samMs += segR2.ms; samCalls++;
         samDetections = mergeDetections(samDetections, extractDetections(segR2.v, []));
       } catch { /* single pass stands */ }
     }
@@ -90,7 +106,7 @@ export async function POST(req: NextRequest) {
     if (samDetections.length === 0) {
       try {
         const segR0 = await timed(() => segmentImage(metaImage, "each individual item separately"));
-        samMs += segR0.ms;
+        samMs += segR0.ms; samCalls++;
         samDetections = mergeDetections(samDetections, extractDetections(segR0.v, []));
       } catch { /* grid fallback below */ }
       if (samDetections.length === 0) {
@@ -121,7 +137,7 @@ export async function POST(req: NextRequest) {
             const cropUrl = await cropToDataUrl(sBytes, region);
             if (cropUrl) {
               const segRz = await timed(() => segmentImage(cropUrl, samPrompt));
-              samMs += segRz.ms;
+              samMs += segRz.ms; samCalls++;
               const zoomed = extractDetections(segRz.v, []).map((d) => ({ ...d, box: remapBox(d.box, region) }));
               samDetections = mergeDetections(samDetections, zoomed);
             }
@@ -174,7 +190,7 @@ export async function POST(req: NextRequest) {
             const cropUrl = await cropToDataUrl(sBytes, region);
             if (!cropUrl) continue;
             const segRe = await timed(() => segmentImage(cropUrl, "every distinct pile of items in this crop"));
-            samMs += segRe.ms;
+            samMs += segRe.ms; samCalls++;
             const found = extractDetections(segRe.v, []).map((d) => ({ ...d, box: remapBox(d.box, region) }));
             samDetections = mergeDetections(samDetections, found);
             if (coverageRatio(samDetections) >= 0.35) break;
@@ -237,7 +253,7 @@ export async function POST(req: NextRequest) {
         const rAnalysis = retry.v;
         const rText = extractText(rAnalysis);
         const rRaws = [...extractItems(rAnalysis, rText)].sort((a, b) => boxIdOf(a) - boxIdOf(b));
-        sparkMs += retry.ms;
+        sparkMs += retry.ms; sparkCalls++;
         if (rRaws.length > 0) { analysis = rAnalysis; analysisText = rText; raws = rRaws; }
       } catch { /* first (empty) attempt stands */ }
     }
@@ -344,6 +360,12 @@ export async function POST(req: NextRequest) {
       { model: "crop", role: "قصّات حقيقية لكل منتج", ms: cropMs, live, status: cropsOk > 0 ? `ok · ${cropsOk}/${products.length}` : "skipped" },
     ];
 
+    rememberVisit({
+      t: new Date().toISOString(), ip: maskIp(ip), country: geo, ua: ua.slice(0, 80),
+      action: focusStr ? `focus:${focusStr.slice(0, 24)}` : "analyze",
+      det: detections.length, prod: products.length,
+      sam: samCalls, spark: sparkCalls, img: studioImage ? 1 : 0, live,
+    });
     return NextResponse.json({
       ok: true,
       live,
