@@ -193,7 +193,14 @@ export default function Page() {
       const autoImg = savedDefault || (pub ? "/stall-veg.jpg" : SAMPLE);
       const autoPrompt = savedDefault ? "market goods" : (pub ? "mixed vegetables market stall" : "avocado");
       setTab("analyze"); setImageUrl(autoImg); setImageLabel(savedDefault ? "" : (pub ? "" : "avocado"));
-      postJson("/api/lens", { imageUrl: autoImg, prompt: autoPrompt, lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
+      // Bots, crawlers, and headless scrapers must NEVER trigger the paid
+      // auto-run: every page load would otherwise burn a full SAM+Spark+Image
+      // pipeline. Humans are unaffected — the demo button runs on tap.
+      const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+      const isBot = /bot|crawl|spider|slurp|mediapartners|baidu|yandex|sogou|exabot|facebot|ia_archiver|headless|puppeteer|playwright|phantomjs|selenium|webdriver/i.test(ua);
+      if (!isBot) {
+        postJson("/api/lens", { imageUrl: autoImg, prompt: autoPrompt, lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

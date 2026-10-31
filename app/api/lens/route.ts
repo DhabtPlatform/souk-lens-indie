@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { analyzeWithSpark, cleanProductShot, segmentImage } from "@/lib/meta";
+import { isRateLimited } from "@/lib/rate-limit";
 import { annotateBoxes, cropRegions, cropToDataUrl, sourceBytes } from "@/lib/crop";
 import { boxIdOf, buildGrounding, coverageRatio, ensureCoverage, extractDetections, extractItems, extractStudioImage, extractText, mergeDetections, mergeSameName, remapBox, sortReadingOrder, subdivideRegion } from "@/lib/extract";
 import { normalizeProducts } from "@/lib/product";
 
 // Pipeline: SAM 3.1 -> Muse Spark (full listing) -> Muse Image (studio for first item)
 // POST { imageUrl, prompt, lang, country, currency }
+// Paid-endpoint guard: generous per-IP sliding window (15 runs / 10 min).
+// Bots and scanners burn credits one full pipeline per hit — this stops the
+// hammering while a human judge never notices it. Every call is logged with
+// IP + agent so the owner can see WHO spends in Vercel → Logs.
+const LENS_HITS = new Map<string, number[]>();
 export async function POST(req: NextRequest) {
   try {
+    const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown";
+    const ua = req.headers.get("user-agent") ?? "";
+    const bucket = ip === "unknown" ? ua.slice(0, 60) || "unknown" : ip;
+    if (isRateLimited(LENS_HITS, bucket, Date.now(), 15, 10 * 60 * 1000)) {
+      console.log(`[lens-blocked] ip=${ip} ua=${ua.slice(0, 90)}`);
+      return NextResponse.json({
+        ok: false,
+        code: "RATE_LIMITED",
+        error: "طلبات كثيرة جدًا من نفس المصدر — انتظر دقائق ثم أعد المحاولة. / Too many requests from this source — wait a few minutes and retry.",
+      }, { status: 429 });
+    }
     const body = await req.json();
     const rawUrl = body.imageUrl as string;
     const { prompt = "market goods", lang = "ar-EG", country = "EG", currency = "EGP", focus = "" } = body;
+    console.log(`[lens] ip=${ip} ua=${ua.slice(0, 90)} img=${typeof rawUrl === "string" && rawUrl.startsWith("data:") ? "data-uri" : String(rawUrl).slice(0, 80)}`);
     const focusStr = typeof focus === "string" ? focus : "";
     if (!rawUrl || typeof rawUrl !== "string") return NextResponse.json({ error: "imageUrl required" }, { status: 400 });
     // Local brand assets only resolve for Meta when the deployment origin is public.
