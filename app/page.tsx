@@ -214,7 +214,16 @@ export default function Page() {
       const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
       const isBot = /bot|crawl|spider|slurp|mediapartners|baidu|yandex|sogou|exabot|facebot|ia_archiver|headless|puppeteer|playwright|phantomjs|selenium|webdriver/i.test(ua);
       if (!isBot) {
-        postJson("/api/lens", { imageUrl: autoImg, prompt: autoPrompt, lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
+        // Mobile: NO auto-run — a phone load would burn a full paid pipeline
+        // on a metered connection without consent. Scroll straight to the
+        // analysis section instead; the seller taps once when ready.
+        let coarseMobile = false;
+        try { coarseMobile = window.matchMedia("(max-width: 767px)").matches || window.innerWidth < 768; } catch { /* desktop fallback */ }
+        if (coarseMobile) {
+          setTimeout(() => document.getElementById("analyze-section")?.scrollIntoView({ behavior: "smooth", block: "start" }), 600);
+        } else {
+          postJson("/api/lens", { imageUrl: autoImg, prompt: autoPrompt, lang: l === "ar" ? "ar-EG" : "en", country: c.code, currency: c.currency });
+        }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -719,7 +728,7 @@ export default function Page() {
             </TabsList>
           ) : null}
 
-          <TabsContent value="analyze">
+          <TabsContent value="analyze" id="analyze-section" className="scroll-mt-20">
             <InputCard title={ar ? "تحليل صورة سوق" : "Analyze a market photo"} desc={ar ? "ارفع صورة أو الصق رابط — SAM يعزل، Spark يكتب الإعلان كامل، وMuse Image ينضف صورة المنتج." : "Upload or paste a link — SAM segments, Spark writes the full listing, Muse Image cleans the shot."} icon={<Camera className="text-primary" />} steps={HOW.analyze[lang]} lang={lang}>
               <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
                 <div className="space-y-3">
